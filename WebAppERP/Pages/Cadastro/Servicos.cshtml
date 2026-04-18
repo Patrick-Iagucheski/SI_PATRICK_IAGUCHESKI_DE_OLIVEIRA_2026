@@ -1,0 +1,195 @@
+@page
+@model WebAppERP.Pages.Cadastro.ServicosModel
+@{
+    ViewData["Title"] = "Servicos";
+}
+
+<div class="d-flex justify-content-between align-items-start mb-4">
+    <div>
+        <h1 class="page-title">Servicos</h1>
+        <p class="page-subtitle">Gerencie os servicos oferecidos pela barbearia</p>
+    </div>
+    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#modalServico" onclick="limparForm()">
+        <i class="bi bi-plus-lg me-1"></i> Novo Servico
+    </button>
+</div>
+
+<!-- Filtros -->
+<div class="card mb-3">
+    <div class="card-body py-2">
+        <div class="row g-2 align-items-center">
+            <div class="col-md-4">
+                <div class="search-box">
+                    <i class="bi bi-search search-icon"></i>
+                    <input type="text" class="form-control" placeholder="Buscar servico..." id="searchInput" />
+                </div>
+            </div>
+            <div class="col-md-2">
+                <select class="form-select" id="filterStatus">
+                    <option value="">Todos</option>
+                    <option value="ativo">Ativo</option>
+                    <option value="inativo">Inativo</option>
+                </select>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Cards de Servicos -->
+<div class="row g-3 mb-4" id="servicosContainer">
+    @if (Model.Servicos.Any())
+    {
+        @foreach (var s in Model.Servicos)
+        {
+            var badgeCat = s.DsCategoria?.ToLower() switch
+            {
+                "corte" => "bg-primary bg-opacity-10 text-primary",
+                "barba" => "bg-success bg-opacity-10 text-success",
+                "combo" => "bg-warning bg-opacity-10 text-warning",
+                "tratamento" => "bg-info bg-opacity-10 text-info",
+                _ => "bg-secondary bg-opacity-10 text-secondary"
+            };
+            <div class="col-xl-3 col-md-6 servico-card" data-status="@(s.FlAtivo ? "ativo" : "inativo")">
+                <div class="card h-100">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-start mb-2">
+                            <span class="badge @badgeCat">@(s.DsCategoria ?? "Geral")</span>
+                            @if (s.FlAtivo)
+                            {
+                                <span class="badge-status badge-ativo">Ativo</span>
+                            }
+                            else
+                            {
+                                <span class="badge-status badge-inativo">Inativo</span>
+                            }
+                        </div>
+                        <h6 class="fw-bold mt-2">@s.DsServico</h6>
+                        <p class="text-muted small mb-2">@(s.DsDescricao ?? "Sem descricao")</p>
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <span class="fw-bold text-primary fs-5">R$ @s.VlServico.ToString("N2")</span>
+                                @if (s.NrDuracaoMin.HasValue)
+                                {
+                                    <span class="text-muted small ms-2"><i class="bi bi-clock"></i> @s.NrDuracaoMin min</span>
+                                }
+                            </div>
+                            <div>
+                                <button class="btn btn-icon btn-outline-primary btn-sm" title="Editar"
+                                        data-bs-toggle="modal" data-bs-target="#modalServico"
+                                        onclick="editarServico(@s.IdServico,'@s.DsServico.Replace("'", "\\'")','@s.DsDescricao?.Replace("'", "\\'")','@s.VlServico.ToString("F2")','@(s.NrDuracaoMin?.ToString() ?? "")','@s.DsCategoria','@s.FlAtivo')">
+                                    <i class="bi bi-pencil"></i>
+                                </button>
+                                <form method="post" asp-page-handler="Delete" class="d-inline" onsubmit="return confirm('Deseja excluir este servico?')">
+                                    <input type="hidden" name="id" value="@s.IdServico" />
+                                    <button type="submit" class="btn btn-icon btn-outline-danger btn-sm" title="Excluir">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
+    }
+    else
+    {
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body text-center text-muted py-5">
+                    <i class="bi bi-card-checklist fs-1 d-block mb-2"></i>
+                    Nenhum servico cadastrado. Clique em "Novo Servico" para comecar.
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+<!-- Modal -->
+<div class="modal fade" id="modalServico" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form method="post">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="modalTitle"><i class="bi bi-card-checklist me-2"></i>Novo Servico</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <input type="hidden" asp-for="ServicoForm.IdServico" id="sId" />
+                    <div class="row g-3">
+                        <div class="col-12">
+                            <label class="form-label">Nome do Servico *</label>
+                            <input type="text" class="form-control" asp-for="ServicoForm.DsServico" id="sNome" required />
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label">Descricao</label>
+                            <textarea class="form-control" rows="2" asp-for="ServicoForm.DsDescricao" id="sDesc"></textarea>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Valor (R$) *</label>
+                            <input type="number" class="form-control" asp-for="ServicoForm.VlServico" id="sValor" step="0.01" required />
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Duracao (min)</label>
+                            <input type="number" class="form-control" asp-for="ServicoForm.NrDuracaoMin" id="sDuracao" />
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Categoria</label>
+                            <select class="form-select" asp-for="ServicoForm.DsCategoria" id="sCat">
+                                <option value="">Selecione</option>
+                                <option value="Corte">Corte</option>
+                                <option value="Barba">Barba</option>
+                                <option value="Combo">Combo</option>
+                                <option value="Tratamento">Tratamento</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Status</label>
+                            <select class="form-select" asp-for="ServicoForm.FlAtivo" id="sAtivo">
+                                <option value="true">Ativo</option>
+                                <option value="false">Inativo</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary"><i class="bi bi-check-lg me-1"></i>Salvar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        document.getElementById('searchInput')?.addEventListener('input', function () {
+            const filter = this.value.toLowerCase();
+            document.querySelectorAll('.servico-card').forEach(card => {
+                card.style.display = card.textContent.toLowerCase().includes(filter) ? '' : 'none';
+            });
+        });
+
+        function limparForm() {
+            document.getElementById('modalTitle').innerHTML = '<i class="bi bi-card-checklist me-2"></i>Novo Servico';
+            document.getElementById('sId').value = '0';
+            document.getElementById('sNome').value = '';
+            document.getElementById('sDesc').value = '';
+            document.getElementById('sValor').value = '';
+            document.getElementById('sDuracao').value = '';
+            document.getElementById('sCat').value = '';
+            document.getElementById('sAtivo').value = 'true';
+        }
+
+        function editarServico(id, nome, desc, valor, duracao, cat, ativo) {
+            document.getElementById('modalTitle').innerHTML = '<i class="bi bi-pencil me-2"></i>Editar Servico';
+            document.getElementById('sId').value = id;
+            document.getElementById('sNome').value = nome;
+            document.getElementById('sDesc').value = desc;
+            document.getElementById('sValor').value = valor;
+            document.getElementById('sDuracao').value = duracao;
+            document.getElementById('sCat').value = cat;
+            document.getElementById('sAtivo').value = ativo === 'True' ? 'true' : 'false';
+        }
+    </script>
+}

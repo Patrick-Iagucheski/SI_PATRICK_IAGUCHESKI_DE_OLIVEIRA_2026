@@ -1,0 +1,242 @@
+@page
+@model WebAppERP.Pages.Cadastro.FuncionariosModel
+@{
+    ViewData["Title"] = "Funcionarios";
+}
+
+<div class="d-flex justify-content-between align-items-start mb-4">
+    <div>
+        <h1 class="page-title">Funcionarios</h1>
+        <p class="page-subtitle">Gerencie os profissionais da barbearia</p>
+    </div>
+    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#modalFuncionario" onclick="limparForm()">
+        <i class="bi bi-plus-lg me-1"></i> Novo Funcionario
+    </button>
+</div>
+
+<!-- Filtros -->
+<div class="card mb-3">
+    <div class="card-body py-2">
+        <div class="row g-2 align-items-center">
+            <div class="col-md-4">
+                <div class="search-box">
+                    <i class="bi bi-search search-icon"></i>
+                    <input type="text" class="form-control" placeholder="Buscar por nome ou cargo..." id="searchInput" />
+                </div>
+            </div>
+            <div class="col-md-2">
+                <select class="form-select" id="filterStatus">
+                    <option value="">Todos os Status</option>
+                    <option value="ativo">Ativo</option>
+                    <option value="inativo">Inativo</option>
+                </select>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Tabela -->
+<div class="table-container">
+    <div class="table-header">
+        <h5><i class="bi bi-person-badge-fill me-2"></i>Lista de Funcionarios</h5>
+        <span class="text-muted small">@Model.Funcionarios.Count registros encontrados</span>
+    </div>
+    <div class="table-responsive">
+        <table class="table" id="tblFuncionarios">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Nome</th>
+                    <th>CPF</th>
+                    <th>Cargo</th>
+                    <th>Telefone</th>
+                    <th>Admissao</th>
+                    <th>Comissao</th>
+                    <th>Status</th>
+                    <th class="text-center">Acoes</th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (Model.Funcionarios.Any())
+                {
+                    @foreach (var f in Model.Funcionarios)
+                    {
+                        <tr>
+                            <td>@f.IdFuncionario</td>
+                            <td><strong>@f.NmFuncionario</strong></td>
+                            <td>@f.NrCpf</td>
+                            <td>@f.DsCargo</td>
+                            <td>@(f.NrTelefone ?? "-")</td>
+                            <td>@f.DtAdmissao.ToString("dd/MM/yyyy")</td>
+                            <td>@(f.VlComissao.HasValue ? $"{f.VlComissao}%" : "-")</td>
+                            <td>
+                                @if (f.FlAtivo)
+                                {
+                                    <span class="badge-status badge-ativo">Ativo</span>
+                                }
+                                else
+                                {
+                                    <span class="badge-status badge-inativo">Inativo</span>
+                                }
+                            </td>
+                            <td class="text-center">
+                                <button class="btn btn-icon btn-outline-primary" title="Editar"
+                                        data-bs-toggle="modal" data-bs-target="#modalFuncionario"
+                                        onclick="editarFunc(@f.IdFuncionario,'@f.NmFuncionario.Replace("'", "\\'")','@f.NrCpf','@f.NrTelefone','@f.DsEmail','@f.DsEndereco?.Replace("'", "\\'")','@f.DsBairro?.Replace("'", "\\'")','@(f.IdCidade?.ToString() ?? "")','@f.NrCEP','@(f.DtNascimento?.ToString("yyyy-MM-dd") ?? "")','@f.DtAdmissao.ToString("yyyy-MM-dd")','@(f.DtDemissao?.ToString("yyyy-MM-dd") ?? "")','@f.DsCargo.Replace("'", "\\'")','@(f.VlSalario?.ToString("F2") ?? "")','@(f.VlComissao?.ToString("F2") ?? "")','@f.DsObservacao?.Replace("'", "\\'")','@f.FlAtivo')">
+                                    <i class="bi bi-pencil"></i>
+                                </button>
+                                <form method="post" asp-page-handler="Delete" class="d-inline" onsubmit="return confirm('Deseja realmente excluir este funcionario?')">
+                                    <input type="hidden" name="id" value="@f.IdFuncionario" />
+                                    <button type="submit" class="btn btn-icon btn-outline-danger" title="Excluir">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </form>
+                            </td>
+                        </tr>
+                    }
+                }
+                else
+                {
+                    <tr><td colspan="9" class="text-center text-muted py-4">Nenhum funcionario cadastrado</td></tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Modal -->
+<div class="modal fade" id="modalFuncionario" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <form method="post">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="modalTitle"><i class="bi bi-person-badge me-2"></i>Novo Funcionario</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <input type="hidden" asp-for="FuncionarioForm.IdFuncionario" id="fId" />
+                    <div class="row g-3">
+                        <div class="col-md-8">
+                            <label class="form-label">Nome Completo *</label>
+                            <input type="text" class="form-control" asp-for="FuncionarioForm.NmFuncionario" id="fNome" required />
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">CPF *</label>
+                            <input type="text" class="form-control" asp-for="FuncionarioForm.NrCpf" id="fCpf" required />
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Telefone</label>
+                            <input type="text" class="form-control" asp-for="FuncionarioForm.NrTelefone" id="fTel" />
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">E-mail</label>
+                            <input type="email" class="form-control" asp-for="FuncionarioForm.DsEmail" id="fEmail" />
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Data de Nascimento</label>
+                            <input type="date" class="form-control" asp-for="FuncionarioForm.DtNascimento" id="fNasc" />
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Cargo *</label>
+                            <input type="text" class="form-control" asp-for="FuncionarioForm.DsCargo" id="fCargo" required />
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Data de Admissao *</label>
+                            <input type="date" class="form-control" asp-for="FuncionarioForm.DtAdmissao" id="fAdm" required />
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Data de Demissao</label>
+                            <input type="date" class="form-control" asp-for="FuncionarioForm.DtDemissao" id="fDem" />
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Salario (R$)</label>
+                            <input type="number" class="form-control" asp-for="FuncionarioForm.VlSalario" id="fSal" step="0.01" />
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Comissao (%)</label>
+                            <input type="number" class="form-control" asp-for="FuncionarioForm.VlComissao" id="fCom" step="0.01" />
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">CEP</label>
+                            <input type="text" class="form-control" asp-for="FuncionarioForm.NrCEP" id="fCep" />
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Status</label>
+                            <select class="form-select" asp-for="FuncionarioForm.FlAtivo" id="fAtivo">
+                                <option value="true">Ativo</option>
+                                <option value="false">Inativo</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Endereco</label>
+                            <input type="text" class="form-control" asp-for="FuncionarioForm.DsEndereco" id="fEnd" />
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Bairro</label>
+                            <input type="text" class="form-control" asp-for="FuncionarioForm.DsBairro" id="fBairro" />
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Cidade</label>
+                            <select class="form-select" asp-for="FuncionarioForm.IdCidade" id="fCidade">
+                                <option value="">Selecione</option>
+                                @foreach (var cidade in Model.Cidades)
+                                {
+                                    <option value="@cidade.IdCidade">@cidade.NmCidade / @cidade.Estado?.SgUF</option>
+                                }
+                            </select>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label">Observacoes</label>
+                            <textarea class="form-control" rows="2" asp-for="FuncionarioForm.DsObservacao" id="fObs"></textarea>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary"><i class="bi bi-check-lg me-1"></i>Salvar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        document.getElementById('searchInput')?.addEventListener('input', function () {
+            const filter = this.value.toLowerCase();
+            document.querySelectorAll('#tblFuncionarios tbody tr').forEach(row => {
+                row.style.display = row.textContent.toLowerCase().includes(filter) ? '' : 'none';
+            });
+        });
+
+        function limparForm() {
+            document.getElementById('modalTitle').innerHTML = '<i class="bi bi-person-badge me-2"></i>Novo Funcionario';
+            ['fId','fNome','fCpf','fTel','fEmail','fEnd','fBairro','fCidade','fCep','fNasc','fAdm','fDem','fCargo','fSal','fCom','fObs'].forEach(id => {
+                document.getElementById(id).value = '';
+            });
+            document.getElementById('fId').value = '0';
+            document.getElementById('fAtivo').value = 'true';
+        }
+
+        function editarFunc(id,nome,cpf,tel,email,end,bairro,cidade,cep,nasc,adm,dem,cargo,sal,com,obs,ativo) {
+            document.getElementById('modalTitle').innerHTML = '<i class="bi bi-pencil me-2"></i>Editar Funcionario';
+            document.getElementById('fId').value = id;
+            document.getElementById('fNome').value = nome;
+            document.getElementById('fCpf').value = cpf;
+            document.getElementById('fTel').value = tel;
+            document.getElementById('fEmail').value = email;
+            document.getElementById('fEnd').value = end;
+            document.getElementById('fBairro').value = bairro;
+            document.getElementById('fCidade').value = cidade;
+            document.getElementById('fCep').value = cep;
+            document.getElementById('fNasc').value = nasc;
+            document.getElementById('fAdm').value = adm;
+            document.getElementById('fDem').value = dem;
+            document.getElementById('fCargo').value = cargo;
+            document.getElementById('fSal').value = sal;
+            document.getElementById('fCom').value = com;
+            document.getElementById('fObs').value = obs;
+            document.getElementById('fAtivo').value = ativo === 'True' ? 'true' : 'false';
+        }
+    </script>
+}
