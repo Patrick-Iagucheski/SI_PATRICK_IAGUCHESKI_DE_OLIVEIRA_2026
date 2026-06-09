@@ -45,6 +45,44 @@
                         <span>Servicos</span>
                     </a>
                 </li>
+                <li class="sidebar-item">
+                    <a class="sidebar-link @(ViewContext.RouteData.Values["page"]?.ToString() == "/Cadastro/Fornecedores" ? "active" : "")" asp-page="/Cadastro/Fornecedores">
+                        <i class="bi bi-truck"></i>
+                        <span>Fornecedores</span>
+                    </a>
+                </li>
+                <li class="sidebar-item">
+                    <a class="sidebar-link @(ViewContext.RouteData.Values["page"]?.ToString() == "/Cadastro/Transportadores" ? "active" : "")" asp-page="/Cadastro/Transportadores">
+                        <i class="bi bi-truck-front"></i>
+                        <span>Transportadores</span>
+                    </a>
+                </li>
+                <li class="sidebar-item">
+                    <a class="sidebar-link @(ViewContext.RouteData.Values["page"]?.ToString() == "/Cadastro/Veiculos" ? "active" : "")" asp-page="/Cadastro/Veiculos">
+                        <i class="bi bi-truck-flatbed"></i>
+                        <span>Veiculos</span>
+                    </a>
+                </li>
+                <li class="sidebar-divider"></li>
+                <li class="sidebar-heading">Localidades</li>
+                <li class="sidebar-item">
+                    <a class="sidebar-link @(ViewContext.RouteData.Values["page"]?.ToString() == "/Cadastro/Paises" ? "active" : "")" asp-page="/Cadastro/Paises">
+                        <i class="bi bi-globe-americas"></i>
+                        <span>Paises</span>
+                    </a>
+                </li>
+                <li class="sidebar-item">
+                    <a class="sidebar-link @(ViewContext.RouteData.Values["page"]?.ToString() == "/Cadastro/Estados" ? "active" : "")" asp-page="/Cadastro/Estados">
+                        <i class="bi bi-map"></i>
+                        <span>Estados</span>
+                    </a>
+                </li>
+                <li class="sidebar-item">
+                    <a class="sidebar-link @(ViewContext.RouteData.Values["page"]?.ToString() == "/Cadastro/Cidades" ? "active" : "")" asp-page="/Cadastro/Cidades">
+                        <i class="bi bi-building"></i>
+                        <span>Cidades</span>
+                    </a>
+                </li>
                 <li class="sidebar-divider"></li>
                 <li class="sidebar-heading">Operacional</li>
                 <li class="sidebar-item">

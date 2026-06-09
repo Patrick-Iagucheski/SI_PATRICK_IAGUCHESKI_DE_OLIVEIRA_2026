@@ -1,0 +1,181 @@
+@page
+@model WebAppERP.Pages.Cadastro.TransportadoresModel
+@{
+    ViewData["Title"] = "Transportadores";
+}
+
+<div class="d-flex justify-content-between align-items-start mb-4">
+    <div>
+        <h1 class="page-title">Transportadores</h1>
+        <p class="page-subtitle">Gerencie os transportadores cadastrados no sistema</p>
+    </div>
+    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#modalTransportador" onclick="limparForm()">
+        <i class="bi bi-plus-lg me-1"></i> Novo Transportador
+    </button>
+</div>
+
+<!-- Filtros -->
+<div class="card mb-3">
+    <div class="card-body py-2">
+        <div class="row g-2 align-items-center">
+            <div class="col-md-4">
+                <div class="search-box">
+                    <i class="bi bi-search search-icon"></i>
+                    <input type="text" class="form-control" placeholder="Buscar por razao social ou CPF/CNPJ..." id="searchInput" />
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Tabela -->
+<div class="table-container">
+    <div class="table-header">
+        <h5><i class="bi bi-truck-front me-2"></i>Lista de Transportadores</h5>
+        <span class="text-muted small">@Model.Transportadores.Count registros encontrados</span>
+    </div>
+    <div class="table-responsive">
+        <table class="table" id="tblTransportadores">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Razao Social</th>
+                    <th>CPF/CNPJ</th>
+                    <th>Endereco</th>
+                    <th>Cidade</th>
+                    <th>Insc. Estadual</th>
+                    <th class="text-center">Acoes</th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (Model.Transportadores.Any())
+                {
+                    @foreach (var t in Model.Transportadores)
+                    {
+                        <tr>
+                            <td>@t.IdTransportador</td>
+                            <td><strong>@(t.DsRazaoSocial ?? "-")</strong></td>
+                            <td>@(t.NrCpfCnpj ?? "-")</td>
+                            <td>@(t.DsEndereco ?? "-")</td>
+                            <td>@(t.Cidade != null ? $"{t.Cidade.NmCidade}/{t.Cidade.Estado?.SgUF}" : "-")</td>
+                            <td>@(t.NrInscEstadual ?? "-")</td>
+                            <td class="text-center">
+                                <button class="btn btn-icon btn-outline-primary" title="Editar"
+                                        data-bs-toggle="modal" data-bs-target="#modalTransportador"
+                                        onclick="editarTransportador(@t.IdTransportador, '@t.DsRazaoSocial?.Replace("'", "\\'")','@t.NrCpfCnpj','@t.DsEndereco?.Replace("'", "\\'")','@(t.IdCidade?.ToString() ?? "")','@t.NrInscEstadual')">
+                                    <i class="bi bi-pencil"></i>
+                                </button>
+                                <form method="post" asp-page-handler="Delete" class="d-inline" onsubmit="return confirm('Deseja realmente excluir este transportador?')">
+                                    <input type="hidden" name="id" value="@t.IdTransportador" />
+                                    <button type="submit" class="btn btn-icon btn-outline-danger" title="Excluir">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </form>
+                            </td>
+                        </tr>
+                    }
+                }
+                else
+                {
+                    <tr><td colspan="7" class="text-center text-muted py-4">Nenhum transportador cadastrado</td></tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Modal Novo/Editar Transportador -->
+<div class="modal fade" id="modalTransportador" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <form method="post">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="modalTitle"><i class="bi bi-truck-front me-2"></i>Novo Transportador</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <input type="hidden" asp-for="TransportadorForm.IdTransportador" id="formIdTransportador" />
+                    <div class="row g-3">
+                        <div class="col-md-8">
+                            <label class="form-label">Razao Social</label>
+                            <input type="text" class="form-control" asp-for="TransportadorForm.DsRazaoSocial" id="formDsRazaoSocial" />
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">CPF / CNPJ</label>
+                            <input type="text" class="form-control" asp-for="TransportadorForm.NrCpfCnpj" id="formNrCpfCnpj" maxlength="18" placeholder="000.000.000-00" />
+                        </div>
+                        <div class="col-md-8">
+                            <label class="form-label">Endereco</label>
+                            <input type="text" class="form-control" asp-for="TransportadorForm.DsEndereco" id="formDsEndereco" />
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Cidade</label>
+                            <select class="form-select" asp-for="TransportadorForm.IdCidade" id="formIdCidade">
+                                <option value="">Selecione a cidade</option>
+                                @foreach (var cidade in Model.Cidades)
+                                {
+                                    <option value="@cidade.IdCidade">@cidade.NmCidade / @cidade.Estado?.SgUF</option>
+                                }
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Inscricao Estadual</label>
+                            <input type="text" class="form-control" asp-for="TransportadorForm.NrInscEstadual" id="formNrInscEstadual" maxlength="20" />
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary"><i class="bi bi-check-lg me-1"></i>Salvar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        document.getElementById('searchInput')?.addEventListener('input', function () {
+            const filter = this.value.toLowerCase();
+            document.querySelectorAll('#tblTransportadores tbody tr').forEach(row => {
+                row.style.display = row.textContent.toLowerCase().includes(filter) ? '' : 'none';
+            });
+        });
+
+        // Mascara dinamica CPF (<= 11 digitos) ou CNPJ (> 11 digitos)
+        function mascaraCpfCnpj(v) {
+            v = v.replace(/\D/g, '').slice(0, 14);
+            if (v.length <= 11) {
+                return v.replace(/^(\d{3})(\d)/, '$1.$2')
+                        .replace(/^(\d{3})\.(\d{3})(\d)/, '$1.$2.$3')
+                        .replace(/\.(\d{3})(\d)/, '.$1-$2');
+            }
+            return v.replace(/^(\d{2})(\d)/, '$1.$2')
+                    .replace(/^(\d{2})\.(\d{3})(\d)/, '$1.$2.$3')
+                    .replace(/\.(\d{3})(\d)/, '.$1/$2')
+                    .replace(/(\d{4})(\d)/, '$1-$2');
+        }
+        const elDoc = document.getElementById('formNrCpfCnpj');
+        elDoc?.addEventListener('input', () => { elDoc.value = mascaraCpfCnpj(elDoc.value); });
+
+        function limparForm() {
+            document.getElementById('modalTitle').innerHTML = '<i class="bi bi-truck-front me-2"></i>Novo Transportador';
+            document.getElementById('formIdTransportador').value = '0';
+            document.getElementById('formDsRazaoSocial').value = '';
+            document.getElementById('formNrCpfCnpj').value = '';
+            document.getElementById('formDsEndereco').value = '';
+            document.getElementById('formIdCidade').value = '';
+            document.getElementById('formNrInscEstadual').value = '';
+        }
+
+        function editarTransportador(id, razao, doc, end, cidade, ie) {
+            document.getElementById('modalTitle').innerHTML = '<i class="bi bi-pencil me-2"></i>Editar Transportador';
+            document.getElementById('formIdTransportador').value = id;
+            document.getElementById('formDsRazaoSocial').value = razao;
+            document.getElementById('formNrCpfCnpj').value = doc;
+            document.getElementById('formDsEndereco').value = end;
+            document.getElementById('formIdCidade').value = cidade;
+            document.getElementById('formNrInscEstadual').value = ie;
+        }
+    </script>
+}

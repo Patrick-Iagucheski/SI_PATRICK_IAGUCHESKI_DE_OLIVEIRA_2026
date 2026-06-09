@@ -17,4 +17,7 @@ public class AppDbContext : DbContext
     public DbSet<OpeAgendamento> Agendamentos => Set<OpeAgendamento>();
     public DbSet<OpeVenda> Vendas => Set<OpeVenda>();
     public DbSet<FinFormaPagamento> FormasPagamento => Set<FinFormaPagamento>();
+    public DbSet<GerFornecedor> Fornecedores => Set<GerFornecedor>();
+    public DbSet<GerTransportador> Transportadores => Set<GerTransportador>();
+    public DbSet<GerVeiculo> Veiculos => Set<GerVeiculo>();
 }

@@ -1,0 +1,160 @@
+@page
+@model WebAppERP.Pages.Cadastro.CidadesModel
+@{
+    ViewData["Title"] = "Cidades";
+}
+
+<div class="d-flex justify-content-between align-items-start mb-4">
+    <div>
+        <h1 class="page-title">Cidades</h1>
+        <p class="page-subtitle">Gerencie as cidades cadastradas no sistema</p>
+    </div>
+    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#modalCidade" onclick="limparForm()">
+        <i class="bi bi-plus-lg me-1"></i> Nova Cidade
+    </button>
+</div>
+
+<!-- Filtros -->
+<div class="card mb-3">
+    <div class="card-body py-2">
+        <div class="row g-2 align-items-center">
+            <div class="col-md-4">
+                <div class="search-box">
+                    <i class="bi bi-search search-icon"></i>
+                    <input type="text" class="form-control" placeholder="Buscar por nome da cidade..." id="searchInput" />
+                </div>
+            </div>
+            <div class="col-md-3">
+                <select class="form-select" id="filterEstado">
+                    <option value="">Todos os Estados</option>
+                    @foreach (var estado in Model.Estados)
+                    {
+                        <option value="@estado.SgUF">@estado.NmEstado</option>
+                    }
+                </select>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Tabela -->
+<div class="table-container">
+    <div class="table-header">
+        <h5><i class="bi bi-building me-2"></i>Lista de Cidades</h5>
+        <span class="text-muted small">@Model.Cidades.Count registros encontrados</span>
+    </div>
+    <div class="table-responsive">
+        <table class="table" id="tblCidades">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Nome</th>
+                    <th>Estado</th>
+                    <th>UF</th>
+                    <th>Ultima Edicao</th>
+                    <th class="text-center">Acoes</th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (Model.Cidades.Any())
+                {
+                    @foreach (var c in Model.Cidades)
+                    {
+                        <tr data-uf="@c.Estado?.SgUF">
+                            <td>@c.IdCidade</td>
+                            <td><strong>@c.NmCidade</strong></td>
+                            <td>@(c.Estado?.NmEstado ?? "-")</td>
+                            <td>@(c.Estado?.SgUF ?? "-")</td>
+                            <td>@(c.DtEdicao?.ToString("dd/MM/yyyy HH:mm") ?? "-")</td>
+                            <td class="text-center">
+                                <button class="btn btn-icon btn-outline-primary" title="Editar"
+                                        data-bs-toggle="modal" data-bs-target="#modalCidade"
+                                        onclick="editarCidade(@c.IdCidade, '@c.NmCidade.Replace("'", "\\'")','@c.IdEstado')">
+                                    <i class="bi bi-pencil"></i>
+                                </button>
+                                <form method="post" asp-page-handler="Delete" class="d-inline" onsubmit="return confirm('Deseja realmente excluir esta cidade?')">
+                                    <input type="hidden" name="id" value="@c.IdCidade" />
+                                    <button type="submit" class="btn btn-icon btn-outline-danger" title="Excluir">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </form>
+                            </td>
+                        </tr>
+                    }
+                }
+                else
+                {
+                    <tr><td colspan="6" class="text-center text-muted py-4">Nenhuma cidade cadastrada</td></tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Modal Nova/Editar Cidade -->
+<div class="modal fade" id="modalCidade" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form method="post">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="modalTitle"><i class="bi bi-building me-2"></i>Nova Cidade</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <input type="hidden" asp-for="CidadeForm.IdCidade" id="formIdCidade" />
+                    <div class="row g-3">
+                        <div class="col-12">
+                            <label class="form-label">Nome da Cidade *</label>
+                            <input type="text" class="form-control" asp-for="CidadeForm.NmCidade" id="formNmCidade" required />
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label">Estado *</label>
+                            <select class="form-select" asp-for="CidadeForm.IdEstado" id="formIdEstado" required>
+                                <option value="">Selecione o estado</option>
+                                @foreach (var estado in Model.Estados)
+                                {
+                                    <option value="@estado.IdEstado">@estado.NmEstado / @estado.SgUF</option>
+                                }
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary"><i class="bi bi-check-lg me-1"></i>Salvar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        function aplicarFiltros() {
+            const texto = document.getElementById('searchInput').value.toLowerCase();
+            const uf = document.getElementById('filterEstado').value;
+            document.querySelectorAll('#tblCidades tbody tr').forEach(row => {
+                const matchTexto = row.textContent.toLowerCase().includes(texto);
+                const matchUf = !uf || row.getAttribute('data-uf') === uf;
+                row.style.display = (matchTexto && matchUf) ? '' : 'none';
+            });
+        }
+
+        document.getElementById('searchInput')?.addEventListener('input', aplicarFiltros);
+        document.getElementById('filterEstado')?.addEventListener('change', aplicarFiltros);
+
+        function limparForm() {
+            document.getElementById('modalTitle').innerHTML = '<i class="bi bi-building me-2"></i>Nova Cidade';
+            document.getElementById('formIdCidade').value = '0';
+            document.getElementById('formNmCidade').value = '';
+            document.getElementById('formIdEstado').value = '';
+        }
+
+        function editarCidade(id, nome, idEstado) {
+            document.getElementById('modalTitle').innerHTML = '<i class="bi bi-pencil me-2"></i>Editar Cidade';
+            document.getElementById('formIdCidade').value = id;
+            document.getElementById('formNmCidade').value = nome;
+            document.getElementById('formIdEstado').value = idEstado;
+        }
+    </script>
+}

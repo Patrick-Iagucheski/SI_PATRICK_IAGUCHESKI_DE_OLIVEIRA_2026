@@ -1,0 +1,151 @@
+@page
+@model WebAppERP.Pages.Cadastro.PaisesModel
+@{
+    ViewData["Title"] = "Paises";
+}
+
+<div class="d-flex justify-content-between align-items-start mb-4">
+    <div>
+        <h1 class="page-title">Paises</h1>
+        <p class="page-subtitle">Gerencie os paises cadastrados no sistema</p>
+    </div>
+    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#modalPais" onclick="limparForm()">
+        <i class="bi bi-plus-lg me-1"></i> Novo Pais
+    </button>
+</div>
+
+<!-- Filtros -->
+<div class="card mb-3">
+    <div class="card-body py-2">
+        <div class="row g-2 align-items-center">
+            <div class="col-md-4">
+                <div class="search-box">
+                    <i class="bi bi-search search-icon"></i>
+                    <input type="text" class="form-control" placeholder="Buscar por nome ou sigla..." id="searchInput" />
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Tabela -->
+<div class="table-container">
+    <div class="table-header">
+        <h5><i class="bi bi-globe-americas me-2"></i>Lista de Paises</h5>
+        <span class="text-muted small">@Model.Paises.Count registros encontrados</span>
+    </div>
+    <div class="table-responsive">
+        <table class="table" id="tblPaises">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Nome</th>
+                    <th>Sigla</th>
+                    <th>DDI</th>
+                    <th>Moeda</th>
+                    <th class="text-center">Acoes</th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (Model.Paises.Any())
+                {
+                    @foreach (var p in Model.Paises)
+                    {
+                        <tr>
+                            <td>@p.IdPais</td>
+                            <td><strong>@p.NmPais</strong></td>
+                            <td>@p.SgPais</td>
+                            <td>@(p.NrDDI ?? "-")</td>
+                            <td>@(p.DsMoeda ?? "-")</td>
+                            <td class="text-center">
+                                <button class="btn btn-icon btn-outline-primary" title="Editar"
+                                        data-bs-toggle="modal" data-bs-target="#modalPais"
+                                        onclick="editarPais(@p.IdPais, '@p.NmPais.Replace("'", "\\'")','@p.SgPais','@p.NrDDI','@p.DsMoeda?.Replace("'", "\\'")')">
+                                    <i class="bi bi-pencil"></i>
+                                </button>
+                                <form method="post" asp-page-handler="Delete" class="d-inline" onsubmit="return confirm('Deseja realmente excluir este pais?')">
+                                    <input type="hidden" name="id" value="@p.IdPais" />
+                                    <button type="submit" class="btn btn-icon btn-outline-danger" title="Excluir">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </form>
+                            </td>
+                        </tr>
+                    }
+                }
+                else
+                {
+                    <tr><td colspan="6" class="text-center text-muted py-4">Nenhum pais cadastrado</td></tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Modal Novo/Editar Pais -->
+<div class="modal fade" id="modalPais" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form method="post">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="modalTitle"><i class="bi bi-globe-americas me-2"></i>Novo Pais</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <input type="hidden" asp-for="PaisForm.IdPais" id="formIdPais" />
+                    <div class="row g-3">
+                        <div class="col-md-8">
+                            <label class="form-label">Nome do Pais *</label>
+                            <input type="text" class="form-control" asp-for="PaisForm.NmPais" id="formNmPais" required />
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Sigla *</label>
+                            <input type="text" class="form-control" asp-for="PaisForm.SgPais" id="formSgPais" maxlength="5" placeholder="BR" required />
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">DDI</label>
+                            <input type="text" class="form-control" asp-for="PaisForm.NrDDI" id="formNrDDI" maxlength="5" placeholder="+55" />
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Moeda</label>
+                            <input type="text" class="form-control" asp-for="PaisForm.DsMoeda" id="formDsMoeda" placeholder="Real" />
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary"><i class="bi bi-check-lg me-1"></i>Salvar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        document.getElementById('searchInput')?.addEventListener('input', function () {
+            const filter = this.value.toLowerCase();
+            document.querySelectorAll('#tblPaises tbody tr').forEach(row => {
+                row.style.display = row.textContent.toLowerCase().includes(filter) ? '' : 'none';
+            });
+        });
+
+        function limparForm() {
+            document.getElementById('modalTitle').innerHTML = '<i class="bi bi-globe-americas me-2"></i>Novo Pais';
+            document.getElementById('formIdPais').value = '0';
+            document.getElementById('formNmPais').value = '';
+            document.getElementById('formSgPais').value = '';
+            document.getElementById('formNrDDI').value = '';
+            document.getElementById('formDsMoeda').value = '';
+        }
+
+        function editarPais(id, nome, sigla, ddi, moeda) {
+            document.getElementById('modalTitle').innerHTML = '<i class="bi bi-pencil me-2"></i>Editar Pais';
+            document.getElementById('formIdPais').value = id;
+            document.getElementById('formNmPais').value = nome;
+            document.getElementById('formSgPais').value = sigla;
+            document.getElementById('formNrDDI').value = ddi;
+            document.getElementById('formDsMoeda').value = moeda;
+        }
+    </script>
+}

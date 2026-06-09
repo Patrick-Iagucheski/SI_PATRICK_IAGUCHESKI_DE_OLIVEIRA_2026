@@ -1,0 +1,220 @@
+@page
+@model WebAppERP.Pages.Cadastro.FornecedoresModel
+@{
+    ViewData["Title"] = "Fornecedores";
+}
+
+<div class="d-flex justify-content-between align-items-start mb-4">
+    <div>
+        <h1 class="page-title">Fornecedores</h1>
+        <p class="page-subtitle">Gerencie os fornecedores cadastrados no sistema</p>
+    </div>
+    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#modalFornecedor" onclick="limparForm()">
+        <i class="bi bi-plus-lg me-1"></i> Novo Fornecedor
+    </button>
+</div>
+
+<!-- Filtros -->
+<div class="card mb-3">
+    <div class="card-body py-2">
+        <div class="row g-2 align-items-center">
+            <div class="col-md-4">
+                <div class="search-box">
+                    <i class="bi bi-search search-icon"></i>
+                    <input type="text" class="form-control" placeholder="Buscar por razao social, CNPJ ou e-mail..." id="searchInput" />
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Tabela -->
+<div class="table-container">
+    <div class="table-header">
+        <h5><i class="bi bi-truck me-2"></i>Lista de Fornecedores</h5>
+        <span class="text-muted small">@Model.Fornecedores.Count registros encontrados</span>
+    </div>
+    <div class="table-responsive">
+        <table class="table" id="tblFornecedores">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Razao Social</th>
+                    <th>CNPJ</th>
+                    <th>Telefone</th>
+                    <th>E-mail</th>
+                    <th>Cidade</th>
+                    <th class="text-center">Acoes</th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (Model.Fornecedores.Any())
+                {
+                    @foreach (var f in Model.Fornecedores)
+                    {
+                        <tr>
+                            <td>@f.IdFornecedor</td>
+                            <td><strong>@f.DsRazaoSocial</strong></td>
+                            <td>@f.NrCNPJ</td>
+                            <td>@(f.NrTelefone ?? "-")</td>
+                            <td>@(f.DsEmail ?? "-")</td>
+                            <td>@(f.Cidade != null ? $"{f.Cidade.NmCidade}/{f.Cidade.Estado?.SgUF}" : "-")</td>
+                            <td class="text-center">
+                                <button class="btn btn-icon btn-outline-primary" title="Editar"
+                                        data-bs-toggle="modal" data-bs-target="#modalFornecedor"
+                                        onclick="editarFornecedor(@f.IdFornecedor, '@f.DsRazaoSocial.Replace("'", "\\'")','@f.NrCNPJ','@f.DsEndereco?.Replace("'", "\\'")','@f.DsBairro?.Replace("'", "\\'")','@(f.IdCidade?.ToString() ?? "")','@f.NrCEP','@f.NrTelefone','@f.DsEmail','@f.NrInscEstadual','@f.NrInscEstSubTrib')">
+                                    <i class="bi bi-pencil"></i>
+                                </button>
+                                <form method="post" asp-page-handler="Delete" class="d-inline" onsubmit="return confirm('Deseja realmente excluir este fornecedor?')">
+                                    <input type="hidden" name="id" value="@f.IdFornecedor" />
+                                    <button type="submit" class="btn btn-icon btn-outline-danger" title="Excluir">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </form>
+                            </td>
+                        </tr>
+                    }
+                }
+                else
+                {
+                    <tr><td colspan="7" class="text-center text-muted py-4">Nenhum fornecedor cadastrado</td></tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Modal Novo/Editar Fornecedor -->
+<div class="modal fade" id="modalFornecedor" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <form method="post">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="modalTitle"><i class="bi bi-truck me-2"></i>Novo Fornecedor</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <input type="hidden" asp-for="FornecedorForm.IdFornecedor" id="formIdFornecedor" />
+                    <div class="row g-3">
+                        <div class="col-md-8">
+                            <label class="form-label">Razao Social *</label>
+                            <input type="text" class="form-control" asp-for="FornecedorForm.DsRazaoSocial" id="formDsRazaoSocial" required />
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">CNPJ *</label>
+                            <input type="text" class="form-control" asp-for="FornecedorForm.NrCNPJ" id="formNrCNPJ" maxlength="18" placeholder="00.000.000/0000-00" required />
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Telefone</label>
+                            <input type="text" class="form-control" asp-for="FornecedorForm.NrTelefone" id="formNrTelefone" maxlength="15" placeholder="(00) 00000-0000" />
+                        </div>
+                        <div class="col-md-5">
+                            <label class="form-label">E-mail</label>
+                            <input type="email" class="form-control" asp-for="FornecedorForm.DsEmail" id="formDsEmail" />
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">CEP</label>
+                            <input type="text" class="form-control" asp-for="FornecedorForm.NrCEP" id="formNrCEP" maxlength="9" placeholder="00000-000" />
+                        </div>
+                        <div class="col-md-7">
+                            <label class="form-label">Endereco</label>
+                            <input type="text" class="form-control" asp-for="FornecedorForm.DsEndereco" id="formDsEndereco" />
+                        </div>
+                        <div class="col-md-5">
+                            <label class="form-label">Bairro</label>
+                            <input type="text" class="form-control" asp-for="FornecedorForm.DsBairro" id="formDsBairro" />
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Cidade</label>
+                            <select class="form-select" asp-for="FornecedorForm.IdCidade" id="formIdCidade">
+                                <option value="">Selecione a cidade</option>
+                                @foreach (var cidade in Model.Cidades)
+                                {
+                                    <option value="@cidade.IdCidade">@cidade.NmCidade / @cidade.Estado?.SgUF</option>
+                                }
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Inscricao Estadual</label>
+                            <input type="text" class="form-control" asp-for="FornecedorForm.NrInscEstadual" id="formNrInscEstadual" maxlength="20" />
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Insc. Estadual Subst. Trib.</label>
+                            <input type="text" class="form-control" asp-for="FornecedorForm.NrInscEstSubTrib" id="formNrInscEstSubTrib" maxlength="20" />
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary"><i class="bi bi-check-lg me-1"></i>Salvar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        document.getElementById('searchInput')?.addEventListener('input', function () {
+            const filter = this.value.toLowerCase();
+            document.querySelectorAll('#tblFornecedores tbody tr').forEach(row => {
+                row.style.display = row.textContent.toLowerCase().includes(filter) ? '' : 'none';
+            });
+        });
+
+        // ===== Mascaras =====
+        function mascaraCNPJ(v) {
+            return v.replace(/\D/g, '').slice(0, 14)
+                .replace(/^(\d{2})(\d)/, '$1.$2')
+                .replace(/^(\d{2})\.(\d{3})(\d)/, '$1.$2.$3')
+                .replace(/\.(\d{3})(\d)/, '.$1/$2')
+                .replace(/(\d{4})(\d)/, '$1-$2');
+        }
+        function mascaraCEP(v) {
+            return v.replace(/\D/g, '').slice(0, 8).replace(/^(\d{5})(\d)/, '$1-$2');
+        }
+        function mascaraTelefone(v) {
+            v = v.replace(/\D/g, '').slice(0, 11);
+            if (v.length > 10)
+                return v.replace(/^(\d{2})(\d{5})(\d{4}).*/, '($1) $2-$3');
+            return v.replace(/^(\d{2})(\d{4})(\d{0,4}).*/, '($1) $2-$3').trim();
+        }
+        function aplicarMascara(id, fn) {
+            const el = document.getElementById(id);
+            el?.addEventListener('input', () => { el.value = fn(el.value); });
+        }
+        aplicarMascara('formNrCNPJ', mascaraCNPJ);
+        aplicarMascara('formNrCEP', mascaraCEP);
+        aplicarMascara('formNrTelefone', mascaraTelefone);
+
+        function limparForm() {
+            document.getElementById('modalTitle').innerHTML = '<i class="bi bi-truck me-2"></i>Novo Fornecedor';
+            document.getElementById('formIdFornecedor').value = '0';
+            document.getElementById('formDsRazaoSocial').value = '';
+            document.getElementById('formNrCNPJ').value = '';
+            document.getElementById('formNrTelefone').value = '';
+            document.getElementById('formDsEmail').value = '';
+            document.getElementById('formNrCEP').value = '';
+            document.getElementById('formDsEndereco').value = '';
+            document.getElementById('formDsBairro').value = '';
+            document.getElementById('formIdCidade').value = '';
+            document.getElementById('formNrInscEstadual').value = '';
+            document.getElementById('formNrInscEstSubTrib').value = '';
+        }
+
+        function editarFornecedor(id, razao, cnpj, end, bairro, cidade, cep, tel, email, ie, iest) {
+            document.getElementById('modalTitle').innerHTML = '<i class="bi bi-pencil me-2"></i>Editar Fornecedor';
+            document.getElementById('formIdFornecedor').value = id;
+            document.getElementById('formDsRazaoSocial').value = razao;
+            document.getElementById('formNrCNPJ').value = cnpj;
+            document.getElementById('formDsEndereco').value = end;
+            document.getElementById('formDsBairro').value = bairro;
+            document.getElementById('formIdCidade').value = cidade;
+            document.getElementById('formNrCEP').value = cep;
+            document.getElementById('formNrTelefone').value = tel;
+            document.getElementById('formDsEmail').value = email;
+            document.getElementById('formNrInscEstadual').value = ie;
+            document.getElementById('formNrInscEstSubTrib').value = iest;
+        }
+    </script>
+}
