@@ -56,4 +56,9 @@ public class OpeVenda
 
     [Column("dtEdicao")]
     public DateTime? DtEdicao { get; set; }
+
+    [ForeignKey("IdFormaPagamento")]
+    public FinFormaPagamento? FormaPagamento { get; set; }
+
+    public List<OpeVendaItem> Itens { get; set; } = [];
 }

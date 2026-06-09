@@ -20,4 +20,7 @@ public class AppDbContext : DbContext
     public DbSet<GerFornecedor> Fornecedores => Set<GerFornecedor>();
     public DbSet<GerTransportador> Transportadores => Set<GerTransportador>();
     public DbSet<GerVeiculo> Veiculos => Set<GerVeiculo>();
+    public DbSet<EstProduto> Produtos => Set<EstProduto>();
+    public DbSet<FinContaPagar> ContasAPagar => Set<FinContaPagar>();
+    public DbSet<OpeVendaItem> VendaItens => Set<OpeVendaItem>();
 }

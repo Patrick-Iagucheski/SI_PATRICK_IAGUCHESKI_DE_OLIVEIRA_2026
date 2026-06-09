@@ -1,0 +1,176 @@
+@page
+@model WebAppERP.Pages.Cadastro.FormasPagamentoModel
+@{
+    ViewData["Title"] = "Formas de Pagamento";
+}
+
+<div class="d-flex justify-content-between align-items-start mb-4">
+    <div>
+        <h1 class="page-title">Formas de Pagamento</h1>
+        <p class="page-subtitle">Gerencie as formas de pagamento aceitas no sistema</p>
+    </div>
+    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#modalForma" onclick="limparForm()">
+        <i class="bi bi-plus-lg me-1"></i> Nova Forma
+    </button>
+</div>
+
+<!-- Filtros -->
+<div class="card mb-3">
+    <div class="card-body py-2">
+        <div class="row g-2 align-items-center">
+            <div class="col-md-4">
+                <div class="search-box">
+                    <i class="bi bi-search search-icon"></i>
+                    <input type="text" class="form-control" placeholder="Buscar forma de pagamento..." id="searchInput" />
+                </div>
+            </div>
+            <div class="col-md-2">
+                <select class="form-select" id="filterStatus">
+                    <option value="">Todos os Status</option>
+                    <option value="ativo">Ativo</option>
+                    <option value="inativo">Inativo</option>
+                </select>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Tabela -->
+<div class="table-container">
+    <div class="table-header">
+        <h5><i class="bi bi-credit-card me-2"></i>Lista de Formas de Pagamento</h5>
+        <span class="text-muted small">@Model.Formas.Count registros encontrados</span>
+    </div>
+    <div class="table-responsive">
+        <table class="table" id="tblFormas">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Descricao</th>
+                    <th>Criado em</th>
+                    <th>Status</th>
+                    <th class="text-center">Acoes</th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (Model.Formas.Any())
+                {
+                    @foreach (var f in Model.Formas)
+                    {
+                        <tr data-status="@(f.FlAtivo ? "ativo" : "inativo")">
+                            <td>@f.IdFormaPagamento</td>
+                            <td><strong>@f.DsFormaPagamento</strong></td>
+                            <td>@f.DtCriacao.ToString("dd/MM/yyyy")</td>
+                            <td>
+                                @if (f.FlAtivo)
+                                {
+                                    <span class="badge-status badge-ativo">Ativo</span>
+                                }
+                                else
+                                {
+                                    <span class="badge-status badge-inativo">Inativo</span>
+                                }
+                            </td>
+                            <td class="text-center">
+                                <form method="post" asp-page-handler="Toggle" class="d-inline">
+                                    <input type="hidden" name="id" value="@f.IdFormaPagamento" />
+                                    @if (f.FlAtivo)
+                                    {
+                                        <button type="submit" class="btn btn-icon btn-outline-warning" title="Inativar">
+                                            <i class="bi bi-pause-circle"></i>
+                                        </button>
+                                    }
+                                    else
+                                    {
+                                        <button type="submit" class="btn btn-icon btn-outline-success" title="Ativar">
+                                            <i class="bi bi-play-circle"></i>
+                                        </button>
+                                    }
+                                </form>
+                                <button class="btn btn-icon btn-outline-primary" title="Editar"
+                                        data-bs-toggle="modal" data-bs-target="#modalForma"
+                                        onclick="editarForma(@f.IdFormaPagamento, '@f.DsFormaPagamento.Replace("'", "\\'")','@f.FlAtivo')">
+                                    <i class="bi bi-pencil"></i>
+                                </button>
+                                <form method="post" asp-page-handler="Delete" class="d-inline" onsubmit="return confirm('Deseja realmente excluir esta forma de pagamento?')">
+                                    <input type="hidden" name="id" value="@f.IdFormaPagamento" />
+                                    <button type="submit" class="btn btn-icon btn-outline-danger" title="Excluir">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </form>
+                            </td>
+                        </tr>
+                    }
+                }
+                else
+                {
+                    <tr><td colspan="5" class="text-center text-muted py-4">Nenhuma forma de pagamento cadastrada</td></tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Modal Nova/Editar Forma -->
+<div class="modal fade" id="modalForma" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form method="post">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="modalTitle"><i class="bi bi-credit-card me-2"></i>Nova Forma de Pagamento</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <input type="hidden" asp-for="FormaForm.IdFormaPagamento" id="formIdForma" />
+                    <div class="row g-3">
+                        <div class="col-12">
+                            <label class="form-label">Descricao *</label>
+                            <input type="text" class="form-control" asp-for="FormaForm.DsFormaPagamento" id="formDsForma" maxlength="100" required />
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label">Status</label>
+                            <select class="form-select" asp-for="FormaForm.FlAtivo" id="formFlAtivo">
+                                <option value="true">Ativo</option>
+                                <option value="false">Inativo</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary"><i class="bi bi-check-lg me-1"></i>Salvar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        function aplicarFiltros() {
+            const texto = document.getElementById('searchInput').value.toLowerCase();
+            const status = document.getElementById('filterStatus').value;
+            document.querySelectorAll('#tblFormas tbody tr').forEach(row => {
+                const matchTexto = row.textContent.toLowerCase().includes(texto);
+                const matchStatus = !status || row.getAttribute('data-status') === status;
+                row.style.display = (matchTexto && matchStatus) ? '' : 'none';
+            });
+        }
+        document.getElementById('searchInput')?.addEventListener('input', aplicarFiltros);
+        document.getElementById('filterStatus')?.addEventListener('change', aplicarFiltros);
+
+        function limparForm() {
+            document.getElementById('modalTitle').innerHTML = '<i class="bi bi-credit-card me-2"></i>Nova Forma de Pagamento';
+            document.getElementById('formIdForma').value = '0';
+            document.getElementById('formDsForma').value = '';
+            document.getElementById('formFlAtivo').value = 'true';
+        }
+
+        function editarForma(id, desc, ativo) {
+            document.getElementById('modalTitle').innerHTML = '<i class="bi bi-pencil me-2"></i>Editar Forma de Pagamento';
+            document.getElementById('formIdForma').value = id;
+            document.getElementById('formDsForma').value = desc;
+            document.getElementById('formFlAtivo').value = ativo === 'True' ? 'true' : 'false';
+        }
+    </script>
+}

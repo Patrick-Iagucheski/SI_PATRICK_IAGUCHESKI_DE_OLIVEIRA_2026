@@ -1,0 +1,392 @@
+@page
+@model WebAppERP.Pages.Cadastro.VendaModel
+@{
+    ViewData["Title"] = Model.Vm.Venda.IdVenda > 0 ? $"Venda #{Model.Vm.Venda.IdVenda}" : "Nova Venda";
+    var ro = Model.Vm.SomenteLeitura;
+    var disabledAttr = ro ? "disabled" : null;
+    var statusBadge = Model.Vm.Venda.TpStatus switch
+    {
+        "FINALIZADA" => "badge-concluido",
+        "CANCELADA" => "badge-cancelado",
+        _ => "badge-agendado"
+    };
+
+    var produtosJs = Model.Vm.Combos.Produtos.Select(p => new { id = p.IdProduto, nome = p.DsProduto, saldo = p.QtSaldo ?? 0, valor = p.VlCustoMedio ?? 0 });
+    var servicosJs = Model.Vm.Combos.Servicos.Select(s => new { id = s.IdServico, nome = s.DsServico, valor = s.VlServico });
+    var itensJs = Model.Vm.Itens.Select(i => new
+    {
+        tpItem = i.TpItem,
+        idServico = i.IdServico,
+        idProduto = i.IdProduto,
+        descricao = i.TpItem == "PRODUTO" ? (i.Produto != null ? i.Produto.DsProduto : "") : (i.Servico != null ? i.Servico.DsServico : ""),
+        qtItem = i.QtItem,
+        vlUnitario = i.VlUnitario,
+        vlDesconto = i.VlDesconto,
+        vlTotal = i.VlTotal
+    });
+}
+
+<div class="d-flex justify-content-between align-items-start mb-4">
+    <div>
+        <h1 class="page-title">
+            @(Model.Vm.Venda.IdVenda > 0 ? $"Venda #{Model.Vm.Venda.IdVenda}" : "Nova Venda")
+            <span class="badge-status @statusBadge ms-2">@Model.Vm.Venda.TpStatus</span>
+        </h1>
+        <p class="page-subtitle">Cabecalho, itens e totais da venda</p>
+    </div>
+    <a class="btn btn-secondary" asp-page="/Cadastro/Vendas">
+        <i class="bi bi-arrow-left me-1"></i> Voltar
+    </a>
+</div>
+
+@if (!string.IsNullOrEmpty(Model.Erro))
+{
+    <div class="alert alert-danger"><i class="bi bi-exclamation-triangle me-2"></i>@Model.Erro</div>
+}
+@if (ro)
+{
+    <div class="alert alert-warning"><i class="bi bi-lock me-2"></i>Esta venda esta CANCELADA e nao pode ser editada.</div>
+}
+
+<form method="post" id="formVenda">
+    <input type="hidden" asp-for="IdVenda" />
+    <input type="hidden" asp-for="TpStatus" id="TpStatus" />
+    <input type="hidden" asp-for="ItensJson" id="ItensJson" />
+
+    <!-- Cabecalho da Venda -->
+    <div class="card mb-3">
+        <div class="card-body">
+            <h6 class="fw-bold mb-3"><i class="bi bi-receipt me-2"></i>Dados da Venda</h6>
+            <div class="row g-3">
+                <div class="col-md-2">
+                    <label class="form-label">Numero</label>
+                    <input type="text" class="form-control" value="@(Model.Vm.Venda.IdVenda > 0 ? "#" + Model.Vm.Venda.IdVenda : "Novo")" disabled />
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Data da Venda</label>
+                    <input type="text" class="form-control" value="@Model.Vm.Venda.DtVenda.ToString("dd/MM/yyyy HH:mm")" disabled />
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Cliente</label>
+                    <select class="form-select" asp-for="IdCliente" id="IdCliente" disabled="@ro">
+                        <option value="">Consumidor (sem cadastro)</option>
+                        @foreach (var c in Model.Vm.Combos.Clientes)
+                        {
+                            <option value="@c.IdCliente">@c.NmCliente</option>
+                        }
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Funcionario *</label>
+                    <select class="form-select" asp-for="IdFuncionario" id="IdFuncionario" required disabled="@ro">
+                        <option value="">Selecione</option>
+                        @foreach (var f in Model.Vm.Combos.Funcionarios)
+                        {
+                            <option value="@f.IdFuncionario">@f.NmFuncionario</option>
+                        }
+                    </select>
+                </div>
+                <div class="col-md-5">
+                    <label class="form-label">Agendamento (opcional)</label>
+                    <select class="form-select" asp-for="IdAgendamento" id="IdAgendamento" disabled="@ro">
+                        <option value="">Nenhum</option>
+                        @foreach (var a in Model.Vm.Combos.Agendamentos)
+                        {
+                            <option value="@a.IdAgendamento">#@a.IdAgendamento - @a.DtAgendamento.ToString("dd/MM/yyyy") @a.HrInicio.ToString("HH:mm") - @a.Cliente?.NmCliente</option>
+                        }
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Forma de Pagamento</label>
+                    <select class="form-select" asp-for="IdFormaPagamento" id="IdFormaPagamento" disabled="@ro">
+                        <option value="">Selecione</option>
+                        @foreach (var fp in Model.Vm.Combos.Formas)
+                        {
+                            <option value="@fp.IdFormaPagamento">@fp.DsFormaPagamento</option>
+                        }
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Observacao</label>
+                    <input type="text" class="form-control" asp-for="DsObservacao" disabled="@ro" />
+                </div>
+            </div>
+        </div>
+    </div>
+
+    @if (!ro)
+    {
+        <!-- Adicionar Item -->
+        <div class="card mb-3">
+            <div class="card-body">
+                <h6 class="fw-bold mb-3"><i class="bi bi-plus-circle me-2"></i>Adicionar Item</h6>
+                <div class="row g-2 align-items-end">
+                    <div class="col-md-2">
+                        <label class="form-label">Tipo</label>
+                        <select class="form-select" id="itTipo" onchange="onTipoChange()">
+                            <option value="PRODUTO">Produto</option>
+                            <option value="SERVICO">Servico</option>
+                        </select>
+                    </div>
+                    <div class="col-md-4" id="grpProduto">
+                        <label class="form-label">Produto</label>
+                        <select class="form-select" id="itProduto" onchange="onProdutoChange()">
+                            <option value="">Selecione o produto</option>
+                            @foreach (var p in Model.Vm.Combos.Produtos)
+                            {
+                                <option value="@p.IdProduto">@p.DsProduto</option>
+                            }
+                        </select>
+                        <small class="text-muted" id="itSaldo"></small>
+                    </div>
+                    <div class="col-md-4" id="grpServico" style="display:none;">
+                        <label class="form-label">Servico</label>
+                        <select class="form-select" id="itServico" onchange="onServicoChange()">
+                            <option value="">Selecione o servico</option>
+                            @foreach (var s in Model.Vm.Combos.Servicos)
+                            {
+                                <option value="@s.IdServico">@s.DsServico</option>
+                            }
+                        </select>
+                    </div>
+                    <div class="col-md-1">
+                        <label class="form-label">Qtd</label>
+                        <input type="number" step="0.0001" class="form-control" id="itQt" value="1" />
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label">Vl. Unitario</label>
+                        <input type="number" step="0.01" class="form-control" id="itVlUnit" />
+                    </div>
+                    <div class="col-md-1">
+                        <label class="form-label">Desc.</label>
+                        <input type="number" step="0.01" class="form-control" id="itDesc" value="0" />
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label">Total</label>
+                        <input type="text" class="form-control" id="itTotal" readonly />
+                    </div>
+                    <div class="col-md-2">
+                        <button type="button" class="btn btn-primary w-100" onclick="adicionarItem()">
+                            <i class="bi bi-plus-lg me-1"></i>Adicionar
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+
+    <!-- Grid de Itens -->
+    <div class="table-container mb-3">
+        <div class="table-header">
+            <h5><i class="bi bi-list-ul me-2"></i>Itens da Venda</h5>
+        </div>
+        <div class="table-responsive">
+            <table class="table" id="tblItens">
+                <thead>
+                    <tr>
+                        <th>Tipo</th>
+                        <th>Codigo</th>
+                        <th>Descricao</th>
+                        <th class="text-end">Qtd</th>
+                        <th class="text-end">Vl. Unitario</th>
+                        <th class="text-end">Desconto</th>
+                        <th class="text-end">Total</th>
+                        <th class="text-center">Acoes</th>
+                    </tr>
+                </thead>
+                <tbody id="itensBody"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Rodape Financeiro -->
+    <div class="row g-3 justify-content-end">
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between mb-2">
+                        <span class="text-muted">Subtotal</span>
+                        <span class="fw-semibold" id="lblSubtotal">R$ 0,00</span>
+                    </div>
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <span class="text-muted">Desconto Geral</span>
+                        <input type="number" step="0.01" class="form-control form-control-sm text-end" style="max-width: 140px;" asp-for="VlDesconto" id="VlDesconto" disabled="@ro" />
+                    </div>
+                    <hr />
+                    <div class="d-flex justify-content-between align-items-center">
+                        <span class="fw-bold fs-5">Total Geral</span>
+                        <span class="fw-bold fs-4 text-primary" id="lblTotal">R$ 0,00</span>
+                    </div>
+                </div>
+            </div>
+            @if (!ro)
+            {
+                <div class="d-grid gap-2 mt-3">
+                    <button type="button" class="btn btn-success btn-lg" onclick="salvar('FINALIZADA')">
+                        <i class="bi bi-check2-circle me-1"></i>Finalizar Venda
+                    </button>
+                    <button type="button" class="btn btn-outline-primary" onclick="salvar('ABERTA')">
+                        <i class="bi bi-save me-1"></i>Salvar como Aberta
+                    </button>
+                </div>
+            }
+        </div>
+    </div>
+</form>
+
+@section Scripts {
+    <script>
+        const PRODUTOS = @Json.Serialize(produtosJs);
+        const SERVICOS = @Json.Serialize(servicosJs);
+        const SOMENTE_LEITURA = @Json.Serialize(Model.Vm.SomenteLeitura);
+        let ITENS = @Json.Serialize(itensJs);
+
+        function moeda(n) { return (Number(n) || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
+        function num(id) { const v = document.getElementById(id).value; return parseFloat(String(v).replace(',', '.')) || 0; }
+
+        function onTipoChange() {
+            const t = document.getElementById('itTipo').value;
+            document.getElementById('grpProduto').style.display = t === 'PRODUTO' ? '' : 'none';
+            document.getElementById('grpServico').style.display = t === 'SERVICO' ? '' : 'none';
+            document.getElementById('itVlUnit').value = '';
+            document.getElementById('itTotal').value = '';
+            document.getElementById('itSaldo').textContent = '';
+        }
+
+        function onProdutoChange() {
+            const id = parseInt(document.getElementById('itProduto').value) || 0;
+            const p = PRODUTOS.find(x => x.id === id);
+            document.getElementById('itSaldo').textContent = p ? ('Saldo em estoque: ' + moeda(p.saldo)) : '';
+            if (p) document.getElementById('itVlUnit').value = p.valor;
+            calcItemTotal();
+        }
+
+        function onServicoChange() {
+            const id = parseInt(document.getElementById('itServico').value) || 0;
+            const s = SERVICOS.find(x => x.id === id);
+            if (s) document.getElementById('itVlUnit').value = s.valor;
+            calcItemTotal();
+        }
+
+        function calcItemTotal() {
+            const total = num('itQt') * num('itVlUnit') - num('itDesc');
+            document.getElementById('itTotal').value = (total > 0 ? total : 0).toFixed(2);
+        }
+
+        function adicionarItem() {
+            const t = document.getElementById('itTipo').value;
+            let item;
+            if (t === 'PRODUTO') {
+                const id = parseInt(document.getElementById('itProduto').value) || 0;
+                const p = PRODUTOS.find(x => x.id === id);
+                if (!p) { alert('Selecione um produto.'); return; }
+                item = { tpItem: 'PRODUTO', idProduto: id, idServico: null, descricao: p.nome };
+            } else {
+                const id = parseInt(document.getElementById('itServico').value) || 0;
+                const s = SERVICOS.find(x => x.id === id);
+                if (!s) { alert('Selecione um servico.'); return; }
+                item = { tpItem: 'SERVICO', idServico: id, idProduto: null, descricao: s.nome };
+            }
+            const qt = num('itQt');
+            if (qt <= 0) { alert('Informe a quantidade.'); return; }
+            const vlUnit = num('itVlUnit');
+            const desc = num('itDesc');
+            const total = qt * vlUnit - desc;
+            item.qtItem = qt; item.vlUnitario = vlUnit; item.vlDesconto = desc; item.vlTotal = total > 0 ? total : 0;
+
+            // Validacao de estoque (produto): considera o que ja esta no carrinho.
+            if (item.tpItem === 'PRODUTO') {
+                const p = PRODUTOS.find(x => x.id === item.idProduto);
+                const noCarrinho = ITENS.filter(i => i.tpItem === 'PRODUTO' && i.idProduto === item.idProduto)
+                                        .reduce((a, b) => a + b.qtItem, 0);
+                if (noCarrinho + qt > p.saldo) {
+                    if (!confirm('Quantidade acima do saldo em estoque (' + moeda(p.saldo) + '). A venda nao podera ser FINALIZADA assim. Adicionar mesmo assim?')) return;
+                }
+            }
+
+            ITENS.push(item);
+            limparItemForm();
+            renderItens();
+        }
+
+        function limparItemForm() {
+            document.getElementById('itProduto').value = '';
+            document.getElementById('itServico').value = '';
+            document.getElementById('itQt').value = '1';
+            document.getElementById('itVlUnit').value = '';
+            document.getElementById('itDesc').value = '0';
+            document.getElementById('itTotal').value = '';
+            document.getElementById('itSaldo').textContent = '';
+        }
+
+        function removerItem(i) { ITENS.splice(i, 1); renderItens(); }
+
+        function editarItem(i) {
+            const it = ITENS[i];
+            document.getElementById('itTipo').value = it.tpItem; onTipoChange();
+            if (it.tpItem === 'PRODUTO') { document.getElementById('itProduto').value = it.idProduto; onProdutoChange(); }
+            else { document.getElementById('itServico').value = it.idServico; }
+            document.getElementById('itQt').value = it.qtItem;
+            document.getElementById('itVlUnit').value = it.vlUnitario;
+            document.getElementById('itDesc').value = it.vlDesconto;
+            calcItemTotal();
+            ITENS.splice(i, 1); renderItens();
+        }
+
+        function renderItens() {
+            const tb = document.getElementById('itensBody');
+            tb.innerHTML = '';
+            if (ITENS.length === 0) {
+                tb.innerHTML = '<tr><td colspan="8" class="text-center text-muted py-3">Nenhum item adicionado</td></tr>';
+            }
+            ITENS.forEach((it, idx) => {
+                const codigo = it.tpItem === 'PRODUTO' ? it.idProduto : it.idServico;
+                const badge = it.tpItem === 'PRODUTO' ? 'badge-agendado' : 'badge-confirmado';
+                const acoes = SOMENTE_LEITURA ? '<td></td>' :
+                    '<td class="text-center" style="white-space:nowrap;">' +
+                    '<button type="button" class="btn btn-icon btn-outline-primary" title="Editar" onclick="editarItem(' + idx + ')"><i class="bi bi-pencil"></i></button> ' +
+                    '<button type="button" class="btn btn-icon btn-outline-danger" title="Remover" onclick="removerItem(' + idx + ')"><i class="bi bi-trash"></i></button></td>';
+                const tr = document.createElement('tr');
+                tr.innerHTML =
+                    '<td><span class="badge-status ' + badge + '">' + it.tpItem + '</span></td>' +
+                    '<td>' + codigo + '</td>' +
+                    '<td><strong>' + it.descricao + '</strong></td>' +
+                    '<td class="text-end">' + moeda(it.qtItem) + '</td>' +
+                    '<td class="text-end">R$ ' + moeda(it.vlUnitario) + '</td>' +
+                    '<td class="text-end">R$ ' + moeda(it.vlDesconto) + '</td>' +
+                    '<td class="text-end"><strong>R$ ' + moeda(it.vlTotal) + '</strong></td>' +
+                    acoes;
+                tb.appendChild(tr);
+            });
+            calcTotais();
+        }
+
+        function calcTotais() {
+            const subtotal = ITENS.reduce((a, b) => a + b.vlTotal, 0);
+            const desc = num('VlDesconto');
+            let total = subtotal - desc;
+            if (total < 0) total = 0;
+            document.getElementById('lblSubtotal').textContent = 'R$ ' + moeda(subtotal);
+            document.getElementById('lblTotal').textContent = 'R$ ' + moeda(total);
+        }
+
+        function salvar(status) {
+            const func = document.getElementById('IdFuncionario');
+            if (!func.value) { alert('Selecione o funcionario responsavel.'); func.focus(); return; }
+            if (status === 'FINALIZADA' && ITENS.length === 0) { alert('Adicione ao menos um item para finalizar.'); return; }
+            document.getElementById('TpStatus').value = status;
+            document.getElementById('ItensJson').value = JSON.stringify(ITENS.map(i => ({
+                TpItem: i.tpItem, IdServico: i.idServico, IdProduto: i.idProduto,
+                QtItem: i.qtItem, VlUnitario: i.vlUnitario, VlDesconto: i.vlDesconto
+            })));
+            document.getElementById('formVenda').submit();
+        }
+
+        document.addEventListener('DOMContentLoaded', function () {
+            onTipoChange();
+            renderItens();
+            document.getElementById('VlDesconto')?.addEventListener('input', calcTotais);
+            ['itQt', 'itVlUnit', 'itDesc'].forEach(id => document.getElementById(id)?.addEventListener('input', calcItemTotal));
+        });
+    </script>
+}

@@ -1,0 +1,203 @@
+@page
+@model WebAppERP.Pages.Cadastro.ProdutosModel
+@{
+    ViewData["Title"] = "Produtos";
+}
+
+<div class="d-flex justify-content-between align-items-start mb-4">
+    <div>
+        <h1 class="page-title">Produtos</h1>
+        <p class="page-subtitle">Controle de estoque, saldo e custo medio dos produtos</p>
+    </div>
+    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#modalProduto" onclick="limparForm()">
+        <i class="bi bi-plus-lg me-1"></i> Novo Produto
+    </button>
+</div>
+
+<!-- Filtros -->
+<div class="card mb-3">
+    <div class="card-body py-2">
+        <div class="row g-2 align-items-center">
+            <div class="col-md-4">
+                <div class="search-box">
+                    <i class="bi bi-search search-icon"></i>
+                    <input type="text" class="form-control" placeholder="Buscar por descricao..." id="searchInput" />
+                </div>
+            </div>
+            <div class="col-md-3">
+                <select class="form-select" id="filterSaldo">
+                    <option value="">Todos os saldos</option>
+                    <option value="com">Com saldo</option>
+                    <option value="sem">Sem saldo / zerado</option>
+                </select>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Tabela -->
+<div class="table-container">
+    <div class="table-header">
+        <h5><i class="bi bi-box-seam me-2"></i>Lista de Produtos</h5>
+        <span class="text-muted small">@Model.Produtos.Count registros encontrados</span>
+    </div>
+    <div class="table-responsive">
+        <table class="table" id="tblProdutos">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Descricao</th>
+                    <th>NCM</th>
+                    <th>Unid.</th>
+                    <th class="text-end">Saldo</th>
+                    <th class="text-end">Custo Medio</th>
+                    <th class="text-center">Acoes</th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (Model.Produtos.Any())
+                {
+                    @foreach (var p in Model.Produtos)
+                    {
+                        var saldo = p.QtSaldo ?? 0;
+                        <tr data-saldo="@(saldo > 0 ? "com" : "sem")">
+                            <td>@p.IdProduto</td>
+                            <td><strong>@p.DsProduto</strong></td>
+                            <td>@(p.IdNCMSH ?? "-")</td>
+                            <td>@(p.SgUnidade ?? "-")</td>
+                            <td class="text-end">
+                                @if (saldo > 0)
+                                {
+                                    <span class="badge-status badge-ativo">@saldo.ToString("N4")</span>
+                                }
+                                else
+                                {
+                                    <span class="badge-status badge-inativo">@saldo.ToString("N4")</span>
+                                }
+                            </td>
+                            <td class="text-end">R$ @((p.VlCustoMedio ?? 0).ToString("N4"))</td>
+                            <td class="text-center">
+                                <button class="btn btn-icon btn-outline-primary" title="Editar"
+                                        data-bs-toggle="modal" data-bs-target="#modalProduto"
+                                        onclick="editarProduto(@p.IdProduto, '@p.DsProduto.Replace("'", "\\'")','@p.IdNCMSH','@p.SgUnidade','@((p.VlPesoBruto ?? 0).ToString(System.Globalization.CultureInfo.InvariantCulture))','@((p.VlPesoLiquido ?? 0).ToString(System.Globalization.CultureInfo.InvariantCulture))','@((p.QtSaldo ?? 0).ToString(System.Globalization.CultureInfo.InvariantCulture))','@((p.VlCustoMedio ?? 0).ToString(System.Globalization.CultureInfo.InvariantCulture))')">
+                                    <i class="bi bi-pencil"></i>
+                                </button>
+                                <form method="post" asp-page-handler="Delete" class="d-inline" onsubmit="return confirm('Deseja realmente excluir este produto?')">
+                                    <input type="hidden" name="id" value="@p.IdProduto" />
+                                    <button type="submit" class="btn btn-icon btn-outline-danger" title="Excluir">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </form>
+                            </td>
+                        </tr>
+                    }
+                }
+                else
+                {
+                    <tr><td colspan="7" class="text-center text-muted py-4">Nenhum produto cadastrado</td></tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Modal Novo/Editar Produto -->
+<div class="modal fade" id="modalProduto" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <form method="post">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="modalTitle"><i class="bi bi-box-seam me-2"></i>Novo Produto</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <input type="hidden" asp-for="ProdutoForm.IdProduto" id="formIdProduto" />
+                    <div class="row g-3">
+                        <div class="col-md-9">
+                            <label class="form-label">Descricao do Produto *</label>
+                            <input type="text" class="form-control" asp-for="ProdutoForm.DsProduto" id="formDsProduto" required />
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Unidade</label>
+                            <select class="form-select" asp-for="ProdutoForm.SgUnidade" id="formSgUnidade">
+                                <option value="">Selecione</option>
+                                <option value="UN">UN</option>
+                                <option value="PC">PC</option>
+                                <option value="CX">CX</option>
+                                <option value="KG">KG</option>
+                                <option value="G">G</option>
+                                <option value="L">L</option>
+                                <option value="ML">ML</option>
+                                <option value="M">M</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">NCM/SH</label>
+                            <input type="text" class="form-control" asp-for="ProdutoForm.IdNCMSH" id="formIdNCMSH" maxlength="10" placeholder="00000000" />
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Peso Bruto</label>
+                            <input type="number" step="0.0001" class="form-control" asp-for="ProdutoForm.VlPesoBruto" id="formVlPesoBruto" />
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Peso Liquido</label>
+                            <input type="number" step="0.0001" class="form-control" asp-for="ProdutoForm.VlPesoLiquido" id="formVlPesoLiquido" />
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Saldo em Estoque</label>
+                            <input type="number" step="0.0001" class="form-control" asp-for="ProdutoForm.QtSaldo" id="formQtSaldo" />
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Custo Medio (R$)</label>
+                            <input type="number" step="0.0001" class="form-control" asp-for="ProdutoForm.VlCustoMedio" id="formVlCustoMedio" />
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary"><i class="bi bi-check-lg me-1"></i>Salvar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        function aplicarFiltros() {
+            const texto = document.getElementById('searchInput').value.toLowerCase();
+            const saldo = document.getElementById('filterSaldo').value;
+            document.querySelectorAll('#tblProdutos tbody tr').forEach(row => {
+                const matchTexto = row.textContent.toLowerCase().includes(texto);
+                const matchSaldo = !saldo || row.getAttribute('data-saldo') === saldo;
+                row.style.display = (matchTexto && matchSaldo) ? '' : 'none';
+            });
+        }
+        document.getElementById('searchInput')?.addEventListener('input', aplicarFiltros);
+        document.getElementById('filterSaldo')?.addEventListener('change', aplicarFiltros);
+
+        function limparForm() {
+            document.getElementById('modalTitle').innerHTML = '<i class="bi bi-box-seam me-2"></i>Novo Produto';
+            document.getElementById('formIdProduto').value = '0';
+            document.getElementById('formDsProduto').value = '';
+            document.getElementById('formIdNCMSH').value = '';
+            document.getElementById('formSgUnidade').value = '';
+            document.getElementById('formVlPesoBruto').value = '';
+            document.getElementById('formVlPesoLiquido').value = '';
+            document.getElementById('formQtSaldo').value = '';
+            document.getElementById('formVlCustoMedio').value = '';
+        }
+
+        function editarProduto(id, desc, ncm, unid, pesoB, pesoL, saldo, custo) {
+            document.getElementById('modalTitle').innerHTML = '<i class="bi bi-pencil me-2"></i>Editar Produto';
+            document.getElementById('formIdProduto').value = id;
+            document.getElementById('formDsProduto').value = desc;
+            document.getElementById('formIdNCMSH').value = ncm;
+            document.getElementById('formSgUnidade').value = unid;
+            document.getElementById('formVlPesoBruto').value = pesoB;
+            document.getElementById('formVlPesoLiquido').value = pesoL;
+            document.getElementById('formQtSaldo').value = saldo;
+            document.getElementById('formVlCustoMedio').value = custo;
+        }
+    </script>
+}
