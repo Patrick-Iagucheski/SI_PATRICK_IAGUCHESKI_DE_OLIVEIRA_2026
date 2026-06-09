@@ -442,6 +442,22 @@ body {
 }
 
 /* ============================================
+   Charts
+   ============================================ */
+
+/* Altura fixa e position:relative evitam o crescimento
+   infinito do canvas do Chart.js (maintainAspectRatio:false) */
+.chart-wrapper {
+    position: relative;
+    width: 100%;
+    height: 280px;
+}
+
+.chart-wrapper canvas {
+    max-height: 100%;
+}
+
+/* ============================================
    Chart Placeholder
    ============================================ */
 
