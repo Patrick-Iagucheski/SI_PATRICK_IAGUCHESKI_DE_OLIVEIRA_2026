@@ -55,34 +55,137 @@ body {
 }
 
 .sidebar-header {
-    padding: 1.25rem 1.5rem;
+    padding: 1rem 1.25rem;
     display: flex;
     align-items: center;
     gap: 0.75rem;
     border-bottom: 1px solid rgba(255, 255, 255, 0.08);
 }
 
-.sidebar-header i {
-    font-size: 1.5rem;
-    color: var(--sidebar-active);
+.sidebar-logo {
+    width: 42px;
+    height: 42px;
+    border-radius: 50%;
+    object-fit: contain;
+    background: #0f172a;
+    flex-shrink: 0;
 }
 
 .sidebar-brand {
-    font-size: 1.2rem;
+    font-size: 1.1rem;
     font-weight: 700;
     color: #fff;
-    letter-spacing: 0.5px;
+    letter-spacing: 0.3px;
+    line-height: 1.15;
 }
+
+/* Busca do menu */
+.sidebar-search {
+    position: relative;
+    padding: 0.75rem 1rem 0.5rem;
+}
+
+.sidebar-search i {
+    position: absolute;
+    left: 1.75rem;
+    top: 50%;
+    transform: translateY(-25%);
+    color: #64748b;
+    font-size: 0.9rem;
+    pointer-events: none;
+}
+
+.sidebar-search input {
+    width: 100%;
+    background: #0f172a;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    color: #e2e8f0;
+    border-radius: 0.5rem;
+    padding: 0.45rem 0.6rem 0.45rem 2.1rem;
+    font-size: 0.85rem;
+    outline: none;
+}
+
+.sidebar-search input::placeholder { color: #64748b; }
+.sidebar-search input:focus { border-color: var(--sidebar-active); }
 
 .sidebar-nav {
     list-style: none;
     padding: 0.5rem 0;
     margin: 0;
     flex-grow: 1;
+    overflow-y: auto;
 }
 
 .sidebar-item {
     margin: 2px 0.75rem;
+}
+
+/* Abas (grupos recolhiveis) */
+.sidebar-group {
+    list-style: none;
+}
+
+.sidebar-group-header {
+    width: calc(100% - 1.5rem);
+    margin: 2px 0.75rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: transparent;
+    border: none;
+    color: #64748b;
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 1.2px;
+    font-weight: 600;
+    padding: 0.55rem 0.75rem;
+    border-radius: 0.5rem;
+    cursor: pointer;
+    transition: background 0.15s ease, color 0.15s ease;
+}
+
+.sidebar-group-header:hover {
+    background: var(--sidebar-hover);
+    color: #cbd5e1;
+}
+
+.sidebar-chevron {
+    font-size: 0.85rem;
+    transition: transform 0.25s ease;
+}
+
+.sidebar-group.collapsed .sidebar-chevron {
+    transform: rotate(-90deg);
+}
+
+.sidebar-group-items {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    max-height: 145px;          /* ~3 itens visiveis; acima disso vira scroll */
+    overflow-y: auto;
+    transition: max-height 0.25s ease;
+}
+
+.sidebar-group.collapsed .sidebar-group-items {
+    max-height: 0;
+    overflow: hidden;
+}
+
+/* Scrollbar fina (sidebar e grupos) */
+.sidebar-nav::-webkit-scrollbar,
+.sidebar-group-items::-webkit-scrollbar { width: 6px; }
+
+.sidebar-nav::-webkit-scrollbar-thumb,
+.sidebar-group-items::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.15);
+    border-radius: 3px;
+}
+
+.sidebar-nav::-webkit-scrollbar-thumb:hover,
+.sidebar-group-items::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.3);
 }
 
 .sidebar-link {
@@ -439,6 +542,22 @@ body {
     .sidebar-collapsed #page-content-wrapper {
         margin-left: var(--sidebar-width);
     }
+}
+
+/* ============================================
+   Charts
+   ============================================ */
+
+/* Altura fixa e position:relative evitam o crescimento
+   infinito do canvas do Chart.js (maintainAspectRatio:false) */
+.chart-wrapper {
+    position: relative;
+    width: 100%;
+    height: 280px;
+}
+
+.chart-wrapper canvas {
+    max-height: 100%;
 }
 
 /* ============================================

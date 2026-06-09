@@ -1,0 +1,123 @@
+@page
+@model WebAppERP.Pages.Cadastro.VendasModel
+@{
+    ViewData["Title"] = "Vendas";
+}
+
+<div class="d-flex justify-content-between align-items-start mb-4">
+    <div>
+        <h1 class="page-title">Vendas</h1>
+        <p class="page-subtitle">Gerencie as vendas realizadas no sistema</p>
+    </div>
+    <a class="btn btn-primary" asp-page="/Cadastro/Venda">
+        <i class="bi bi-plus-lg me-1"></i> Nova Venda
+    </a>
+</div>
+
+<!-- Filtros -->
+<div class="card mb-3">
+    <div class="card-body py-2">
+        <div class="row g-2 align-items-center">
+            <div class="col-md-4">
+                <div class="search-box">
+                    <i class="bi bi-search search-icon"></i>
+                    <input type="text" class="form-control" placeholder="Buscar por cliente ou funcionario..." id="searchInput" />
+                </div>
+            </div>
+            <div class="col-md-2">
+                <select class="form-select" id="filterStatus">
+                    <option value="">Todos os Status</option>
+                    <option value="ABERTA">Aberta</option>
+                    <option value="FINALIZADA">Finalizada</option>
+                    <option value="CANCELADA">Cancelada</option>
+                </select>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Tabela -->
+<div class="table-container">
+    <div class="table-header">
+        <h5><i class="bi bi-cart-check me-2"></i>Lista de Vendas</h5>
+        <span class="text-muted small">@Model.Vendas.Count registros encontrados</span>
+    </div>
+    <div class="table-responsive">
+        <table class="table" id="tblVendas">
+            <thead>
+                <tr>
+                    <th>Venda</th>
+                    <th>Data</th>
+                    <th>Cliente</th>
+                    <th>Funcionario</th>
+                    <th class="text-end">Total</th>
+                    <th>Status</th>
+                    <th class="text-center">Acoes</th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (Model.Vendas.Any())
+                {
+                    @foreach (var v in Model.Vendas)
+                    {
+                        var badge = v.TpStatus switch
+                        {
+                            "FINALIZADA" => "badge-concluido",
+                            "CANCELADA" => "badge-cancelado",
+                            _ => "badge-agendado"
+                        };
+                        <tr data-status="@v.TpStatus">
+                            <td><strong>#@v.IdVenda</strong></td>
+                            <td>@v.DtVenda.ToString("dd/MM/yyyy HH:mm")</td>
+                            <td>@(v.Cliente?.NmCliente ?? "Consumidor")</td>
+                            <td>@(v.Funcionario?.NmFuncionario ?? "-")</td>
+                            <td class="text-end"><strong>R$ @v.VlTotal.ToString("N2")</strong></td>
+                            <td><span class="badge-status @badge">@v.TpStatus</span></td>
+                            <td class="text-center" style="white-space: nowrap;">
+                                <a class="btn btn-icon btn-outline-primary" title="Abrir / Editar" asp-page="/Cadastro/Venda" asp-route-id="@v.IdVenda">
+                                    <i class="bi bi-pencil"></i>
+                                </a>
+                                @if (v.TpStatus != "CANCELADA")
+                                {
+                                    <form method="post" asp-page-handler="Cancelar" class="d-inline" onsubmit="return confirm('Deseja cancelar esta venda? O estoque sera estornado se estiver finalizada.')">
+                                        <input type="hidden" name="id" value="@v.IdVenda" />
+                                        <button type="submit" class="btn btn-icon btn-outline-warning" title="Cancelar venda">
+                                            <i class="bi bi-x-circle"></i>
+                                        </button>
+                                    </form>
+                                }
+                                <form method="post" asp-page-handler="Delete" class="d-inline" onsubmit="return confirm('Deseja realmente excluir esta venda?')">
+                                    <input type="hidden" name="id" value="@v.IdVenda" />
+                                    <button type="submit" class="btn btn-icon btn-outline-danger" title="Excluir">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </form>
+                            </td>
+                        </tr>
+                    }
+                }
+                else
+                {
+                    <tr><td colspan="7" class="text-center text-muted py-4">Nenhuma venda registrada</td></tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        function aplicarFiltros() {
+            const texto = document.getElementById('searchInput').value.toLowerCase();
+            const status = document.getElementById('filterStatus').value;
+            document.querySelectorAll('#tblVendas tbody tr').forEach(row => {
+                if (!row.hasAttribute('data-status')) return;
+                const matchTexto = row.textContent.toLowerCase().includes(texto);
+                const matchStatus = !status || row.getAttribute('data-status') === status;
+                row.style.display = (matchTexto && matchStatus) ? '' : 'none';
+            });
+        }
+        document.getElementById('searchInput')?.addEventListener('input', aplicarFiltros);
+        document.getElementById('filterStatus')?.addEventListener('change', aplicarFiltros);
+    </script>
+}

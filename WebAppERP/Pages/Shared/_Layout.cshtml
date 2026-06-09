@@ -1,9 +1,19 @@
+@{
+    var curr = ViewContext.RouteData.Values["page"]?.ToString() ?? "";
+    string[] gCadastros = { "/Cadastro/Clientes", "/Cadastro/Funcionarios", "/Cadastro/Servicos", "/Cadastro/Fornecedores", "/Cadastro/Transportadores", "/Cadastro/Veiculos" };
+    string[] gLocalidades = { "/Cadastro/Paises", "/Cadastro/Estados", "/Cadastro/Cidades" };
+    string[] gEstoque = { "/Cadastro/Produtos" };
+    string[] gFinanceiro = { "/Cadastro/FormasPagamento", "/Cadastro/ContasAPagar" };
+    string[] gOperacional = { "/Cadastro/Agendamentos", "/Cadastro/Vendas", "/Cadastro/Venda" };
+    string Active(string page) => curr == page ? "active" : "";
+    string Open(string[] grupo) => grupo.Contains(curr) ? "" : "collapsed";
+}
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>@ViewData["Title"] - SoftwareERP</title>
+    <title>@ViewData["Title"] - R10 Barber Shop</title>
     <script type="importmap"></script>
     <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" />
@@ -15,45 +25,143 @@
         <!-- Sidebar -->
         <nav id="sidebar" class="sidebar">
             <div class="sidebar-header">
-                <i class="bi bi-scissors"></i>
-                <span class="sidebar-brand">SoftwareERP</span>
+                <img src="~/images/logo.png" alt="R10 Barber Shop" class="sidebar-logo" />
+                <span class="sidebar-brand">R10 Barber Shop</span>
             </div>
-            <ul class="sidebar-nav">
+
+            <div class="sidebar-search">
+                <i class="bi bi-search"></i>
+                <input type="text" id="menuSearch" placeholder="Buscar no menu..." autocomplete="off" />
+            </div>
+
+            <ul class="sidebar-nav" id="sidebarNav">
                 <li class="sidebar-item">
-                    <a class="sidebar-link @(ViewContext.RouteData.Values["page"]?.ToString() == "/Index" ? "active" : "")" asp-page="/Index">
+                    <a class="sidebar-link @Active("/Index")" asp-page="/Index">
                         <i class="bi bi-grid-1x2-fill"></i>
                         <span>Dashboard</span>
                     </a>
                 </li>
-                <li class="sidebar-divider"></li>
-                <li class="sidebar-heading">Cadastros</li>
-                <li class="sidebar-item">
-                    <a class="sidebar-link @(ViewContext.RouteData.Values["page"]?.ToString() == "/Cadastro/Clientes" ? "active" : "")" asp-page="/Cadastro/Clientes">
-                        <i class="bi bi-people-fill"></i>
-                        <span>Clientes</span>
-                    </a>
+
+                <li class="sidebar-group @Open(gCadastros)" data-group>
+                    <button type="button" class="sidebar-group-header">
+                        <span>Cadastros</span>
+                        <i class="bi bi-chevron-down sidebar-chevron"></i>
+                    </button>
+                    <ul class="sidebar-group-items">
+                        <li class="sidebar-item">
+                            <a class="sidebar-link @Active("/Cadastro/Clientes")" asp-page="/Cadastro/Clientes">
+                                <i class="bi bi-people-fill"></i><span>Clientes</span>
+                            </a>
+                        </li>
+                        <li class="sidebar-item">
+                            <a class="sidebar-link @Active("/Cadastro/Funcionarios")" asp-page="/Cadastro/Funcionarios">
+                                <i class="bi bi-person-badge-fill"></i><span>Funcionarios</span>
+                            </a>
+                        </li>
+                        <li class="sidebar-item">
+                            <a class="sidebar-link @Active("/Cadastro/Servicos")" asp-page="/Cadastro/Servicos">
+                                <i class="bi bi-card-checklist"></i><span>Servicos</span>
+                            </a>
+                        </li>
+                        <li class="sidebar-item">
+                            <a class="sidebar-link @Active("/Cadastro/Fornecedores")" asp-page="/Cadastro/Fornecedores">
+                                <i class="bi bi-truck"></i><span>Fornecedores</span>
+                            </a>
+                        </li>
+                        <li class="sidebar-item">
+                            <a class="sidebar-link @Active("/Cadastro/Transportadores")" asp-page="/Cadastro/Transportadores">
+                                <i class="bi bi-truck-front"></i><span>Transportadores</span>
+                            </a>
+                        </li>
+                        <li class="sidebar-item">
+                            <a class="sidebar-link @Active("/Cadastro/Veiculos")" asp-page="/Cadastro/Veiculos">
+                                <i class="bi bi-truck-flatbed"></i><span>Veiculos</span>
+                            </a>
+                        </li>
+                    </ul>
                 </li>
-                <li class="sidebar-item">
-                    <a class="sidebar-link @(ViewContext.RouteData.Values["page"]?.ToString() == "/Cadastro/Funcionarios" ? "active" : "")" asp-page="/Cadastro/Funcionarios">
-                        <i class="bi bi-person-badge-fill"></i>
-                        <span>Funcionarios</span>
-                    </a>
+
+                <li class="sidebar-group @Open(gLocalidades)" data-group>
+                    <button type="button" class="sidebar-group-header">
+                        <span>Localidades</span>
+                        <i class="bi bi-chevron-down sidebar-chevron"></i>
+                    </button>
+                    <ul class="sidebar-group-items">
+                        <li class="sidebar-item">
+                            <a class="sidebar-link @Active("/Cadastro/Paises")" asp-page="/Cadastro/Paises">
+                                <i class="bi bi-globe-americas"></i><span>Paises</span>
+                            </a>
+                        </li>
+                        <li class="sidebar-item">
+                            <a class="sidebar-link @Active("/Cadastro/Estados")" asp-page="/Cadastro/Estados">
+                                <i class="bi bi-map"></i><span>Estados</span>
+                            </a>
+                        </li>
+                        <li class="sidebar-item">
+                            <a class="sidebar-link @Active("/Cadastro/Cidades")" asp-page="/Cadastro/Cidades">
+                                <i class="bi bi-building"></i><span>Cidades</span>
+                            </a>
+                        </li>
+                    </ul>
                 </li>
-                <li class="sidebar-item">
-                    <a class="sidebar-link @(ViewContext.RouteData.Values["page"]?.ToString() == "/Cadastro/Servicos" ? "active" : "")" asp-page="/Cadastro/Servicos">
-                        <i class="bi bi-card-checklist"></i>
-                        <span>Servicos</span>
-                    </a>
+
+                <li class="sidebar-group @Open(gEstoque)" data-group>
+                    <button type="button" class="sidebar-group-header">
+                        <span>Estoque</span>
+                        <i class="bi bi-chevron-down sidebar-chevron"></i>
+                    </button>
+                    <ul class="sidebar-group-items">
+                        <li class="sidebar-item">
+                            <a class="sidebar-link @Active("/Cadastro/Produtos")" asp-page="/Cadastro/Produtos">
+                                <i class="bi bi-box-seam"></i><span>Produtos</span>
+                            </a>
+                        </li>
+                    </ul>
                 </li>
-                <li class="sidebar-divider"></li>
-                <li class="sidebar-heading">Operacional</li>
-                <li class="sidebar-item">
-                    <a class="sidebar-link @(ViewContext.RouteData.Values["page"]?.ToString() == "/Cadastro/Agendamentos" ? "active" : "")" asp-page="/Cadastro/Agendamentos">
-                        <i class="bi bi-calendar-check-fill"></i>
-                        <span>Agendamentos</span>
-                    </a>
+
+                <li class="sidebar-group @Open(gFinanceiro)" data-group>
+                    <button type="button" class="sidebar-group-header">
+                        <span>Financeiro</span>
+                        <i class="bi bi-chevron-down sidebar-chevron"></i>
+                    </button>
+                    <ul class="sidebar-group-items">
+                        <li class="sidebar-item">
+                            <a class="sidebar-link @Active("/Cadastro/FormasPagamento")" asp-page="/Cadastro/FormasPagamento">
+                                <i class="bi bi-credit-card"></i><span>Formas de Pagamento</span>
+                            </a>
+                        </li>
+                        <li class="sidebar-item">
+                            <a class="sidebar-link @Active("/Cadastro/ContasAPagar")" asp-page="/Cadastro/ContasAPagar">
+                                <i class="bi bi-cash-stack"></i><span>Contas a Pagar</span>
+                            </a>
+                        </li>
+                    </ul>
+                </li>
+
+                <li class="sidebar-group @Open(gOperacional)" data-group>
+                    <button type="button" class="sidebar-group-header">
+                        <span>Operacional</span>
+                        <i class="bi bi-chevron-down sidebar-chevron"></i>
+                    </button>
+                    <ul class="sidebar-group-items">
+                        <li class="sidebar-item">
+                            <a class="sidebar-link @Active("/Cadastro/Agendamentos")" asp-page="/Cadastro/Agendamentos">
+                                <i class="bi bi-calendar-check-fill"></i><span>Agendamentos</span>
+                            </a>
+                        </li>
+                        <li class="sidebar-item">
+                            <a class="sidebar-link @(gOperacional.Contains(curr) && curr != "/Cadastro/Agendamentos" ? "active" : "")" asp-page="/Cadastro/Vendas">
+                                <i class="bi bi-cart-check-fill"></i><span>Vendas</span>
+                            </a>
+                        </li>
+                    </ul>
+                </li>
+
+                <li class="sidebar-empty text-muted small px-3 py-2" id="menuSearchEmpty" style="display:none;">
+                    Nenhum item encontrado
                 </li>
             </ul>
+
             <div class="sidebar-footer">
                 <i class="bi bi-person-circle"></i>
                 <span>Admin</span>
@@ -98,6 +206,49 @@
     <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
     <script src="~/js/site.js" asp-append-version="true"></script>
     <script>
+        // Recolher / expandir secoes (abas)
+        document.querySelectorAll('#sidebarNav .sidebar-group-header').forEach(function (btn) {
+            btn.addEventListener('click', function () {
+                btn.parentElement.classList.toggle('collapsed');
+            });
+        });
+
+        // Busca no menu
+        const menuSearch = document.getElementById('menuSearch');
+        const menuEmpty = document.getElementById('menuSearchEmpty');
+        menuSearch?.addEventListener('input', function () {
+            const q = this.value.trim().toLowerCase();
+            let totalVisivel = 0;
+
+            document.querySelectorAll('#sidebarNav .sidebar-group').forEach(function (grupo) {
+                let algum = false;
+                grupo.querySelectorAll('.sidebar-item').forEach(function (item) {
+                    const txt = item.textContent.trim().toLowerCase();
+                    const ok = !q || txt.includes(q);
+                    item.style.display = ok ? '' : 'none';
+                    if (ok) { algum = true; totalVisivel++; }
+                });
+                // ao buscar, abre os grupos com resultado e esconde os vazios
+                if (q) {
+                    grupo.style.display = algum ? '' : 'none';
+                    grupo.classList.toggle('collapsed', !algum);
+                } else {
+                    grupo.style.display = '';
+                }
+            });
+
+            // Dashboard (item solto)
+            document.querySelectorAll('#sidebarNav > .sidebar-item').forEach(function (item) {
+                const txt = item.textContent.trim().toLowerCase();
+                const ok = !q || txt.includes(q);
+                item.style.display = ok ? '' : 'none';
+                if (ok) totalVisivel++;
+            });
+
+            if (menuEmpty) menuEmpty.style.display = (q && totalVisivel === 0) ? '' : 'none';
+        });
+
+        // Toggle da sidebar (botao do topo)
         document.getElementById('sidebarToggle')?.addEventListener('click', function () {
             document.getElementById('wrapper').classList.toggle('sidebar-collapsed');
         });

@@ -1,0 +1,151 @@
+@page
+@model WebAppERP.Pages.Cadastro.EstadosModel
+@{
+    ViewData["Title"] = "Estados";
+}
+
+<div class="d-flex justify-content-between align-items-start mb-4">
+    <div>
+        <h1 class="page-title">Estados</h1>
+        <p class="page-subtitle">Gerencie os estados / UFs cadastrados no sistema</p>
+    </div>
+    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#modalEstado" onclick="limparForm()">
+        <i class="bi bi-plus-lg me-1"></i> Novo Estado
+    </button>
+</div>
+
+<!-- Filtros -->
+<div class="card mb-3">
+    <div class="card-body py-2">
+        <div class="row g-2 align-items-center">
+            <div class="col-md-4">
+                <div class="search-box">
+                    <i class="bi bi-search search-icon"></i>
+                    <input type="text" class="form-control" placeholder="Buscar por nome ou UF..." id="searchInput" />
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Tabela -->
+<div class="table-container">
+    <div class="table-header">
+        <h5><i class="bi bi-map me-2"></i>Lista de Estados</h5>
+        <span class="text-muted small">@Model.Estados.Count registros encontrados</span>
+    </div>
+    <div class="table-responsive">
+        <table class="table" id="tblEstados">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>UF</th>
+                    <th>Nome</th>
+                    <th>Pais</th>
+                    <th>Ultima Edicao</th>
+                    <th class="text-center">Acoes</th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (Model.Estados.Any())
+                {
+                    @foreach (var e in Model.Estados)
+                    {
+                        <tr>
+                            <td>@e.IdEstado</td>
+                            <td><strong>@e.SgUF</strong></td>
+                            <td>@e.NmEstado</td>
+                            <td>@(e.Pais?.NmPais ?? "-")</td>
+                            <td>@(e.DtEdicao?.ToString("dd/MM/yyyy HH:mm") ?? "-")</td>
+                            <td class="text-center">
+                                <button class="btn btn-icon btn-outline-primary" title="Editar"
+                                        data-bs-toggle="modal" data-bs-target="#modalEstado"
+                                        onclick="editarEstado(@e.IdEstado, '@e.SgUF','@e.NmEstado.Replace("'", "\\'")','@e.IdPais')">
+                                    <i class="bi bi-pencil"></i>
+                                </button>
+                                <form method="post" asp-page-handler="Delete" class="d-inline" onsubmit="return confirm('Deseja realmente excluir este estado?')">
+                                    <input type="hidden" name="id" value="@e.IdEstado" />
+                                    <button type="submit" class="btn btn-icon btn-outline-danger" title="Excluir">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </form>
+                            </td>
+                        </tr>
+                    }
+                }
+                else
+                {
+                    <tr><td colspan="6" class="text-center text-muted py-4">Nenhum estado cadastrado</td></tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Modal Novo/Editar Estado -->
+<div class="modal fade" id="modalEstado" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form method="post">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="modalTitle"><i class="bi bi-map me-2"></i>Novo Estado</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <input type="hidden" asp-for="EstadoForm.IdEstado" id="formIdEstado" />
+                    <div class="row g-3">
+                        <div class="col-md-3">
+                            <label class="form-label">UF *</label>
+                            <input type="text" class="form-control text-uppercase" asp-for="EstadoForm.SgUF" id="formSgUF" maxlength="2" placeholder="SP" required />
+                        </div>
+                        <div class="col-md-9">
+                            <label class="form-label">Nome do Estado *</label>
+                            <input type="text" class="form-control" asp-for="EstadoForm.NmEstado" id="formNmEstado" required />
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label">Pais *</label>
+                            <select class="form-select" asp-for="EstadoForm.IdPais" id="formIdPais" required>
+                                <option value="">Selecione o pais</option>
+                                @foreach (var pais in Model.Paises)
+                                {
+                                    <option value="@pais.IdPais">@pais.NmPais</option>
+                                }
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary"><i class="bi bi-check-lg me-1"></i>Salvar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        document.getElementById('searchInput')?.addEventListener('input', function () {
+            const filter = this.value.toLowerCase();
+            document.querySelectorAll('#tblEstados tbody tr').forEach(row => {
+                row.style.display = row.textContent.toLowerCase().includes(filter) ? '' : 'none';
+            });
+        });
+
+        function limparForm() {
+            document.getElementById('modalTitle').innerHTML = '<i class="bi bi-map me-2"></i>Novo Estado';
+            document.getElementById('formIdEstado').value = '0';
+            document.getElementById('formSgUF').value = '';
+            document.getElementById('formNmEstado').value = '';
+            document.getElementById('formIdPais').value = '';
+        }
+
+        function editarEstado(id, uf, nome, idPais) {
+            document.getElementById('modalTitle').innerHTML = '<i class="bi bi-pencil me-2"></i>Editar Estado';
+            document.getElementById('formIdEstado').value = id;
+            document.getElementById('formSgUF').value = uf;
+            document.getElementById('formNmEstado').value = nome;
+            document.getElementById('formIdPais').value = idPais;
+        }
+    </script>
+}

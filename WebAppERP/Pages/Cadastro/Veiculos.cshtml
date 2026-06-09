@@ -1,0 +1,166 @@
+@page
+@model WebAppERP.Pages.Cadastro.VeiculosModel
+@{
+    ViewData["Title"] = "Veiculos";
+}
+
+<div class="d-flex justify-content-between align-items-start mb-4">
+    <div>
+        <h1 class="page-title">Veiculos</h1>
+        <p class="page-subtitle">Gerencie os veiculos cadastrados no sistema</p>
+    </div>
+    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#modalVeiculo" onclick="limparForm()">
+        <i class="bi bi-plus-lg me-1"></i> Novo Veiculo
+    </button>
+</div>
+
+<!-- Filtros -->
+<div class="card mb-3">
+    <div class="card-body py-2">
+        <div class="row g-2 align-items-center">
+            <div class="col-md-4">
+                <div class="search-box">
+                    <i class="bi bi-search search-icon"></i>
+                    <input type="text" class="form-control" placeholder="Buscar por placa ou ANTT..." id="searchInput" />
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Tabela -->
+<div class="table-container">
+    <div class="table-header">
+        <h5><i class="bi bi-truck-flatbed me-2"></i>Lista de Veiculos</h5>
+        <span class="text-muted small">@Model.Veiculos.Count registros encontrados</span>
+    </div>
+    <div class="table-responsive">
+        <table class="table" id="tblVeiculos">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Placa</th>
+                    <th>Estado</th>
+                    <th>UF</th>
+                    <th>ANTT</th>
+                    <th class="text-center">Acoes</th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (Model.Veiculos.Any())
+                {
+                    @foreach (var v in Model.Veiculos)
+                    {
+                        <tr>
+                            <td>@v.IdVeiculo</td>
+                            <td><strong>@v.DsPlaca</strong></td>
+                            <td>@(v.Estado?.NmEstado ?? "-")</td>
+                            <td>@(v.Estado?.SgUF ?? "-")</td>
+                            <td>@(v.NrANTT ?? "-")</td>
+                            <td class="text-center">
+                                <button class="btn btn-icon btn-outline-primary" title="Editar"
+                                        data-bs-toggle="modal" data-bs-target="#modalVeiculo"
+                                        onclick="editarVeiculo(@v.IdVeiculo, '@v.DsPlaca','@(v.IdEstado?.ToString() ?? "")','@v.NrANTT')">
+                                    <i class="bi bi-pencil"></i>
+                                </button>
+                                <form method="post" asp-page-handler="Delete" class="d-inline" onsubmit="return confirm('Deseja realmente excluir este veiculo?')">
+                                    <input type="hidden" name="id" value="@v.IdVeiculo" />
+                                    <button type="submit" class="btn btn-icon btn-outline-danger" title="Excluir">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </form>
+                            </td>
+                        </tr>
+                    }
+                }
+                else
+                {
+                    <tr><td colspan="6" class="text-center text-muted py-4">Nenhum veiculo cadastrado</td></tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Modal Novo/Editar Veiculo -->
+<div class="modal fade" id="modalVeiculo" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form method="post">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="modalTitle"><i class="bi bi-truck-flatbed me-2"></i>Novo Veiculo</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <input type="hidden" asp-for="VeiculoForm.IdVeiculo" id="formIdVeiculo" />
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Placa *</label>
+                            <input type="text" class="form-control text-uppercase" asp-for="VeiculoForm.DsPlaca" id="formDsPlaca" maxlength="8" placeholder="ABC1D23" required />
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">ANTT</label>
+                            <input type="text" class="form-control" asp-for="VeiculoForm.NrANTT" id="formNrANTT" maxlength="20" />
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label">Estado (UF de emplacamento)</label>
+                            <select class="form-select" asp-for="VeiculoForm.IdEstado" id="formIdEstado">
+                                <option value="">Selecione o estado</option>
+                                @foreach (var estado in Model.Estados)
+                                {
+                                    <option value="@estado.IdEstado">@estado.NmEstado / @estado.SgUF</option>
+                                }
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary"><i class="bi bi-check-lg me-1"></i>Salvar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        document.getElementById('searchInput')?.addEventListener('input', function () {
+            const filter = this.value.toLowerCase();
+            document.querySelectorAll('#tblVeiculos tbody tr').forEach(row => {
+                row.style.display = row.textContent.toLowerCase().includes(filter) ? '' : 'none';
+            });
+        });
+
+        // Mascara placa Mercosul: LLLNLNN (ex.: ABC1D23)
+        function mascaraPlaca(v) {
+            v = v.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 7);
+            let r = '';
+            for (let i = 0; i < v.length; i++) {
+                const c = v[i];
+                // posicoes 0,1,2 e 4 = letras; 3,5,6 = numeros
+                if (i < 3 || i === 4) r += c.replace(/[^A-Z]/g, '');
+                else r += c.replace(/[^0-9]/g, '');
+            }
+            return r;
+        }
+        const elPlaca = document.getElementById('formDsPlaca');
+        elPlaca?.addEventListener('input', () => { elPlaca.value = mascaraPlaca(elPlaca.value); });
+
+        function limparForm() {
+            document.getElementById('modalTitle').innerHTML = '<i class="bi bi-truck-flatbed me-2"></i>Novo Veiculo';
+            document.getElementById('formIdVeiculo').value = '0';
+            document.getElementById('formDsPlaca').value = '';
+            document.getElementById('formNrANTT').value = '';
+            document.getElementById('formIdEstado').value = '';
+        }
+
+        function editarVeiculo(id, placa, idEstado, antt) {
+            document.getElementById('modalTitle').innerHTML = '<i class="bi bi-pencil me-2"></i>Editar Veiculo';
+            document.getElementById('formIdVeiculo').value = id;
+            document.getElementById('formDsPlaca').value = placa;
+            document.getElementById('formIdEstado').value = idEstado;
+            document.getElementById('formNrANTT').value = antt;
+        }
+    </script>
+}

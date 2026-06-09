@@ -1,0 +1,321 @@
+@page
+@model WebAppERP.Pages.Cadastro.ContasAPagarModel
+@{
+    ViewData["Title"] = "Contas a Pagar";
+    var hoje = DateOnly.FromDateTime(DateTime.Today);
+}
+
+<div class="d-flex justify-content-between align-items-start mb-4">
+    <div>
+        <h1 class="page-title">Contas a Pagar</h1>
+        <p class="page-subtitle">Controle de parcelas, vencimentos e baixas financeiras</p>
+    </div>
+    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#modalConta" onclick="limparForm()">
+        <i class="bi bi-plus-lg me-1"></i> Nova Conta
+    </button>
+</div>
+
+<!-- Indicadores -->
+<div class="row g-3 mb-4">
+    <div class="col-md-4">
+        <div class="card kpi-card kpi-blue">
+            <div class="card-body d-flex align-items-center justify-content-between">
+                <div>
+                    <div class="kpi-label">Em Aberto (@Model.QtAberto)</div>
+                    <div class="kpi-value mt-1">R$ @Model.VlAberto.ToString("N2")</div>
+                </div>
+                <div class="kpi-icon" style="background: #dbeafe; color: #3b82f6;">
+                    <i class="bi bi-hourglass-split"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card kpi-card kpi-orange">
+            <div class="card-body d-flex align-items-center justify-content-between">
+                <div>
+                    <div class="kpi-label">Vencidas (@Model.QtVencidas)</div>
+                    <div class="kpi-value mt-1">R$ @Model.VlVencidas.ToString("N2")</div>
+                </div>
+                <div class="kpi-icon" style="background: #fee2e2; color: #ef4444;">
+                    <i class="bi bi-exclamation-triangle"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card kpi-card kpi-green">
+            <div class="card-body d-flex align-items-center justify-content-between">
+                <div>
+                    <div class="kpi-label">Pagas (@Model.QtPagas)</div>
+                    <div class="kpi-value mt-1">R$ @Model.VlPagas.ToString("N2")</div>
+                </div>
+                <div class="kpi-icon" style="background: #dcfce7; color: #10b981;">
+                    <i class="bi bi-check2-circle"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Filtros -->
+<div class="card mb-3">
+    <div class="card-body py-2">
+        <div class="row g-2 align-items-center">
+            <div class="col-md-3">
+                <div class="search-box">
+                    <i class="bi bi-search search-icon"></i>
+                    <input type="text" class="form-control" placeholder="Buscar por NFe ou fornecedor..." id="searchInput" />
+                </div>
+            </div>
+            <div class="col-md-3">
+                <select class="form-select" id="filterFornecedor">
+                    <option value="">Todos os Fornecedores</option>
+                    @foreach (var f in Model.Fornecedores)
+                    {
+                        <option value="@f.IdFornecedor">@f.DsRazaoSocial</option>
+                    }
+                </select>
+            </div>
+            <div class="col-md-2">
+                <select class="form-select" id="filterSituacao">
+                    <option value="">Todas as Situacoes</option>
+                    <option value="ABERTA">Em Aberto</option>
+                    <option value="VENCIDA">Vencida</option>
+                    <option value="PAGA">Paga</option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <input type="date" class="form-control" id="filterVencAte" title="Vencimento ate" />
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Tabela -->
+<div class="table-container">
+    <div class="table-header">
+        <h5><i class="bi bi-cash-stack me-2"></i>Parcelas a Pagar</h5>
+        <span class="text-muted small">@Model.Contas.Count registros encontrados</span>
+    </div>
+    <div class="table-responsive">
+        <table class="table" id="tblContas">
+            <thead>
+                <tr>
+                    <th>NFe</th>
+                    <th>Serie</th>
+                    <th>Mod.</th>
+                    <th>Fornecedor</th>
+                    <th>Parc.</th>
+                    <th class="text-end">Valor</th>
+                    <th>Vencimento</th>
+                    <th>Pagamento</th>
+                    <th>Forma</th>
+                    <th>Situacao</th>
+                    <th class="text-center">Acoes</th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (Model.Contas.Any())
+                {
+                    @foreach (var c in Model.Contas)
+                    {
+                        var sit = WebAppERP.Pages.Cadastro.ContasAPagarModel.Situacao(c, hoje);
+                        var badge = sit switch
+                        {
+                            "PAGA" => "badge-concluido",
+                            "VENCIDA" => "badge-cancelado",
+                            _ => "badge-agendado"
+                        };
+                        <tr data-fornecedor="@c.IdFornecedor" data-situacao="@sit" data-venc="@(c.DtVencimento?.ToString("yyyy-MM-dd"))">
+                            <td><strong>@c.NrNFe</strong></td>
+                            <td>@c.NrSerie</td>
+                            <td>@c.NrModelo</td>
+                            <td>@(c.Fornecedor?.DsRazaoSocial ?? "-")</td>
+                            <td>@c.NrParcela</td>
+                            <td class="text-end">R$ @((c.VlParcela ?? 0).ToString("N2"))</td>
+                            <td>@(c.DtVencimento?.ToString("dd/MM/yyyy") ?? "-")</td>
+                            <td>@(c.DtPagamento?.ToString("dd/MM/yyyy") ?? "-")</td>
+                            <td>@(c.FormaPagamento?.DsFormaPagamento ?? "-")</td>
+                            <td><span class="badge-status @badge">@sit</span></td>
+                            <td class="text-center" style="white-space: nowrap;">
+                                @if (sit != "PAGA")
+                                {
+                                    <form method="post" asp-page-handler="Baixa" class="d-inline" onsubmit="return confirm('Confirmar baixa (pagamento) desta parcela hoje?')">
+                                        <input type="hidden" name="nrNFe" value="@c.NrNFe" />
+                                        <input type="hidden" name="nrSerie" value="@c.NrSerie" />
+                                        <input type="hidden" name="nrModelo" value="@c.NrModelo" />
+                                        <input type="hidden" name="idFornecedor" value="@c.IdFornecedor" />
+                                        <input type="hidden" name="nrParcela" value="@c.NrParcela" />
+                                        <button type="submit" class="btn btn-icon btn-outline-success" title="Dar baixa / Marcar como pago">
+                                            <i class="bi bi-cash-coin"></i>
+                                        </button>
+                                    </form>
+                                }
+                                <button class="btn btn-icon btn-outline-primary" title="Editar"
+                                        data-bs-toggle="modal" data-bs-target="#modalConta"
+                                        onclick="editarConta(@c.NrNFe,@c.NrSerie,@c.NrModelo,@c.IdFornecedor,@c.NrParcela,'@((c.VlParcela ?? 0).ToString(System.Globalization.CultureInfo.InvariantCulture))','@(c.DtVencimento?.ToString("yyyy-MM-dd"))','@(c.DtPagamento?.ToString("yyyy-MM-dd"))','@(c.IdFormaPagamento?.ToString())','@c.DsObservacao?.Replace("'", "\\'")')">
+                                    <i class="bi bi-pencil"></i>
+                                </button>
+                                <form method="post" asp-page-handler="Delete" class="d-inline" onsubmit="return confirm('Deseja realmente excluir esta parcela?')">
+                                    <input type="hidden" name="nrNFe" value="@c.NrNFe" />
+                                    <input type="hidden" name="nrSerie" value="@c.NrSerie" />
+                                    <input type="hidden" name="nrModelo" value="@c.NrModelo" />
+                                    <input type="hidden" name="idFornecedor" value="@c.IdFornecedor" />
+                                    <input type="hidden" name="nrParcela" value="@c.NrParcela" />
+                                    <button type="submit" class="btn btn-icon btn-outline-danger" title="Excluir">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </form>
+                            </td>
+                        </tr>
+                    }
+                }
+                else
+                {
+                    <tr><td colspan="11" class="text-center text-muted py-4">Nenhuma conta a pagar cadastrada</td></tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Modal Nova/Editar Conta -->
+<div class="modal fade" id="modalConta" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <form method="post">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="modalTitle"><i class="bi bi-cash-stack me-2"></i>Nova Conta a Pagar</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <p class="text-muted small mb-3" id="chaveHint"><i class="bi bi-info-circle me-1"></i>NFe + Serie + Modelo + Fornecedor + Parcela identificam a parcela (chave). Na edicao nao podem ser alterados.</p>
+                    <div class="row g-3">
+                        <div class="col-md-3">
+                            <label class="form-label">Numero NFe *</label>
+                            <input type="number" class="form-control" asp-for="ContaForm.NrNFe" id="formNrNFe" required />
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label">Serie *</label>
+                            <input type="number" class="form-control" asp-for="ContaForm.NrSerie" id="formNrSerie" required />
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label">Modelo *</label>
+                            <input type="number" class="form-control" asp-for="ContaForm.NrModelo" id="formNrModelo" required />
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label">Parcela *</label>
+                            <input type="number" class="form-control" asp-for="ContaForm.NrParcela" id="formNrParcela" required />
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Valor (R$)</label>
+                            <input type="number" step="0.01" class="form-control" asp-for="ContaForm.VlParcela" id="formVlParcela" />
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label">Fornecedor *</label>
+                            <select class="form-select" asp-for="ContaForm.IdFornecedor" id="formIdFornecedor" required>
+                                <option value="">Selecione o fornecedor</option>
+                                @foreach (var f in Model.Fornecedores)
+                                {
+                                    <option value="@f.IdFornecedor">@f.DsRazaoSocial</option>
+                                }
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Vencimento</label>
+                            <input type="date" class="form-control" asp-for="ContaForm.DtVencimento" id="formDtVencimento" />
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Pagamento</label>
+                            <input type="date" class="form-control" asp-for="ContaForm.DtPagamento" id="formDtPagamento" />
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Forma de Pagamento</label>
+                            <select class="form-select" asp-for="ContaForm.IdFormaPagamento" id="formIdFormaPagamento">
+                                <option value="">Selecione</option>
+                                @foreach (var fp in Model.Formas)
+                                {
+                                    <option value="@fp.IdFormaPagamento">@fp.DsFormaPagamento</option>
+                                }
+                            </select>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label">Observacao</label>
+                            <textarea class="form-control" rows="2" asp-for="ContaForm.DsObservacao" id="formDsObservacao"></textarea>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary"><i class="bi bi-check-lg me-1"></i>Salvar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        function aplicarFiltros() {
+            const texto = document.getElementById('searchInput').value.toLowerCase();
+            const forn = document.getElementById('filterFornecedor').value;
+            const sit = document.getElementById('filterSituacao').value;
+            const vencAte = document.getElementById('filterVencAte').value;
+            document.querySelectorAll('#tblContas tbody tr').forEach(row => {
+                if (!row.hasAttribute('data-fornecedor')) return;
+                const matchTexto = row.textContent.toLowerCase().includes(texto);
+                const matchForn = !forn || row.getAttribute('data-fornecedor') === forn;
+                const matchSit = !sit || row.getAttribute('data-situacao') === sit;
+                const venc = row.getAttribute('data-venc');
+                const matchVenc = !vencAte || (venc && venc <= vencAte);
+                row.style.display = (matchTexto && matchForn && matchSit && matchVenc) ? '' : 'none';
+            });
+        }
+        ['searchInput', 'filterFornecedor', 'filterSituacao', 'filterVencAte'].forEach(id => {
+            const el = document.getElementById(id);
+            el?.addEventListener('input', aplicarFiltros);
+            el?.addEventListener('change', aplicarFiltros);
+        });
+
+        const camposChave = ['formNrNFe', 'formNrSerie', 'formNrModelo', 'formNrParcela', 'formIdFornecedor'];
+        function setChaveReadonly(ro) {
+            camposChave.forEach(id => {
+                const el = document.getElementById(id);
+                if (el.tagName === 'SELECT') { el.style.pointerEvents = ro ? 'none' : ''; el.style.background = ro ? '#e9ecef' : ''; }
+                else { el.readOnly = ro; }
+            });
+            document.getElementById('chaveHint').style.display = ro ? 'block' : 'none';
+        }
+
+        function limparForm() {
+            document.getElementById('modalTitle').innerHTML = '<i class="bi bi-cash-stack me-2"></i>Nova Conta a Pagar';
+            document.getElementById('formNrNFe').value = '';
+            document.getElementById('formNrSerie').value = '';
+            document.getElementById('formNrModelo').value = '';
+            document.getElementById('formNrParcela').value = '';
+            document.getElementById('formIdFornecedor').value = '';
+            document.getElementById('formVlParcela').value = '';
+            document.getElementById('formDtVencimento').value = '';
+            document.getElementById('formDtPagamento').value = '';
+            document.getElementById('formIdFormaPagamento').value = '';
+            document.getElementById('formDsObservacao').value = '';
+            setChaveReadonly(false);
+        }
+
+        function editarConta(nfe, serie, modelo, idForn, parcela, valor, venc, pgto, idForma, obs) {
+            document.getElementById('modalTitle').innerHTML = '<i class="bi bi-pencil me-2"></i>Editar Conta a Pagar';
+            document.getElementById('formNrNFe').value = nfe;
+            document.getElementById('formNrSerie').value = serie;
+            document.getElementById('formNrModelo').value = modelo;
+            document.getElementById('formNrParcela').value = parcela;
+            document.getElementById('formIdFornecedor').value = idForn;
+            document.getElementById('formVlParcela').value = valor;
+            document.getElementById('formDtVencimento').value = venc;
+            document.getElementById('formDtPagamento').value = pgto;
+            document.getElementById('formIdFormaPagamento').value = idForma;
+            document.getElementById('formDsObservacao').value = obs;
+            setChaveReadonly(true);
+        }
+    </script>
+}
