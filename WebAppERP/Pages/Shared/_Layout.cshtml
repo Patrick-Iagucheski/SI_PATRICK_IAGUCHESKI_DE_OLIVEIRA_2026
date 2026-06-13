@@ -1,6 +1,6 @@
 @{
     var curr = ViewContext.RouteData.Values["page"]?.ToString() ?? "";
-    string[] gCadastros = { "/Cadastro/Clientes", "/Cadastro/Funcionarios", "/Cadastro/Servicos", "/Cadastro/Fornecedores", "/Cadastro/Transportadores", "/Cadastro/Veiculos" };
+    string[] gCadastros = { "/Cadastro/Clientes", "/Cadastro/Funcionarios", "/Cadastro/Servicos", "/Cadastro/Fornecedores" };
     string[] gLocalidades = { "/Cadastro/Paises", "/Cadastro/Estados", "/Cadastro/Cidades" };
     string[] gEstoque = { "/Cadastro/Produtos" };
     string[] gFinanceiro = { "/Cadastro/FormasPagamento", "/Cadastro/ContasAPagar" };
@@ -66,16 +66,6 @@
                         <li class="sidebar-item">
                             <a class="sidebar-link @Active("/Cadastro/Fornecedores")" asp-page="/Cadastro/Fornecedores">
                                 <i class="bi bi-truck"></i><span>Fornecedores</span>
-                            </a>
-                        </li>
-                        <li class="sidebar-item">
-                            <a class="sidebar-link @Active("/Cadastro/Transportadores")" asp-page="/Cadastro/Transportadores">
-                                <i class="bi bi-truck-front"></i><span>Transportadores</span>
-                            </a>
-                        </li>
-                        <li class="sidebar-item">
-                            <a class="sidebar-link @Active("/Cadastro/Veiculos")" asp-page="/Cadastro/Veiculos">
-                                <i class="bi bi-truck-flatbed"></i><span>Veiculos</span>
                             </a>
                         </li>
                     </ul>

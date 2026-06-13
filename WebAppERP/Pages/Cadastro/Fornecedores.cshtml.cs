@@ -29,8 +29,16 @@ public class FornecedoresModel : PageModel
         Cidades = await _db.Cidades.Include(c => c.Estado).OrderBy(c => c.NmCidade).ToListAsync();
     }
 
+    private static string? SomenteNumeros(string? valor) =>
+        string.IsNullOrEmpty(valor) ? valor : new string(valor.Where(char.IsDigit).ToArray());
+
     public async Task<IActionResult> OnPostAsync()
     {
+        // Remove a máscara antes de salvar (banco guarda só os números)
+        FornecedorForm.NrCNPJ = SomenteNumeros(FornecedorForm.NrCNPJ) ?? string.Empty;
+        FornecedorForm.NrCEP = SomenteNumeros(FornecedorForm.NrCEP);
+        FornecedorForm.NrTelefone = SomenteNumeros(FornecedorForm.NrTelefone);
+
         if (FornecedorForm.IdFornecedor == 0)
         {
             FornecedorForm.DtCriacao = DateTime.Now;
