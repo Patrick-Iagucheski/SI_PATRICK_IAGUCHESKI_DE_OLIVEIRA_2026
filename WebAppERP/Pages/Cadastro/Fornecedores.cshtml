@@ -2,6 +2,22 @@
 @model WebAppERP.Pages.Cadastro.FornecedoresModel
 @{
     ViewData["Title"] = "Fornecedores";
+
+    string FormatarCNPJ(string? v)
+    {
+        var d = new string((v ?? "").Where(char.IsDigit).ToArray());
+        return d.Length == 14
+            ? $"{d[..2]}.{d.Substring(2, 3)}.{d.Substring(5, 3)}/{d.Substring(8, 4)}-{d.Substring(12, 2)}"
+            : (v ?? "");
+    }
+
+    string FormatarTelefone(string? v)
+    {
+        var d = new string((v ?? "").Where(char.IsDigit).ToArray());
+        if (d.Length == 11) return $"({d[..2]}) {d.Substring(2, 5)}-{d.Substring(7, 4)}";
+        if (d.Length == 10) return $"({d[..2]}) {d.Substring(2, 4)}-{d.Substring(6, 4)}";
+        return string.IsNullOrEmpty(v) ? "-" : v;
+    }
 }
 
 <div class="d-flex justify-content-between align-items-start mb-4">
@@ -55,8 +71,8 @@
                         <tr>
                             <td>@f.IdFornecedor</td>
                             <td><strong>@f.DsRazaoSocial</strong></td>
-                            <td>@f.NrCNPJ</td>
-                            <td>@(f.NrTelefone ?? "-")</td>
+                            <td>@FormatarCNPJ(f.NrCNPJ)</td>
+                            <td>@FormatarTelefone(f.NrTelefone)</td>
                             <td>@(f.DsEmail ?? "-")</td>
                             <td>@(f.Cidade != null ? $"{f.Cidade.NmCidade}/{f.Cidade.Estado?.SgUF}" : "-")</td>
                             <td class="text-center">
@@ -206,12 +222,12 @@
             document.getElementById('modalTitle').innerHTML = '<i class="bi bi-pencil me-2"></i>Editar Fornecedor';
             document.getElementById('formIdFornecedor').value = id;
             document.getElementById('formDsRazaoSocial').value = razao;
-            document.getElementById('formNrCNPJ').value = cnpj;
+            document.getElementById('formNrCNPJ').value = mascaraCNPJ(cnpj || '');
             document.getElementById('formDsEndereco').value = end;
             document.getElementById('formDsBairro').value = bairro;
             document.getElementById('formIdCidade').value = cidade;
-            document.getElementById('formNrCEP').value = cep;
-            document.getElementById('formNrTelefone').value = tel;
+            document.getElementById('formNrCEP').value = mascaraCEP(cep || '');
+            document.getElementById('formNrTelefone').value = mascaraTelefone(tel || '');
             document.getElementById('formDsEmail').value = email;
             document.getElementById('formNrInscEstadual').value = ie;
             document.getElementById('formNrInscEstSubTrib').value = iest;
