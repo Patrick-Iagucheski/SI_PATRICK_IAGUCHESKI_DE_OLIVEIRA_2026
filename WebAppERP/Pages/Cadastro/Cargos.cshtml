@@ -1,0 +1,242 @@
+@page
+@model WebAppERP.Pages.Cadastro.CargosModel
+@{
+    ViewData["Title"] = "Cargos";
+}
+
+<div class="d-flex justify-content-between align-items-start mb-4">
+    <div>
+        <h1 class="page-title">Cargos</h1>
+        <p class="page-subtitle">Gerencie os cargos dos funcionarios</p>
+    </div>
+    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#modalCargo" onclick="limparForm()">
+        <i class="bi bi-plus-lg me-1"></i> Novo Cargo
+    </button>
+</div>
+
+@if (TempData["Erro"] != null)
+{
+    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        <i class="bi bi-exclamation-triangle me-1"></i> @TempData["Erro"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+}
+@if (TempData["Sucesso"] != null)
+{
+    <div class="alert alert-success alert-dismissible fade show" role="alert">
+        <i class="bi bi-check-circle me-1"></i> @TempData["Sucesso"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+}
+
+<!-- Filtros -->
+<div class="card mb-3">
+    <div class="card-body py-2">
+        <div class="row g-2 align-items-center">
+            <div class="col-md-4">
+                <div class="search-box">
+                    <i class="bi bi-search search-icon"></i>
+                    <input type="text" class="form-control" placeholder="Buscar por nome ou descricao..." id="searchInput" />
+                </div>
+            </div>
+            <div class="col-md-2">
+                <select class="form-select" id="filterStatus">
+                    <option value="">Todos os Status</option>
+                    <option value="ativo">Ativo</option>
+                    <option value="inativo">Inativo</option>
+                </select>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Tabela -->
+<div class="table-container">
+    <div class="table-header">
+        <h5><i class="bi bi-briefcase-fill me-2"></i>Lista de Cargos</h5>
+        <span class="text-muted small">@Model.Cargos.Count registros encontrados</span>
+    </div>
+    <div class="table-responsive">
+        <table class="table" id="tblCargos">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Nome</th>
+                    <th>Descricao</th>
+                    <th>Comissao Padrao</th>
+                    <th>Status</th>
+                    <th class="text-center">Acoes</th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (Model.Cargos.Any())
+                {
+                    @foreach (var c in Model.Cargos)
+                    {
+                        <tr data-status="@(c.FlAtivo ? "ativo" : "inativo")">
+                            <td>@c.IdCargo</td>
+                            <td><strong>@c.NmCargo</strong></td>
+                            <td>@(string.IsNullOrWhiteSpace(c.DsCargo) ? "-" : c.DsCargo)</td>
+                            <td>@(c.VlComissaoPadrao.HasValue ? $"{c.VlComissaoPadrao.Value.ToString("0.##")}%" : "-")</td>
+                            <td>
+                                @if (c.FlAtivo)
+                                {
+                                    <span class="badge-status badge-ativo">Ativo</span>
+                                }
+                                else
+                                {
+                                    <span class="badge-status badge-inativo">Inativo</span>
+                                }
+                            </td>
+                            <td class="text-center">
+                                <button class="btn btn-icon btn-outline-primary" title="Editar"
+                                        data-bs-toggle="modal" data-bs-target="#modalCargo"
+                                        onclick="editarCargo(@c.IdCargo,'@c.NmCargo.Replace("'", "\\'")','@(c.DsCargo?.Replace("'", "\\'").Replace("\r", " ").Replace("\n", " "))','@(c.VlComissaoPadrao?.ToString("F2", System.Globalization.CultureInfo.InvariantCulture) ?? "")','@c.FlAtivo')">
+                                    <i class="bi bi-pencil"></i>
+                                </button>
+                                <form method="post" asp-page-handler="Delete" class="d-inline" onsubmit="return confirm('Deseja realmente excluir este cargo?')">
+                                    <input type="hidden" name="id" value="@c.IdCargo" />
+                                    <button type="submit" class="btn btn-icon btn-outline-danger" title="Excluir">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </form>
+                            </td>
+                        </tr>
+                    }
+                }
+                else
+                {
+                    <tr><td colspan="6" class="text-center text-muted py-4">Nenhum cargo cadastrado</td></tr>
+                }
+            </tbody>
+        </table>
+    </div>
+    <!-- Paginacao -->
+    <div class="d-flex justify-content-between align-items-center px-3 py-2 border-top" id="pagSection">
+        <span class="text-muted small" id="pagInfo"></span>
+        <nav>
+            <ul class="pagination pagination-sm mb-0" id="pagControls"></ul>
+        </nav>
+    </div>
+</div>
+
+<!-- Modal -->
+<div class="modal fade" id="modalCargo" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form method="post">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="modalTitle"><i class="bi bi-briefcase me-2"></i>Novo Cargo</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <input type="hidden" asp-for="CargoForm.IdCargo" id="cId" />
+                    <div class="row g-3">
+                        <div class="col-12">
+                            <label class="form-label">Nome do Cargo *</label>
+                            <input type="text" class="form-control" asp-for="CargoForm.NmCargo" id="cNome" maxlength="100" required />
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label">Descricao</label>
+                            <textarea class="form-control" rows="2" asp-for="CargoForm.DsCargo" id="cDesc" maxlength="300"></textarea>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Comissao Padrao (%)</label>
+                            <input type="number" class="form-control" asp-for="CargoForm.VlComissaoPadrao" id="cComissao" step="0.01" min="0" max="100" />
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Status</label>
+                            <select class="form-select" asp-for="CargoForm.FlAtivo" id="cAtivo">
+                                <option value="true">Ativo</option>
+                                <option value="false">Inativo</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary"><i class="bi bi-check-lg me-1"></i>Salvar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        // ===== Pesquisa + Paginacao (client-side, no padrao de busca do sistema) =====
+        const pageSize = 10;
+        let currentPage = 1;
+
+        function getRows() {
+            return Array.from(document.querySelectorAll('#tblCargos tbody tr'))
+                .filter(r => !r.querySelector('td[colspan]'));
+        }
+
+        function getFilteredRows() {
+            const q = (document.getElementById('searchInput').value || '').toLowerCase();
+            const status = document.getElementById('filterStatus').value;
+            return getRows().filter(r => {
+                const matchText = r.textContent.toLowerCase().includes(q);
+                const matchStatus = !status || r.getAttribute('data-status') === status;
+                return matchText && matchStatus;
+            });
+        }
+
+        function render() {
+            const filtered = getFilteredRows();
+            getRows().forEach(r => r.style.display = 'none');
+
+            const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
+            if (currentPage > totalPages) currentPage = totalPages;
+
+            const start = (currentPage - 1) * pageSize;
+            filtered.slice(start, start + pageSize).forEach(r => r.style.display = '');
+
+            const info = document.getElementById('pagInfo');
+            info.textContent = filtered.length === 0
+                ? 'Nenhum registro encontrado'
+                : `Mostrando ${start + 1}-${Math.min(start + pageSize, filtered.length)} de ${filtered.length}`;
+
+            const ctrl = document.getElementById('pagControls');
+            ctrl.innerHTML = '';
+            const addBtn = (label, page, disabled, active) => {
+                const li = document.createElement('li');
+                li.className = 'page-item' + (disabled ? ' disabled' : '') + (active ? ' active' : '');
+                const a = document.createElement('a');
+                a.className = 'page-link';
+                a.href = '#';
+                a.textContent = label;
+                a.onclick = (e) => { e.preventDefault(); if (!disabled && !active) { currentPage = page; render(); } };
+                li.appendChild(a);
+                ctrl.appendChild(li);
+            };
+            addBtn('«', currentPage - 1, currentPage === 1, false);
+            for (let p = 1; p <= totalPages; p++) addBtn(p, p, false, p === currentPage);
+            addBtn('»', currentPage + 1, currentPage === totalPages, false);
+        }
+
+        document.getElementById('searchInput').addEventListener('input', () => { currentPage = 1; render(); });
+        document.getElementById('filterStatus').addEventListener('change', () => { currentPage = 1; render(); });
+        render();
+
+        // ===== Modal (novo / editar) =====
+        function limparForm() {
+            document.getElementById('modalTitle').innerHTML = '<i class="bi bi-briefcase me-2"></i>Novo Cargo';
+            document.getElementById('cId').value = '0';
+            document.getElementById('cNome').value = '';
+            document.getElementById('cDesc').value = '';
+            document.getElementById('cComissao').value = '';
+            document.getElementById('cAtivo').value = 'true';
+        }
+
+        function editarCargo(id, nome, desc, comissao, ativo) {
+            document.getElementById('modalTitle').innerHTML = '<i class="bi bi-pencil me-2"></i>Editar Cargo';
+            document.getElementById('cId').value = id;
+            document.getElementById('cNome').value = nome;
+            document.getElementById('cDesc').value = desc;
+            document.getElementById('cComissao').value = comissao;
+            document.getElementById('cAtivo').value = ativo === 'True' ? 'true' : 'false';
+        }
+    </script>
+}

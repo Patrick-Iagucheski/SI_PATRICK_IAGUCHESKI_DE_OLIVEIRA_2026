@@ -13,6 +13,7 @@ public class AppDbContext : DbContext
     public DbSet<GerCidade> Cidades => Set<GerCidade>();
     public DbSet<GerCliente> Clientes => Set<GerCliente>();
     public DbSet<GerFuncionario> Funcionarios => Set<GerFuncionario>();
+    public DbSet<GerCargo> Cargos => Set<GerCargo>();
     public DbSet<GerServico> Servicos => Set<GerServico>();
     public DbSet<OpeAgendamento> Agendamentos => Set<OpeAgendamento>();
     public DbSet<OpeVenda> Vendas => Set<OpeVenda>();
