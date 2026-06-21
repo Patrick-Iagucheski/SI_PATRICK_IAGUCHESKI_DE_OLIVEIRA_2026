@@ -2,6 +2,22 @@
 @model WebAppERP.Pages.Cadastro.FuncionariosModel
 @{
     ViewData["Title"] = "Funcionarios";
+
+    string FormatarCPF(string? v)
+    {
+        var d = new string((v ?? "").Where(char.IsDigit).ToArray());
+        return d.Length == 11
+            ? $"{d[..3]}.{d.Substring(3, 3)}.{d.Substring(6, 3)}-{d.Substring(9, 2)}"
+            : (string.IsNullOrEmpty(v) ? "-" : v);
+    }
+
+    string FormatarTelefone(string? v)
+    {
+        var d = new string((v ?? "").Where(char.IsDigit).ToArray());
+        if (d.Length == 11) return $"({d[..2]}) {d.Substring(2, 5)}-{d.Substring(7, 4)}";
+        if (d.Length == 10) return $"({d[..2]}) {d.Substring(2, 4)}-{d.Substring(6, 4)}";
+        return string.IsNullOrEmpty(v) ? "-" : v;
+    }
 }
 
 <div class="d-flex justify-content-between align-items-start mb-4">
@@ -14,23 +30,35 @@
     </button>
 </div>
 
-<!-- Filtros -->
+<!-- Filtros de busca (todos opcionais e combinaveis) -->
 <div class="card mb-3">
-    <div class="card-body py-2">
-        <div class="row g-2 align-items-center">
-            <div class="col-md-4">
-                <div class="search-box">
-                    <i class="bi bi-search search-icon"></i>
-                    <input type="text" class="form-control" placeholder="Buscar por nome ou cargo..." id="searchInput" />
-                </div>
-            </div>
+    <div class="card-body py-3">
+        <div class="row g-2 align-items-end">
             <div class="col-md-2">
-                <select class="form-select" id="filterStatus">
-                    <option value="">Todos os Status</option>
-                    <option value="ativo">Ativo</option>
-                    <option value="inativo">Inativo</option>
-                </select>
+                <label class="form-label small mb-1">ID</label>
+                <input type="number" class="form-control" id="buscaId" min="1" autocomplete="off" />
             </div>
+            <div class="col-md-3">
+                <label class="form-label small mb-1">Funcionario</label>
+                <input type="text" class="form-control" id="buscaNome" autocomplete="off" />
+            </div>
+            <div class="col-md-3">
+                <label class="form-label small mb-1">Apelido</label>
+                <input type="text" class="form-control" id="buscaApelido" autocomplete="off" />
+            </div>
+            <div class="col-md-4">
+                <label class="form-label small mb-1">CPF</label>
+                <input type="text" class="form-control" id="buscaCpf" maxlength="14" placeholder="000.000.000-00" autocomplete="off" />
+            </div>
+        </div>
+        <div class="d-flex justify-content-between align-items-center mt-3">
+            <div class="form-check mb-0">
+                <input class="form-check-input" type="checkbox" id="buscaInativos" onchange="buscarFuncionarios()" />
+                <label class="form-check-label" for="buscaInativos">Exibir Funcionarios Inativos</label>
+            </div>
+            <button type="button" class="btn btn-primary" onclick="buscarFuncionarios()">
+                <i class="bi bi-search me-1"></i>Buscar
+            </button>
         </div>
     </div>
 </div>
@@ -39,14 +67,14 @@
 <div class="table-container">
     <div class="table-header">
         <h5><i class="bi bi-person-badge-fill me-2"></i>Lista de Funcionarios</h5>
-        <span class="text-muted small">@Model.Funcionarios.Count registros encontrados</span>
+        <span class="text-muted small" id="contadorRegistros">@Model.Funcionarios.Count registros encontrados</span>
     </div>
     <div class="table-responsive">
         <table class="table" id="tblFuncionarios">
             <thead>
                 <tr>
                     <th>ID</th>
-                    <th>Nome</th>
+                    <th>Funcionario</th>
                     <th>CPF</th>
                     <th>Cargo</th>
                     <th>Telefone</th>
@@ -64,9 +92,9 @@
                         <tr>
                             <td>@f.IdFuncionario</td>
                             <td><strong>@f.NmFuncionario</strong></td>
-                            <td>@f.NrCpf</td>
-                            <td>@f.DsCargo</td>
-                            <td>@(f.NrTelefone ?? "-")</td>
+                            <td>@FormatarCPF(f.NrCpf)</td>
+                            <td>@(f.Cargo?.NmCargo ?? f.DsCargo)</td>
+                            <td>@FormatarTelefone(f.NrTelefone)</td>
                             <td>@f.DtAdmissao.ToString("dd/MM/yyyy")</td>
                             <td>@(f.VlComissao.HasValue ? $"{f.VlComissao}%" : "-")</td>
                             <td>
@@ -82,7 +110,7 @@
                             <td class="text-center">
                                 <button class="btn btn-icon btn-outline-primary" title="Editar"
                                         data-bs-toggle="modal" data-bs-target="#modalFuncionario"
-                                        onclick="editarFunc(@f.IdFuncionario,'@f.NmFuncionario.Replace("'", "\\'")','@f.NrCpf','@f.NrTelefone','@f.DsEmail','@f.DsEndereco?.Replace("'", "\\'")','@f.DsBairro?.Replace("'", "\\'")','@(f.IdCidade?.ToString() ?? "")','@f.NrCEP','@(f.DtNascimento?.ToString("yyyy-MM-dd") ?? "")','@f.DtAdmissao.ToString("yyyy-MM-dd")','@(f.DtDemissao?.ToString("yyyy-MM-dd") ?? "")','@f.DsCargo.Replace("'", "\\'")','@(f.VlSalario?.ToString("F2") ?? "")','@(f.VlComissao?.ToString("F2") ?? "")','@f.DsObservacao?.Replace("'", "\\'")','@f.FlAtivo')">
+                                        onclick="editarFunc(@f.IdFuncionario,'@f.NmFuncionario.Replace("'", "\\'")','@f.NrCpf','@f.NrTelefone','@f.DsEmail','@f.DsEndereco?.Replace("'", "\\'")','@f.DsBairro?.Replace("'", "\\'")','@(f.IdCidade?.ToString() ?? "")','@f.NrCEP','@(f.DtNascimento?.ToString("yyyy-MM-dd") ?? "")','@f.DtAdmissao.ToString("yyyy-MM-dd")','@(f.DtDemissao?.ToString("yyyy-MM-dd") ?? "")','@(f.IdCargo?.ToString() ?? "")','@(f.VlSalario?.ToString("F2") ?? "")','@(f.VlComissao?.ToString("F2") ?? "")','@f.DsObservacao?.Replace("'", "\\'")','@f.FlAtivo','@f.NmApelido?.Replace("'", "\\'")','@f.NrRG','@f.NrNumero','@f.DsComplemento?.Replace("'", "\\'")','@f.DsSexo')">
                                     <i class="bi bi-pencil"></i>
                                 </button>
                                 <form method="post" asp-page-handler="Delete" class="d-inline" onsubmit="return confirm('Deseja realmente excluir este funcionario?')">
@@ -116,29 +144,112 @@
                 <div class="modal-body">
                     <input type="hidden" asp-for="FuncionarioForm.IdFuncionario" id="fId" />
                     <div class="row g-3">
-                        <div class="col-md-8">
-                            <label class="form-label">Nome Completo *</label>
-                            <input type="text" class="form-control" asp-for="FuncionarioForm.NmFuncionario" id="fNome" required />
+                        <!-- Codigo (somente leitura) | Funcionario | Apelido -->
+                        <div class="col-md-2">
+                            <label class="form-label">Codigo</label>
+                            <input type="text" class="form-control bg-light" id="fCodigoDisplay" placeholder="(novo)" readonly />
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Funcionario *</label>
+                            <input type="text" class="form-control" asp-for="FuncionarioForm.NmFuncionario" id="fNome" maxlength="200" required />
                         </div>
                         <div class="col-md-4">
+                            <label class="form-label">Apelido</label>
+                            <input type="text" class="form-control" asp-for="FuncionarioForm.NmApelido" id="fApelido" maxlength="100" />
+                        </div>
+
+                        <!-- CPF | RG | Sexo | Data de Nascimento -->
+                        <div class="col-md-3">
                             <label class="form-label">CPF *</label>
-                            <input type="text" class="form-control" asp-for="FuncionarioForm.NrCpf" id="fCpf" required />
+                            <input type="text" class="form-control" asp-for="FuncionarioForm.NrCpf" id="fCpf" maxlength="14" placeholder="000.000.000-00" required />
                         </div>
-                        <div class="col-md-4">
-                            <label class="form-label">Telefone</label>
-                            <input type="text" class="form-control" asp-for="FuncionarioForm.NrTelefone" id="fTel" />
+                        <div class="col-md-3">
+                            <label class="form-label">RG</label>
+                            <input type="text" class="form-control" asp-for="FuncionarioForm.NrRG" id="fRg" maxlength="9" />
                         </div>
-                        <div class="col-md-4">
-                            <label class="form-label">E-mail</label>
-                            <input type="email" class="form-control" asp-for="FuncionarioForm.DsEmail" id="fEmail" />
+                        <div class="col-md-3">
+                            <label class="form-label">Sexo</label>
+                            <select class="form-select" asp-for="FuncionarioForm.DsSexo" id="fSexo">
+                                <option value="">Selecione</option>
+                                <option value="Masculino">Masculino</option>
+                                <option value="Feminino">Feminino</option>
+                                <option value="Outro">Outro</option>
+                                <option value="Prefiro nao informar">Prefiro nao informar</option>
+                            </select>
                         </div>
-                        <div class="col-md-4">
+                        <div class="col-md-3">
                             <label class="form-label">Data de Nascimento</label>
                             <input type="date" class="form-control" asp-for="FuncionarioForm.DtNascimento" id="fNasc" />
                         </div>
+
+                        <!-- Endereco | Numero -->
+                        <div class="col-md-8">
+                            <label class="form-label">Endereco</label>
+                            <input type="text" class="form-control" asp-for="FuncionarioForm.DsEndereco" id="fEnd" maxlength="200" />
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Numero</label>
+                            <input type="text" class="form-control" asp-for="FuncionarioForm.NrNumero" id="fNumero" maxlength="10" />
+                        </div>
+
+                        <!-- Complemento | Bairro -->
+                        <div class="col-md-6">
+                            <label class="form-label">Complemento</label>
+                            <input type="text" class="form-control" asp-for="FuncionarioForm.DsComplemento" id="fComplemento" maxlength="100" />
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Bairro</label>
+                            <input type="text" class="form-control" asp-for="FuncionarioForm.DsBairro" id="fBairro" maxlength="100" />
+                        </div>
+
+                        <!-- Cidade (cadastro rapido) | CEP -->
+                        <div class="col-md-8">
+                            <label class="form-label">Cidade</label>
+                            <div class="input-group">
+                                <select class="form-select" asp-for="FuncionarioForm.IdCidade" id="fCidade">
+                                    <option value="">Selecione</option>
+                                    @foreach (var cidade in Model.Cidades)
+                                    {
+                                        <option value="@cidade.IdCidade">@cidade.NmCidade / @cidade.Estado?.SgUF</option>
+                                    }
+                                </select>
+                                <button type="button" class="btn btn-outline-primary" data-bs-toggle="modal"
+                                        data-bs-target="#modalCidadeRapido" title="Cadastrar nova cidade">
+                                    <i class="bi bi-plus-lg"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">CEP</label>
+                            <input type="text" class="form-control" asp-for="FuncionarioForm.NrCEP" id="fCep" maxlength="9" placeholder="00000-000" />
+                        </div>
+
+                        <!-- Telefone | E-mail -->
+                        <div class="col-md-6">
+                            <label class="form-label">Telefone</label>
+                            <input type="text" class="form-control" asp-for="FuncionarioForm.NrTelefone" id="fTel" maxlength="15" placeholder="(00) 00000-0000" />
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">E-mail</label>
+                            <input type="email" class="form-control" asp-for="FuncionarioForm.DsEmail" id="fEmail" maxlength="150" />
+                        </div>
+
+                        <!-- Cargo (cadastro rapido) | Admissao | Demissao -->
                         <div class="col-md-4">
                             <label class="form-label">Cargo *</label>
-                            <input type="text" class="form-control" asp-for="FuncionarioForm.DsCargo" id="fCargo" required />
+                            <div class="input-group">
+                                <select class="form-select" asp-for="FuncionarioForm.IdCargo" id="fCargo" required>
+                                    <option value="">Selecione</option>
+                                    @foreach (var cargo in Model.Cargos)
+                                    {
+                                        <option value="@cargo.IdCargo">@cargo.NmCargo</option>
+                                    }
+                                </select>
+                                <button type="button" class="btn btn-outline-primary" data-bs-toggle="modal"
+                                        data-bs-target="#modalCargoRapido" title="Cadastrar novo cargo">
+                                    <i class="bi bi-plus-lg"></i>
+                                </button>
+                            </div>
                         </div>
                         <div class="col-md-4">
                             <label class="form-label">Data de Admissao *</label>
@@ -148,46 +259,28 @@
                             <label class="form-label">Data de Demissao</label>
                             <input type="date" class="form-control" asp-for="FuncionarioForm.DtDemissao" id="fDem" />
                         </div>
-                        <div class="col-md-3">
+
+                        <!-- Salario | Comissao | Status -->
+                        <div class="col-md-4">
                             <label class="form-label">Salario (R$)</label>
-                            <input type="number" class="form-control" asp-for="FuncionarioForm.VlSalario" id="fSal" step="0.01" />
+                            <input type="number" class="form-control" asp-for="FuncionarioForm.VlSalario" id="fSal" step="0.01" min="0" />
                         </div>
-                        <div class="col-md-3">
+                        <div class="col-md-4">
                             <label class="form-label">Comissao (%)</label>
-                            <input type="number" class="form-control" asp-for="FuncionarioForm.VlComissao" id="fCom" step="0.01" />
+                            <input type="number" class="form-control" asp-for="FuncionarioForm.VlComissao" id="fCom" step="0.01" min="0" />
                         </div>
-                        <div class="col-md-3">
-                            <label class="form-label">CEP</label>
-                            <input type="text" class="form-control" asp-for="FuncionarioForm.NrCEP" id="fCep" />
-                        </div>
-                        <div class="col-md-3">
+                        <div class="col-md-4">
                             <label class="form-label">Status</label>
                             <select class="form-select" asp-for="FuncionarioForm.FlAtivo" id="fAtivo">
                                 <option value="true">Ativo</option>
                                 <option value="false">Inativo</option>
                             </select>
                         </div>
-                        <div class="col-md-6">
-                            <label class="form-label">Endereco</label>
-                            <input type="text" class="form-control" asp-for="FuncionarioForm.DsEndereco" id="fEnd" />
-                        </div>
-                        <div class="col-md-3">
-                            <label class="form-label">Bairro</label>
-                            <input type="text" class="form-control" asp-for="FuncionarioForm.DsBairro" id="fBairro" />
-                        </div>
-                        <div class="col-md-3">
-                            <label class="form-label">Cidade</label>
-                            <select class="form-select" asp-for="FuncionarioForm.IdCidade" id="fCidade">
-                                <option value="">Selecione</option>
-                                @foreach (var cidade in Model.Cidades)
-                                {
-                                    <option value="@cidade.IdCidade">@cidade.NmCidade / @cidade.Estado?.SgUF</option>
-                                }
-                            </select>
-                        </div>
+
+                        <!-- Observacoes -->
                         <div class="col-12">
                             <label class="form-label">Observacoes</label>
-                            <textarea class="form-control" rows="2" asp-for="FuncionarioForm.DsObservacao" id="fObs"></textarea>
+                            <textarea class="form-control" rows="2" asp-for="FuncionarioForm.DsObservacao" id="fObs" maxlength="500"></textarea>
                         </div>
                     </div>
                 </div>
@@ -200,6 +293,173 @@
     </div>
 </div>
 
+<!-- Modal de Cadastro Rapido de Cargo (AJAX) -->
+<div class="modal fade" id="modalCargoRapido" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="bi bi-briefcase me-2"></i>Cadastrar Cargo</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div id="crMsg"></div>
+                <div class="row g-3">
+                    <div class="col-12">
+                        <label class="form-label">Nome do Cargo *</label>
+                        <input type="text" class="form-control" id="crNome" maxlength="100" />
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label">Descricao</label>
+                        <textarea class="form-control" rows="2" id="crDesc" maxlength="300"></textarea>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Comissao Padrao (%)</label>
+                        <input type="number" class="form-control" id="crComissao" step="0.01" min="0" max="100" />
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-primary" id="btnSalvarCargoRapido" onclick="salvarCargoRapido()">
+                    <i class="bi bi-check-lg me-1"></i>Salvar Cargo
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal de Cadastro Rapido de Cidade (AJAX) -->
+<div class="modal fade" id="modalCidadeRapido" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="bi bi-building me-2"></i>Cadastrar Cidade</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div id="cidMsg"></div>
+                <div class="row g-3">
+                    <div class="col-12">
+                        <label class="form-label">Nome da Cidade *</label>
+                        <input type="text" class="form-control" id="cidNome" maxlength="150" />
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label">Estado *</label>
+                        <div class="input-group">
+                            <select class="form-select" id="cidEstado">
+                                <option value="">Selecione</option>
+                                @foreach (var estado in Model.Estados)
+                                {
+                                    <option value="@estado.IdEstado">@estado.NmEstado / @estado.SgUF</option>
+                                }
+                            </select>
+                            <button type="button" class="btn btn-outline-primary" data-bs-toggle="modal"
+                                    data-bs-target="#modalEstadoRapido" title="Cadastrar novo estado">
+                                <i class="bi bi-plus-lg"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-primary" id="btnSalvarCidadeRapido" onclick="salvarCidadeRapido()">
+                    <i class="bi bi-check-lg me-1"></i>Salvar Cidade
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal de Cadastro Rapido de Estado (AJAX) -->
+<div class="modal fade" id="modalEstadoRapido" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="bi bi-map me-2"></i>Cadastrar Estado</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div id="estMsg"></div>
+                <div class="row g-3">
+                    <div class="col-md-8">
+                        <label class="form-label">Nome do Estado *</label>
+                        <input type="text" class="form-control" id="estNome" maxlength="100" />
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">UF *</label>
+                        <input type="text" class="form-control text-uppercase" id="estUF" maxlength="2" placeholder="Ex: PR" />
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label">Pais *</label>
+                        <div class="input-group">
+                            <select class="form-select" id="estPais">
+                                <option value="">Selecione</option>
+                                @foreach (var pais in Model.Paises)
+                                {
+                                    <option value="@pais.IdPais">@pais.NmPais</option>
+                                }
+                            </select>
+                            <button type="button" class="btn btn-outline-primary" data-bs-toggle="modal"
+                                    data-bs-target="#modalPaisRapido" title="Cadastrar novo pais">
+                                <i class="bi bi-plus-lg"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-primary" id="btnSalvarEstadoRapido" onclick="salvarEstadoRapido()">
+                    <i class="bi bi-check-lg me-1"></i>Salvar Estado
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal de Cadastro Rapido de Pais (AJAX) -->
+<div class="modal fade" id="modalPaisRapido" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="bi bi-globe-americas me-2"></i>Cadastrar Pais</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div id="paisMsg"></div>
+                <div class="row g-3">
+                    <div class="col-md-8">
+                        <label class="form-label">Nome do Pais *</label>
+                        <input type="text" class="form-control" id="paisNome" maxlength="100" />
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Sigla *</label>
+                        <input type="text" class="form-control text-uppercase" id="paisSigla" maxlength="5" placeholder="Ex: BR" />
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">DDI</label>
+                        <input type="text" class="form-control" id="paisDDI" maxlength="5" placeholder="Ex: 55" />
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Moeda</label>
+                        <input type="text" class="form-control" id="paisMoeda" maxlength="50" placeholder="Ex: Real" />
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-primary" id="btnSalvarPaisRapido" onclick="salvarPaisRapido()">
+                    <i class="bi bi-check-lg me-1"></i>Salvar Pais
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Token antiforgery para as chamadas AJAX (form isolado, fora do form de funcionario) -->
+<form id="formCargoRapidoToken" class="d-none">@Html.AntiForgeryToken()</form>
+
 @section Scripts {
     <script>
         document.getElementById('searchInput')?.addEventListener('input', function () {
@@ -209,34 +469,332 @@
             });
         });
 
+        // ===== Mascaras (somente exibicao; no banco salva so numeros) =====
+        function mascaraCPF(v) {
+            return v.replace(/\D/g, '').slice(0, 11)
+                .replace(/^(\d{3})(\d)/, '$1.$2')
+                .replace(/^(\d{3})\.(\d{3})(\d)/, '$1.$2.$3')
+                .replace(/\.(\d{3})(\d)/, '.$1-$2');
+        }
+        function mascaraCEP(v) {
+            return v.replace(/\D/g, '').slice(0, 8).replace(/^(\d{5})(\d)/, '$1-$2');
+        }
+        function mascaraTelefone(v) {
+            v = v.replace(/\D/g, '').slice(0, 11);
+            if (v.length > 10)
+                return v.replace(/^(\d{2})(\d{5})(\d{4}).*/, '($1) $2-$3');
+            return v.replace(/^(\d{2})(\d{4})(\d{0,4}).*/, '($1) $2-$3').trim();
+        }
+        function aplicarMascara(id, fn) {
+            const el = document.getElementById(id);
+            el?.addEventListener('input', () => { el.value = fn(el.value); });
+        }
+        aplicarMascara('fCpf', mascaraCPF);
+        aplicarMascara('fCep', mascaraCEP);
+        aplicarMascara('fTel', mascaraTelefone);
+
         function limparForm() {
             document.getElementById('modalTitle').innerHTML = '<i class="bi bi-person-badge me-2"></i>Novo Funcionario';
-            ['fId','fNome','fCpf','fTel','fEmail','fEnd','fBairro','fCidade','fCep','fNasc','fAdm','fDem','fCargo','fSal','fCom','fObs'].forEach(id => {
+            ['fId','fNome','fApelido','fCpf','fRg','fSexo','fTel','fEmail','fEnd','fBairro','fNumero','fComplemento','fCidade','fCep','fNasc','fAdm','fDem','fCargo','fSal','fCom','fObs','fCodigoDisplay'].forEach(id => {
                 document.getElementById(id).value = '';
             });
             document.getElementById('fId').value = '0';
             document.getElementById('fAtivo').value = 'true';
         }
 
-        function editarFunc(id,nome,cpf,tel,email,end,bairro,cidade,cep,nasc,adm,dem,cargo,sal,com,obs,ativo) {
+        function editarFunc(id,nome,cpf,tel,email,end,bairro,cidade,cep,nasc,adm,dem,idCargo,sal,com,obs,ativo,apelido,rg,numero,complemento,sexo) {
             document.getElementById('modalTitle').innerHTML = '<i class="bi bi-pencil me-2"></i>Editar Funcionario';
             document.getElementById('fId').value = id;
+            document.getElementById('fCodigoDisplay').value = id;
             document.getElementById('fNome').value = nome;
-            document.getElementById('fCpf').value = cpf;
-            document.getElementById('fTel').value = tel;
+            document.getElementById('fApelido').value = apelido;
+            document.getElementById('fCpf').value = mascaraCPF(cpf || '');
+            document.getElementById('fRg').value = rg;
+            document.getElementById('fSexo').value = sexo || '';
+            document.getElementById('fTel').value = mascaraTelefone(tel || '');
             document.getElementById('fEmail').value = email;
             document.getElementById('fEnd').value = end;
             document.getElementById('fBairro').value = bairro;
+            document.getElementById('fNumero').value = numero;
+            document.getElementById('fComplemento').value = complemento;
             document.getElementById('fCidade').value = cidade;
-            document.getElementById('fCep').value = cep;
+            document.getElementById('fCep').value = mascaraCEP(cep || '');
             document.getElementById('fNasc').value = nasc;
             document.getElementById('fAdm').value = adm;
             document.getElementById('fDem').value = dem;
-            document.getElementById('fCargo').value = cargo;
+            document.getElementById('fCargo').value = idCargo;
             document.getElementById('fSal').value = sal;
             document.getElementById('fCom').value = com;
             document.getElementById('fObs').value = obs;
             document.getElementById('fAtivo').value = ativo === 'True' ? 'true' : 'false';
+        }
+
+        // ===== Cadastro rapido de Cargo (AJAX) - sem sair da tela de Funcionarios =====
+        async function salvarCargoRapido() {
+            const nome = document.getElementById('crNome').value.trim();
+            const desc = document.getElementById('crDesc').value.trim();
+            const comissao = document.getElementById('crComissao').value;
+            const msg = document.getElementById('crMsg');
+            const btn = document.getElementById('btnSalvarCargoRapido');
+            msg.innerHTML = '';
+
+            if (!nome) {
+                msg.innerHTML = '<div class="alert alert-danger py-1 px-2 small mb-2">Informe o nome do cargo.</div>';
+                return;
+            }
+
+            const token = document.querySelector('#formCargoRapidoToken input[name="__RequestVerificationToken"]').value;
+
+            btn.disabled = true;
+            try {
+                const resp = await fetch('?handler=CargoRapido', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'RequestVerificationToken': token
+                    },
+                    body: JSON.stringify({
+                        nmCargo: nome,
+                        dsCargo: desc || null,
+                        vlComissaoPadrao: comissao ? parseFloat(comissao) : null
+                    })
+                });
+
+                const data = await resp.json();
+
+                if (!data.sucesso) {
+                    msg.innerHTML = '<div class="alert alert-danger py-1 px-2 small mb-2">' + data.mensagem + '</div>';
+                    return;
+                }
+
+                // Adiciona o novo cargo no dropdown e ja o seleciona automaticamente
+                const sel = document.getElementById('fCargo');
+                const opt = document.createElement('option');
+                opt.value = data.id;
+                opt.textContent = data.nome;
+                sel.appendChild(opt);
+                sel.value = data.id;
+
+                // Limpa e fecha o modal de cadastro rapido
+                document.getElementById('crNome').value = '';
+                document.getElementById('crDesc').value = '';
+                document.getElementById('crComissao').value = '';
+                bootstrap.Modal.getInstance(document.getElementById('modalCargoRapido')).hide();
+            } catch (e) {
+                msg.innerHTML = '<div class="alert alert-danger py-1 px-2 small mb-2">Erro ao salvar o cargo. Tente novamente.</div>';
+            } finally {
+                btn.disabled = false;
+            }
+        }
+
+        // ===== Helpers AJAX (reutilizados pelos cadastros rapidos hierarquicos) =====
+        function alertaErro(m) {
+            return '<div class="alert alert-danger py-1 px-2 small mb-2">' + m + '</div>';
+        }
+        async function postJson(url, body) {
+            const token = document.querySelector('#formCargoRapidoToken input[name="__RequestVerificationToken"]').value;
+            const resp = await fetch(url, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'RequestVerificationToken': token },
+                body: JSON.stringify(body)
+            });
+            return await resp.json();
+        }
+
+        // ===== Cadastro rapido de Cidade =====
+        async function salvarCidadeRapido() {
+            const nome = document.getElementById('cidNome').value.trim();
+            const idEstado = document.getElementById('cidEstado').value;
+            const msg = document.getElementById('cidMsg');
+            const btn = document.getElementById('btnSalvarCidadeRapido');
+            msg.innerHTML = '';
+
+            if (!nome) { msg.innerHTML = alertaErro('Informe o nome da cidade.'); return; }
+            if (!idEstado) { msg.innerHTML = alertaErro('Selecione o estado.'); return; }
+
+            btn.disabled = true;
+            try {
+                const data = await postJson('?handler=CidadeRapido', { nmCidade: nome, idEstado: parseInt(idEstado) });
+                if (!data.sucesso) { msg.innerHTML = alertaErro(data.mensagem); return; }
+
+                // Adiciona no dropdown de Cidade do funcionario e ja seleciona
+                const sel = document.getElementById('fCidade');
+                const opt = document.createElement('option');
+                opt.value = data.id;
+                opt.textContent = data.nome + ' / ' + data.uf;
+                sel.appendChild(opt);
+                sel.value = data.id;
+
+                document.getElementById('cidNome').value = '';
+                document.getElementById('cidEstado').value = '';
+                bootstrap.Modal.getInstance(document.getElementById('modalCidadeRapido')).hide();
+            } catch (e) {
+                msg.innerHTML = alertaErro('Erro ao salvar a cidade. Tente novamente.');
+            } finally {
+                btn.disabled = false;
+            }
+        }
+
+        // ===== Cadastro rapido de Estado =====
+        async function salvarEstadoRapido() {
+            const nome = document.getElementById('estNome').value.trim();
+            const uf = document.getElementById('estUF').value.trim().toUpperCase();
+            const idPais = document.getElementById('estPais').value;
+            const msg = document.getElementById('estMsg');
+            const btn = document.getElementById('btnSalvarEstadoRapido');
+            msg.innerHTML = '';
+
+            if (!nome) { msg.innerHTML = alertaErro('Informe o nome do estado.'); return; }
+            if (uf.length !== 2) { msg.innerHTML = alertaErro('Informe a UF (2 letras).'); return; }
+            if (!idPais) { msg.innerHTML = alertaErro('Selecione o pais.'); return; }
+
+            btn.disabled = true;
+            try {
+                const data = await postJson('?handler=EstadoRapido', { sgUF: uf, nmEstado: nome, idPais: parseInt(idPais) });
+                if (!data.sucesso) { msg.innerHTML = alertaErro(data.mensagem); return; }
+
+                // Adiciona no dropdown de Estado (modal de Cidade) e ja seleciona
+                const sel = document.getElementById('cidEstado');
+                const opt = document.createElement('option');
+                opt.value = data.id;
+                opt.textContent = data.nome + ' / ' + data.uf;
+                sel.appendChild(opt);
+                sel.value = data.id;
+
+                document.getElementById('estNome').value = '';
+                document.getElementById('estUF').value = '';
+                document.getElementById('estPais').value = '';
+                bootstrap.Modal.getInstance(document.getElementById('modalEstadoRapido')).hide();
+            } catch (e) {
+                msg.innerHTML = alertaErro('Erro ao salvar o estado. Tente novamente.');
+            } finally {
+                btn.disabled = false;
+            }
+        }
+
+        // ===== Cadastro rapido de Pais =====
+        async function salvarPaisRapido() {
+            const nome = document.getElementById('paisNome').value.trim();
+            const sigla = document.getElementById('paisSigla').value.trim().toUpperCase();
+            const ddi = document.getElementById('paisDDI').value.trim();
+            const moeda = document.getElementById('paisMoeda').value.trim();
+            const msg = document.getElementById('paisMsg');
+            const btn = document.getElementById('btnSalvarPaisRapido');
+            msg.innerHTML = '';
+
+            if (!nome) { msg.innerHTML = alertaErro('Informe o nome do pais.'); return; }
+            if (!sigla) { msg.innerHTML = alertaErro('Informe a sigla do pais.'); return; }
+
+            btn.disabled = true;
+            try {
+                const data = await postJson('?handler=PaisRapido', { nmPais: nome, sgPais: sigla, nrDDI: ddi || null, dsMoeda: moeda || null });
+                if (!data.sucesso) { msg.innerHTML = alertaErro(data.mensagem); return; }
+
+                // Adiciona no dropdown de Pais (modal de Estado) e ja seleciona
+                const sel = document.getElementById('estPais');
+                const opt = document.createElement('option');
+                opt.value = data.id;
+                opt.textContent = data.nome;
+                sel.appendChild(opt);
+                sel.value = data.id;
+
+                document.getElementById('paisNome').value = '';
+                document.getElementById('paisSigla').value = '';
+                document.getElementById('paisDDI').value = '';
+                document.getElementById('paisMoeda').value = '';
+                bootstrap.Modal.getInstance(document.getElementById('modalPaisRapido')).hide();
+            } catch (e) {
+                msg.innerHTML = alertaErro('Erro ao salvar o pais. Tente novamente.');
+            } finally {
+                btn.disabled = false;
+            }
+        }
+
+        // ===== Busca de Funcionario (filtros na pagina -> atualiza a grid principal via AJAX) =====
+        let resultadosBusca = [];
+
+        // Mascara de CPF no filtro + Enter dispara a busca
+        aplicarMascara('buscaCpf', mascaraCPF);
+        ['buscaId', 'buscaNome', 'buscaApelido', 'buscaCpf'].forEach(id => {
+            document.getElementById(id)?.addEventListener('keydown', e => {
+                if (e.key === 'Enter') { e.preventDefault(); buscarFuncionarios(); }
+            });
+        });
+
+        function statusBadge(ativo) {
+            return ativo
+                ? '<span class="badge-status badge-ativo">Ativo</span>'
+                : '<span class="badge-status badge-inativo">Inativo</span>';
+        }
+
+        function montarLinha(f, i, token) {
+            const adm = f.adm ? f.adm.split('-').reverse().join('/') : '';
+            const com = (f.com !== null && f.com !== undefined) ? f.com + '%' : '-';
+            return '<tr>' +
+                '<td>' + f.id + '</td>' +
+                '<td><strong>' + (f.nome || '') + '</strong></td>' +
+                '<td>' + mascaraCPF(f.cpf || '') + '</td>' +
+                '<td>' + (f.cargoNome || '-') + '</td>' +
+                '<td>' + (f.tel ? mascaraTelefone(f.tel) : '-') + '</td>' +
+                '<td>' + adm + '</td>' +
+                '<td>' + com + '</td>' +
+                '<td>' + statusBadge(f.ativo) + '</td>' +
+                '<td class="text-center">' +
+                    '<button class="btn btn-icon btn-outline-primary" title="Editar" onclick="abrirEdicao(' + i + ')"><i class="bi bi-pencil"></i></button> ' +
+                    '<form method="post" action="?handler=Delete" class="d-inline" onsubmit="return confirm(\'Deseja realmente excluir este funcionario?\')">' +
+                        '<input type="hidden" name="__RequestVerificationToken" value="' + token + '">' +
+                        '<input type="hidden" name="id" value="' + f.id + '">' +
+                        '<button type="submit" class="btn btn-icon btn-outline-danger" title="Excluir"><i class="bi bi-trash"></i></button>' +
+                    '</form>' +
+                '</td>' +
+            '</tr>';
+        }
+
+        async function buscarFuncionarios() {
+            const tbody = document.querySelector('#tblFuncionarios tbody');
+            const id = document.getElementById('buscaId').value.trim();
+            const nome = document.getElementById('buscaNome').value.trim();
+            const apelido = document.getElementById('buscaApelido').value.trim();
+            const cpf = document.getElementById('buscaCpf').value.replace(/\D/g, '');
+            const inativos = document.getElementById('buscaInativos').checked;
+
+            const params = new URLSearchParams();
+            if (id) params.append('id', id);
+            if (nome) params.append('nome', nome);
+            if (apelido) params.append('apelido', apelido);
+            if (cpf) params.append('cpf', cpf);
+            params.append('incluirInativos', inativos);
+
+            tbody.innerHTML = '<tr><td colspan="9" class="text-center text-muted py-3">Buscando...</td></tr>';
+            try {
+                const resp = await fetch('?handler=BuscarFuncionarios&' + params.toString());
+                resultadosBusca = await resp.json();
+
+                const contador = document.getElementById('contadorRegistros');
+                if (contador) contador.textContent = resultadosBusca.length + ' registros encontrados';
+
+                if (!resultadosBusca.length) {
+                    tbody.innerHTML = '<tr><td colspan="9" class="text-center text-muted py-4">Nenhum funcionario encontrado</td></tr>';
+                    return;
+                }
+
+                const token = document.querySelector('#formCargoRapidoToken input[name="__RequestVerificationToken"]').value;
+                tbody.innerHTML = resultadosBusca.map((f, i) => montarLinha(f, i, token)).join('');
+            } catch (e) {
+                tbody.innerHTML = '<tr><td colspan="9" class="text-center text-danger py-4">Erro ao buscar. Tente novamente.</td></tr>';
+            }
+        }
+
+        function abrirEdicao(i) {
+            const f = resultadosBusca[i];
+            editarFunc(
+                f.id, f.nome || '', f.cpf || '', f.tel || '', f.email || '',
+                f.end || '', f.bairro || '', (f.idCidade ?? ''), f.cep || '',
+                f.nasc || '', f.adm || '', f.dem || '', (f.idCargo ?? ''),
+                (f.sal ?? ''), (f.com ?? ''), f.obs || '', (f.ativo ? 'True' : 'False'),
+                f.apelido || '', f.rg || '', f.numero || '', f.complemento || '', f.sexo || ''
+            );
+            bootstrap.Modal.getOrCreateInstance(document.getElementById('modalFuncionario')).show();
         }
     </script>
 }
