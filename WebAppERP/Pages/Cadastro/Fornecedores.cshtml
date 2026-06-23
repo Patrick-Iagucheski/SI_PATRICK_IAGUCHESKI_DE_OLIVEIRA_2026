@@ -3,14 +3,16 @@
 @{
     ViewData["Title"] = "Fornecedores";
 
+    string FormatarCPF(string? v)
+    {
+        var d = new string((v ?? "").Where(char.IsDigit).ToArray());
+        return d.Length == 11 ? $"{d[..3]}.{d.Substring(3, 3)}.{d.Substring(6, 3)}-{d.Substring(9, 2)}" : (v ?? "");
+    }
     string FormatarCNPJ(string? v)
     {
         var d = new string((v ?? "").Where(char.IsDigit).ToArray());
-        return d.Length == 14
-            ? $"{d[..2]}.{d.Substring(2, 3)}.{d.Substring(5, 3)}/{d.Substring(8, 4)}-{d.Substring(12, 2)}"
-            : (v ?? "");
+        return d.Length == 14 ? $"{d[..2]}.{d.Substring(2, 3)}.{d.Substring(5, 3)}/{d.Substring(8, 4)}-{d.Substring(12, 2)}" : (v ?? "");
     }
-
     string FormatarTelefone(string? v)
     {
         var d = new string((v ?? "").Where(char.IsDigit).ToArray());
@@ -18,6 +20,12 @@
         if (d.Length == 10) return $"({d[..2]}) {d.Substring(2, 4)}-{d.Substring(6, 4)}";
         return string.IsNullOrEmpty(v) ? "-" : v;
     }
+    string DocExib(WebAppERP.Models.GerFornecedor f) => f.TpPessoa switch
+    {
+        "F" => FormatarCPF(f.NrCpf),
+        "E" or "O" => f.NrDocumento ?? "",
+        _ => FormatarCNPJ(f.NrCNPJ)
+    };
 }
 
 <div class="d-flex justify-content-between align-items-start mb-4">
@@ -30,16 +38,43 @@
     </button>
 </div>
 
-<!-- Filtros -->
+@if (TempData["ErroFornecedor"] != null)
+{
+    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        <i class="bi bi-exclamation-triangle me-1"></i> @TempData["ErroFornecedor"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+}
+
+<!-- Filtros de busca (todos opcionais e combinaveis) -->
 <div class="card mb-3">
-    <div class="card-body py-2">
-        <div class="row g-2 align-items-center">
-            <div class="col-md-4">
-                <div class="search-box">
-                    <i class="bi bi-search search-icon"></i>
-                    <input type="text" class="form-control" placeholder="Buscar por razao social, CNPJ ou e-mail..." id="searchInput" />
-                </div>
+    <div class="card-body py-3">
+        <div class="row g-2 align-items-end">
+            <div class="col-md-2">
+                <label class="form-label small mb-1">ID</label>
+                <input type="number" class="form-control" id="buscaId" min="1" autocomplete="off" />
             </div>
+            <div class="col-md-4">
+                <label class="form-label small mb-1">Razao Social</label>
+                <input type="text" class="form-control" id="buscaRazao" autocomplete="off" />
+            </div>
+            <div class="col-md-3">
+                <label class="form-label small mb-1">Nome Fantasia</label>
+                <input type="text" class="form-control" id="buscaFantasia" autocomplete="off" />
+            </div>
+            <div class="col-md-3">
+                <label class="form-label small mb-1">CPF / CNPJ</label>
+                <input type="text" class="form-control" id="buscaDocumento" autocomplete="off" />
+            </div>
+        </div>
+        <div class="d-flex justify-content-between align-items-center mt-3">
+            <div class="form-check mb-0">
+                <input class="form-check-input" type="checkbox" id="buscaInativos" onchange="buscarFornecedores()" />
+                <label class="form-check-label" for="buscaInativos">Exibir Fornecedores Inativos</label>
+            </div>
+            <button type="button" class="btn btn-primary" onclick="buscarFornecedores()">
+                <i class="bi bi-search me-1"></i>Buscar
+            </button>
         </div>
     </div>
 </div>
@@ -48,7 +83,7 @@
 <div class="table-container">
     <div class="table-header">
         <h5><i class="bi bi-truck me-2"></i>Lista de Fornecedores</h5>
-        <span class="text-muted small">@Model.Fornecedores.Count registros encontrados</span>
+        <span class="text-muted small" id="contadorRegistros">@Model.Fornecedores.Count registros encontrados</span>
     </div>
     <div class="table-responsive">
         <table class="table" id="tblFornecedores">
@@ -56,10 +91,11 @@
                 <tr>
                     <th>ID</th>
                     <th>Razao Social</th>
-                    <th>CNPJ</th>
+                    <th>Nome Fantasia</th>
+                    <th>CPF / CNPJ</th>
                     <th>Telefone</th>
-                    <th>E-mail</th>
                     <th>Cidade</th>
+                    <th>Status</th>
                     <th class="text-center">Acoes</th>
                 </tr>
             </thead>
@@ -71,14 +107,24 @@
                         <tr>
                             <td>@f.IdFornecedor</td>
                             <td><strong>@f.DsRazaoSocial</strong></td>
-                            <td>@FormatarCNPJ(f.NrCNPJ)</td>
-                            <td>@FormatarTelefone(f.NrTelefone)</td>
-                            <td>@(f.DsEmail ?? "-")</td>
+                            <td>@(string.IsNullOrWhiteSpace(f.DsNomeFantasia) ? "-" : f.DsNomeFantasia)</td>
+                            <td>@(string.IsNullOrEmpty(DocExib(f)) ? "-" : DocExib(f))</td>
+                            <td>@FormatarTelefone(f.NrCelular ?? f.NrTelefoneFixo)</td>
                             <td>@(f.Cidade != null ? $"{f.Cidade.NmCidade}/{f.Cidade.Estado?.SgUF}" : "-")</td>
+                            <td>
+                                @if (f.FlAtivo)
+                                {
+                                    <span class="badge-status badge-ativo">Ativo</span>
+                                }
+                                else
+                                {
+                                    <span class="badge-status badge-inativo">Inativo</span>
+                                }
+                            </td>
                             <td class="text-center">
                                 <button class="btn btn-icon btn-outline-primary" title="Editar"
                                         data-bs-toggle="modal" data-bs-target="#modalFornecedor"
-                                        onclick="editarFornecedor(@f.IdFornecedor, '@f.DsRazaoSocial.Replace("'", "\\'")','@f.NrCNPJ','@f.DsEndereco?.Replace("'", "\\'")','@f.DsBairro?.Replace("'", "\\'")','@(f.IdCidade?.ToString() ?? "")','@f.NrCEP','@f.NrTelefone','@f.DsEmail','@f.NrInscEstadual','@f.NrInscEstSubTrib')">
+                                        onclick="editarPorId(@f.IdFornecedor)">
                                     <i class="bi bi-pencil"></i>
                                 </button>
                                 <form method="post" asp-page-handler="Delete" class="d-inline" onsubmit="return confirm('Deseja realmente excluir este fornecedor?')">
@@ -93,7 +139,7 @@
                 }
                 else
                 {
-                    <tr><td colspan="7" class="text-center text-muted py-4">Nenhum fornecedor cadastrado</td></tr>
+                    <tr><td colspan="8" class="text-center text-muted py-4">Nenhum fornecedor cadastrado</td></tr>
                 }
             </tbody>
         </table>
@@ -110,53 +156,181 @@
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
-                    <input type="hidden" asp-for="FornecedorForm.IdFornecedor" id="formIdFornecedor" />
+                    <input type="hidden" asp-for="FornecedorForm.IdFornecedor" id="formId" />
+
+                    <!-- ===== Dados Cadastrais ===== -->
+                    <h6 class="text-primary border-bottom pb-1 mb-3"><i class="bi bi-card-list me-1"></i>Dados Cadastrais</h6>
                     <div class="row g-3">
-                        <div class="col-md-8">
-                            <label class="form-label">Razao Social *</label>
-                            <input type="text" class="form-control" asp-for="FornecedorForm.DsRazaoSocial" id="formDsRazaoSocial" required />
+                        <div class="col-md-2">
+                            <label class="form-label">Codigo</label>
+                            <input type="text" class="form-control bg-light" id="formCodigoDisplay" placeholder="(novo)" readonly />
                         </div>
                         <div class="col-md-4">
-                            <label class="form-label">CNPJ *</label>
-                            <input type="text" class="form-control" asp-for="FornecedorForm.NrCNPJ" id="formNrCNPJ" maxlength="18" placeholder="00.000.000/0000-00" required />
+                            <label class="form-label">Tipo de Pessoa *</label>
+                            <select class="form-select" asp-for="FornecedorForm.TpPessoa" id="formTpPessoa" onchange="toggleTipoPessoa()">
+                                <option value="J">Pessoa Juridica</option>
+                                <option value="F">Pessoa Fisica</option>
+                                <option value="E">Estrangeiro</option>
+                                <option value="O">Outro</option>
+                            </select>
                         </div>
-                        <div class="col-md-4">
-                            <label class="form-label">Telefone</label>
-                            <input type="text" class="form-control" asp-for="FornecedorForm.NrTelefone" id="formNrTelefone" maxlength="15" placeholder="(00) 00000-0000" />
+                        <div class="col-md-6">
+                            <label class="form-label" id="lblRazao">Razao Social *</label>
+                            <input type="text" class="form-control" asp-for="FornecedorForm.DsRazaoSocial" id="formDsRazaoSocial" maxlength="200" required />
                         </div>
-                        <div class="col-md-5">
-                            <label class="form-label">E-mail</label>
-                            <input type="email" class="form-control" asp-for="FornecedorForm.DsEmail" id="formDsEmail" />
+
+                        <div class="col-md-6">
+                            <label class="form-label">Nome Fantasia</label>
+                            <input type="text" class="form-control" asp-for="FornecedorForm.DsNomeFantasia" id="formDsNomeFantasia" maxlength="150" />
                         </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Contato Principal</label>
+                            <input type="text" class="form-control" asp-for="FornecedorForm.DsContatoPrincipal" id="formDsContatoPrincipal" maxlength="120" />
+                        </div>
+
+                        <div class="col-md-3 doc-wrap" id="wrapCnpj">
+                            <label class="form-label">CNPJ</label>
+                            <input type="text" class="form-control" asp-for="FornecedorForm.NrCNPJ" id="formNrCNPJ" maxlength="18" placeholder="00.000.000/0000-00" />
+                        </div>
+                        <div class="col-md-3 doc-wrap d-none" id="wrapCpf">
+                            <label class="form-label">CPF</label>
+                            <input type="text" class="form-control" asp-for="FornecedorForm.NrCpf" id="formNrCpf" maxlength="14" placeholder="000.000.000-00" />
+                        </div>
+                        <div class="col-md-3 doc-wrap d-none" id="wrapDoc">
+                            <label class="form-label" id="lblDoc">Documento</label>
+                            <input type="text" class="form-control" asp-for="FornecedorForm.NrDocumento" id="formNrDocumento" maxlength="30" placeholder="Documento" />
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Inscricao Estadual</label>
+                            <input type="text" class="form-control" asp-for="FornecedorForm.NrInscEstadual" id="formNrInscEstadual" maxlength="20" />
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Inscricao Municipal</label>
+                            <input type="text" class="form-control" asp-for="FornecedorForm.NrInscMunicipal" id="formNrInscMunicipal" maxlength="20" />
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Status</label>
+                            <select class="form-select" asp-for="FornecedorForm.FlAtivo" id="formFlAtivo">
+                                <option value="true">Ativo</option>
+                                <option value="false">Inativo</option>
+                            </select>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label">Observacoes</label>
+                            <textarea class="form-control" rows="2" asp-for="FornecedorForm.DsObservacao" id="formDsObservacao" maxlength="500"></textarea>
+                        </div>
+                    </div>
+
+                    <!-- ===== Endereco ===== -->
+                    <h6 class="text-primary border-bottom pb-1 mb-3 mt-4"><i class="bi bi-geo-alt me-1"></i>Endereco</h6>
+                    <div class="row g-3">
                         <div class="col-md-3">
                             <label class="form-label">CEP</label>
                             <input type="text" class="form-control" asp-for="FornecedorForm.NrCEP" id="formNrCEP" maxlength="9" placeholder="00000-000" />
                         </div>
                         <div class="col-md-7">
-                            <label class="form-label">Endereco</label>
-                            <input type="text" class="form-control" asp-for="FornecedorForm.DsEndereco" id="formDsEndereco" />
+                            <label class="form-label">Logradouro</label>
+                            <input type="text" class="form-control" asp-for="FornecedorForm.DsEndereco" id="formDsEndereco" maxlength="200" />
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label">Numero</label>
+                            <input type="text" class="form-control" asp-for="FornecedorForm.NrNumero" id="formNrNumero" maxlength="10" />
                         </div>
                         <div class="col-md-5">
-                            <label class="form-label">Bairro</label>
-                            <input type="text" class="form-control" asp-for="FornecedorForm.DsBairro" id="formDsBairro" />
+                            <label class="form-label">Complemento</label>
+                            <input type="text" class="form-control" asp-for="FornecedorForm.DsComplemento" id="formDsComplemento" maxlength="100" />
                         </div>
-                        <div class="col-md-6">
+                        <div class="col-md-3">
+                            <label class="form-label">Bairro</label>
+                            <input type="text" class="form-control" asp-for="FornecedorForm.DsBairro" id="formDsBairro" maxlength="100" />
+                        </div>
+                        <div class="col-md-4">
                             <label class="form-label">Cidade</label>
-                            <select class="form-select" asp-for="FornecedorForm.IdCidade" id="formIdCidade">
-                                <option value="">Selecione a cidade</option>
-                                @foreach (var cidade in Model.Cidades)
-                                {
-                                    <option value="@cidade.IdCidade">@cidade.NmCidade / @cidade.Estado?.SgUF</option>
-                                }
+                            <div class="input-group">
+                                <select class="form-select" asp-for="FornecedorForm.IdCidade" id="formIdCidade">
+                                    <option value="">Selecione</option>
+                                    @foreach (var cidade in Model.Cidades)
+                                    {
+                                        <option value="@cidade.IdCidade">@cidade.NmCidade / @cidade.Estado?.SgUF</option>
+                                    }
+                                </select>
+                                <button type="button" class="btn btn-outline-primary" data-bs-toggle="modal"
+                                        data-bs-target="#modalCidadeRapido" title="Cadastrar nova cidade">
+                                    <i class="bi bi-plus-lg"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- ===== Contato ===== -->
+                    <h6 class="text-primary border-bottom pb-1 mb-3 mt-4"><i class="bi bi-telephone me-1"></i>Contato</h6>
+                    <div class="row g-3">
+                        <div class="col-md-3">
+                            <label class="form-label">Telefone Fixo</label>
+                            <input type="text" class="form-control" asp-for="FornecedorForm.NrTelefoneFixo" id="formNrTelefoneFixo" maxlength="15" placeholder="(00) 0000-0000" />
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Celular</label>
+                            <input type="text" class="form-control" asp-for="FornecedorForm.NrCelular" id="formNrCelular" maxlength="15" placeholder="(00) 00000-0000" />
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">WhatsApp</label>
+                            <input type="text" class="form-control" asp-for="FornecedorForm.NrWhatsApp" id="formNrWhatsApp" maxlength="15" placeholder="(00) 00000-0000" />
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">E-mail Principal</label>
+                            <input type="email" class="form-control" asp-for="FornecedorForm.DsEmail" id="formDsEmail" maxlength="150" />
+                        </div>
+                    </div>
+
+                    <!-- ===== Dados Bancarios ===== -->
+                    <h6 class="text-primary border-bottom pb-1 mb-3 mt-4"><i class="bi bi-bank me-1"></i>Dados Bancarios</h6>
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <label class="form-label">Banco</label>
+                            <input type="text" class="form-control" asp-for="FornecedorForm.DsBanco" id="formDsBanco" maxlength="60" />
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label">Agencia</label>
+                            <input type="text" class="form-control" asp-for="FornecedorForm.NrAgencia" id="formNrAgencia" maxlength="10" />
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Tipo de Conta</label>
+                            <select class="form-select" asp-for="FornecedorForm.TpConta" id="formTpConta">
+                                <option value="">Selecione</option>
+                                <option value="CC">Conta Corrente</option>
+                                <option value="CP">Conta Poupanca</option>
+                                <option value="CS">Conta Salario</option>
+                                <option value="CE">Conta Empresarial</option>
                             </select>
                         </div>
-                        <div class="col-md-6">
-                            <label class="form-label">Inscricao Estadual</label>
-                            <input type="text" class="form-control" asp-for="FornecedorForm.NrInscEstadual" id="formNrInscEstadual" maxlength="20" />
+                        <div class="col-md-2">
+                            <label class="form-label">Conta</label>
+                            <input type="text" class="form-control" asp-for="FornecedorForm.NrConta" id="formNrConta" maxlength="20" />
                         </div>
-                        <div class="col-md-6">
-                            <label class="form-label">Insc. Estadual Subst. Trib.</label>
-                            <input type="text" class="form-control" asp-for="FornecedorForm.NrInscEstSubTrib" id="formNrInscEstSubTrib" maxlength="20" />
+                        <div class="col-md-1">
+                            <label class="form-label">Digito</label>
+                            <input type="text" class="form-control" asp-for="FornecedorForm.NrDigitoConta" id="formNrDigitoConta" maxlength="2" />
+                        </div>
+                    </div>
+
+                    <!-- ===== PIX ===== -->
+                    <h6 class="text-primary border-bottom pb-1 mb-3 mt-4"><i class="bi bi-qr-code me-1"></i>PIX</h6>
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <label class="form-label">Tipo de Chave PIX</label>
+                            <select class="form-select" asp-for="FornecedorForm.TpChavePix" id="formTpChavePix" onchange="aplicarMascaraPix()">
+                                <option value="">Selecione</option>
+                                <option value="CPF">CPF</option>
+                                <option value="CNPJ">CNPJ</option>
+                                <option value="EMAIL">E-mail</option>
+                                <option value="CELULAR">Celular</option>
+                                <option value="ALEATORIA">Chave Aleatoria</option>
+                            </select>
+                        </div>
+                        <div class="col-md-8">
+                            <label class="form-label">Chave PIX</label>
+                            <input type="text" class="form-control" asp-for="FornecedorForm.DsChavePix" id="formDsChavePix" maxlength="100" />
                         </div>
                     </div>
                 </div>
@@ -169,16 +343,160 @@
     </div>
 </div>
 
+<!-- Modal de Cadastro Rapido de Cidade (AJAX) -->
+<div class="modal fade" id="modalCidadeRapido" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="bi bi-building me-2"></i>Cadastrar Cidade</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div id="cidMsg"></div>
+                <div class="row g-3">
+                    <div class="col-12">
+                        <label class="form-label">Nome da Cidade *</label>
+                        <input type="text" class="form-control" id="cidNome" maxlength="150" />
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label">Estado *</label>
+                        <div class="input-group">
+                            <select class="form-select" id="cidEstado">
+                                <option value="">Selecione</option>
+                                @foreach (var estado in Model.Estados)
+                                {
+                                    <option value="@estado.IdEstado">@estado.NmEstado / @estado.SgUF</option>
+                                }
+                            </select>
+                            <button type="button" class="btn btn-outline-primary" data-bs-toggle="modal"
+                                    data-bs-target="#modalEstadoRapido" title="Cadastrar novo estado">
+                                <i class="bi bi-plus-lg"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-primary" id="btnSalvarCidadeRapido" onclick="salvarCidadeRapido()">
+                    <i class="bi bi-check-lg me-1"></i>Salvar Cidade
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal de Cadastro Rapido de Estado (AJAX) -->
+<div class="modal fade" id="modalEstadoRapido" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="bi bi-map me-2"></i>Cadastrar Estado</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div id="estMsg"></div>
+                <div class="row g-3">
+                    <div class="col-md-8">
+                        <label class="form-label">Nome do Estado *</label>
+                        <input type="text" class="form-control" id="estNome" maxlength="100" />
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">UF *</label>
+                        <input type="text" class="form-control text-uppercase" id="estUF" maxlength="2" placeholder="Ex: PR" />
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label">Pais *</label>
+                        <div class="input-group">
+                            <select class="form-select" id="estPais">
+                                <option value="">Selecione</option>
+                                @foreach (var pais in Model.Paises)
+                                {
+                                    <option value="@pais.IdPais">@pais.NmPais</option>
+                                }
+                            </select>
+                            <button type="button" class="btn btn-outline-primary" data-bs-toggle="modal"
+                                    data-bs-target="#modalPaisRapido" title="Cadastrar novo pais">
+                                <i class="bi bi-plus-lg"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-primary" id="btnSalvarEstadoRapido" onclick="salvarEstadoRapido()">
+                    <i class="bi bi-check-lg me-1"></i>Salvar Estado
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal de Cadastro Rapido de Pais (AJAX) -->
+<div class="modal fade" id="modalPaisRapido" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="bi bi-globe-americas me-2"></i>Cadastrar Pais</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div id="paisMsg"></div>
+                <div class="row g-3">
+                    <div class="col-md-8">
+                        <label class="form-label">Nome do Pais *</label>
+                        <input type="text" class="form-control" id="paisNome" maxlength="100" />
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Sigla *</label>
+                        <input type="text" class="form-control text-uppercase" id="paisSigla" maxlength="5" placeholder="Ex: BR" />
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">DDI</label>
+                        <input type="text" class="form-control" id="paisDDI" maxlength="5" placeholder="Ex: 55" />
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Moeda</label>
+                        <input type="text" class="form-control" id="paisMoeda" maxlength="50" placeholder="Ex: Real" />
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-primary" id="btnSalvarPaisRapido" onclick="salvarPaisRapido()">
+                    <i class="bi bi-check-lg me-1"></i>Salvar Pais
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Token antiforgery para as chamadas AJAX -->
+<form id="formTokenAjax" class="d-none">@Html.AntiForgeryToken()</form>
+
 @section Scripts {
     <script>
-        document.getElementById('searchInput')?.addEventListener('input', function () {
-            const filter = this.value.toLowerCase();
-            document.querySelectorAll('#tblFornecedores tbody tr').forEach(row => {
-                row.style.display = row.textContent.toLowerCase().includes(filter) ? '' : 'none';
-            });
-        });
+        // Dados dos fornecedores ja carregados na pagina (para edicao das linhas iniciais)
+        const dadosIniciais = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.Fornecedores.Select(f => new {
+            id = f.IdFornecedor, tipoPessoa = f.TpPessoa, razaoSocial = f.DsRazaoSocial, nomeFantasia = f.DsNomeFantasia,
+            contatoPrincipal = f.DsContatoPrincipal, cpf = f.NrCpf, cnpj = f.NrCNPJ, documento = f.NrDocumento,
+            inscEstadual = f.NrInscEstadual, inscMunicipal = f.NrInscMunicipal, email = f.DsEmail, observacao = f.DsObservacao,
+            cep = f.NrCEP, endereco = f.DsEndereco, numero = f.NrNumero, complemento = f.DsComplemento, bairro = f.DsBairro,
+            idCidade = f.IdCidade, telefoneFixo = f.NrTelefoneFixo, celular = f.NrCelular, whatsApp = f.NrWhatsApp,
+            banco = f.DsBanco, agencia = f.NrAgencia, tipoConta = f.TpConta, conta = f.NrConta, digitoConta = f.NrDigitoConta,
+            tipoChavePix = f.TpChavePix, chavePix = f.DsChavePix, ativo = f.FlAtivo
+        })));
+
+        let resultadosBusca = [];
 
         // ===== Mascaras =====
+        function mascaraCPF(v) {
+            return v.replace(/\D/g, '').slice(0, 11)
+                .replace(/^(\d{3})(\d)/, '$1.$2')
+                .replace(/^(\d{3})\.(\d{3})(\d)/, '$1.$2.$3')
+                .replace(/\.(\d{3})(\d)/, '.$1-$2');
+        }
         function mascaraCNPJ(v) {
             return v.replace(/\D/g, '').slice(0, 14)
                 .replace(/^(\d{2})(\d)/, '$1.$2')
@@ -186,51 +504,280 @@
                 .replace(/\.(\d{3})(\d)/, '.$1/$2')
                 .replace(/(\d{4})(\d)/, '$1-$2');
         }
-        function mascaraCEP(v) {
-            return v.replace(/\D/g, '').slice(0, 8).replace(/^(\d{5})(\d)/, '$1-$2');
-        }
+        function mascaraCEP(v) { return v.replace(/\D/g, '').slice(0, 8).replace(/^(\d{5})(\d)/, '$1-$2'); }
         function mascaraTelefone(v) {
             v = v.replace(/\D/g, '').slice(0, 11);
-            if (v.length > 10)
-                return v.replace(/^(\d{2})(\d{5})(\d{4}).*/, '($1) $2-$3');
+            if (v.length > 10) return v.replace(/^(\d{2})(\d{5})(\d{4}).*/, '($1) $2-$3');
             return v.replace(/^(\d{2})(\d{4})(\d{0,4}).*/, '($1) $2-$3').trim();
         }
         function aplicarMascara(id, fn) {
             const el = document.getElementById(id);
             el?.addEventListener('input', () => { el.value = fn(el.value); });
         }
+        aplicarMascara('formNrCpf', mascaraCPF);
         aplicarMascara('formNrCNPJ', mascaraCNPJ);
         aplicarMascara('formNrCEP', mascaraCEP);
-        aplicarMascara('formNrTelefone', mascaraTelefone);
+        aplicarMascara('formNrTelefoneFixo', mascaraTelefone);
+        aplicarMascara('formNrCelular', mascaraTelefone);
+        aplicarMascara('formNrWhatsApp', mascaraTelefone);
+
+        // ===== Validacao de CPF / CNPJ =====
+        function cpfValido(cpf) {
+            const d = (cpf || '').replace(/\D/g, '');
+            if (d.length !== 11 || /^(\d)\1{10}$/.test(d)) return false;
+            const calc = (q) => { let s = 0; for (let i = 0; i < q; i++) s += parseInt(d[i]) * (q + 1 - i); const r = s % 11; return r < 2 ? 0 : 11 - r; };
+            return calc(9) === parseInt(d[9]) && calc(10) === parseInt(d[10]);
+        }
+        function cnpjValido(cnpj) {
+            const d = (cnpj || '').replace(/\D/g, '');
+            if (d.length !== 14 || /^(\d)\1{13}$/.test(d)) return false;
+            const p1 = [5,4,3,2,9,8,7,6,5,4,3,2], p2 = [6,5,4,3,2,9,8,7,6,5,4,3,2];
+            const calc = (q, p) => { let s = 0; for (let i = 0; i < q; i++) s += parseInt(d[i]) * p[i]; const r = s % 11; return r < 2 ? 0 : 11 - r; };
+            return calc(12, p1) === parseInt(d[12]) && calc(13, p2) === parseInt(d[13]);
+        }
+
+        // ===== Tipo de Pessoa: alterna o documento exibido =====
+        function toggleTipoPessoa() {
+            const tipo = document.getElementById('formTpPessoa').value;
+            document.getElementById('wrapCnpj').classList.toggle('d-none', tipo !== 'J');
+            document.getElementById('wrapCpf').classList.toggle('d-none', tipo !== 'F');
+            document.getElementById('wrapDoc').classList.toggle('d-none', !(tipo === 'E' || tipo === 'O'));
+            document.getElementById('lblDoc').textContent = tipo === 'E' ? 'Documento Internacional' : 'Documento';
+            document.getElementById('lblRazao').textContent = tipo === 'J' ? 'Razao Social *' : 'Nome / Razao Social *';
+        }
+
+        // ===== Mascara da chave PIX conforme o tipo =====
+        function aplicarMascaraPix() {
+            const t = document.getElementById('formTpChavePix').value;
+            const el = document.getElementById('formDsChavePix');
+            if (t === 'CPF') el.value = mascaraCPF(el.value);
+            else if (t === 'CNPJ') el.value = mascaraCNPJ(el.value);
+            else if (t === 'CELULAR') el.value = mascaraTelefone(el.value);
+        }
+        document.getElementById('formDsChavePix')?.addEventListener('input', aplicarMascaraPix);
+
+        // ===== Validacao antes de enviar =====
+        document.querySelector('#modalFornecedor form')?.addEventListener('submit', function (e) {
+            const tipo = document.getElementById('formTpPessoa').value;
+            const cnpj = document.getElementById('formNrCNPJ').value;
+            const cpf = document.getElementById('formNrCpf').value;
+            const email = document.getElementById('formDsEmail').value.trim();
+            if (tipo === 'J' && cnpj.replace(/\D/g, '') && !cnpjValido(cnpj)) { e.preventDefault(); alert('CNPJ invalido. Verifique os numeros informados.'); return; }
+            if (tipo === 'F' && cpf.replace(/\D/g, '') && !cpfValido(cpf)) { e.preventDefault(); alert('CPF invalido. Verifique os numeros informados.'); return; }
+            if (email && !/^[^\s@@]+@@[^\s@@]+\.[^\s@@]+$/.test(email)) { e.preventDefault(); alert('E-mail invalido. Verifique o formato (exemplo: nome@@dominio.com).'); return; }
+        });
 
         function limparForm() {
             document.getElementById('modalTitle').innerHTML = '<i class="bi bi-truck me-2"></i>Novo Fornecedor';
-            document.getElementById('formIdFornecedor').value = '0';
-            document.getElementById('formDsRazaoSocial').value = '';
-            document.getElementById('formNrCNPJ').value = '';
-            document.getElementById('formNrTelefone').value = '';
-            document.getElementById('formDsEmail').value = '';
-            document.getElementById('formNrCEP').value = '';
-            document.getElementById('formDsEndereco').value = '';
-            document.getElementById('formDsBairro').value = '';
-            document.getElementById('formIdCidade').value = '';
-            document.getElementById('formNrInscEstadual').value = '';
-            document.getElementById('formNrInscEstSubTrib').value = '';
+            ['formDsRazaoSocial','formDsNomeFantasia','formDsContatoPrincipal','formNrCNPJ','formNrCpf','formNrDocumento','formNrInscEstadual','formNrInscMunicipal','formDsObservacao','formNrCEP','formDsEndereco','formNrNumero','formDsComplemento','formDsBairro','formIdCidade','formNrTelefoneFixo','formNrCelular','formNrWhatsApp','formDsEmail','formDsBanco','formNrAgencia','formTpConta','formNrConta','formNrDigitoConta','formTpChavePix','formDsChavePix','formCodigoDisplay'].forEach(id => {
+                document.getElementById(id).value = '';
+            });
+            document.getElementById('formId').value = '0';
+            document.getElementById('formTpPessoa').value = 'J';
+            document.getElementById('formFlAtivo').value = 'true';
+            toggleTipoPessoa();
         }
 
-        function editarFornecedor(id, razao, cnpj, end, bairro, cidade, cep, tel, email, ie, iest) {
+        function editarFornecedor(f) {
             document.getElementById('modalTitle').innerHTML = '<i class="bi bi-pencil me-2"></i>Editar Fornecedor';
-            document.getElementById('formIdFornecedor').value = id;
-            document.getElementById('formDsRazaoSocial').value = razao;
-            document.getElementById('formNrCNPJ').value = mascaraCNPJ(cnpj || '');
-            document.getElementById('formDsEndereco').value = end;
-            document.getElementById('formDsBairro').value = bairro;
-            document.getElementById('formIdCidade').value = cidade;
-            document.getElementById('formNrCEP').value = mascaraCEP(cep || '');
-            document.getElementById('formNrTelefone').value = mascaraTelefone(tel || '');
-            document.getElementById('formDsEmail').value = email;
-            document.getElementById('formNrInscEstadual').value = ie;
-            document.getElementById('formNrInscEstSubTrib').value = iest;
+            document.getElementById('formId').value = f.id;
+            document.getElementById('formCodigoDisplay').value = f.id;
+            document.getElementById('formTpPessoa').value = f.tipoPessoa || 'J';
+            document.getElementById('formDsRazaoSocial').value = f.razaoSocial || '';
+            document.getElementById('formDsNomeFantasia').value = f.nomeFantasia || '';
+            document.getElementById('formDsContatoPrincipal').value = f.contatoPrincipal || '';
+            document.getElementById('formNrCNPJ').value = mascaraCNPJ(f.cnpj || '');
+            document.getElementById('formNrCpf').value = mascaraCPF(f.cpf || '');
+            document.getElementById('formNrDocumento').value = f.documento || '';
+            document.getElementById('formNrInscEstadual').value = f.inscEstadual || '';
+            document.getElementById('formNrInscMunicipal').value = f.inscMunicipal || '';
+            document.getElementById('formDsEmail').value = f.email || '';
+            document.getElementById('formDsObservacao').value = f.observacao || '';
+            document.getElementById('formNrCEP').value = mascaraCEP(f.cep || '');
+            document.getElementById('formDsEndereco').value = f.endereco || '';
+            document.getElementById('formNrNumero').value = f.numero || '';
+            document.getElementById('formDsComplemento').value = f.complemento || '';
+            document.getElementById('formDsBairro').value = f.bairro || '';
+            document.getElementById('formIdCidade').value = f.idCidade || '';
+            document.getElementById('formNrTelefoneFixo').value = mascaraTelefone(f.telefoneFixo || '');
+            document.getElementById('formNrCelular').value = mascaraTelefone(f.celular || '');
+            document.getElementById('formNrWhatsApp').value = mascaraTelefone(f.whatsApp || '');
+            document.getElementById('formDsBanco').value = f.banco || '';
+            document.getElementById('formNrAgencia').value = f.agencia || '';
+            document.getElementById('formTpConta').value = f.tipoConta || '';
+            document.getElementById('formNrConta').value = f.conta || '';
+            document.getElementById('formNrDigitoConta').value = f.digitoConta || '';
+            document.getElementById('formTpChavePix').value = f.tipoChavePix || '';
+            document.getElementById('formDsChavePix').value = f.chavePix || '';
+            aplicarMascaraPix();
+            document.getElementById('formFlAtivo').value = (f.ativo === true || f.ativo === 'True') ? 'true' : 'false';
+            toggleTipoPessoa();
+        }
+
+        function editarPorId(id) {
+            const f = dadosIniciais.find(x => x.id === id);
+            if (f) editarFornecedor(f);
+        }
+
+        function abrirEdicao(i) {
+            editarFornecedor(resultadosBusca[i]);
+            bootstrap.Modal.getOrCreateInstance(document.getElementById('modalFornecedor')).show();
+        }
+
+        // ===== Helpers AJAX dos cadastros rapidos =====
+        function alertaErro(m) { return '<div class="alert alert-danger py-1 px-2 small mb-2">' + m + '</div>'; }
+        async function postJson(url, body) {
+            const token = document.querySelector('#formTokenAjax input[name="__RequestVerificationToken"]').value;
+            const resp = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json', 'RequestVerificationToken': token }, body: JSON.stringify(body) });
+            return await resp.json();
+        }
+
+        async function salvarCidadeRapido() {
+            const nome = document.getElementById('cidNome').value.trim();
+            const idEstado = document.getElementById('cidEstado').value;
+            const msg = document.getElementById('cidMsg');
+            const btn = document.getElementById('btnSalvarCidadeRapido');
+            msg.innerHTML = '';
+            if (!nome) { msg.innerHTML = alertaErro('Informe o nome da cidade.'); return; }
+            if (!idEstado) { msg.innerHTML = alertaErro('Selecione o estado.'); return; }
+            btn.disabled = true;
+            try {
+                const data = await postJson('?handler=CidadeRapido', { nmCidade: nome, idEstado: parseInt(idEstado) });
+                if (!data.sucesso) { msg.innerHTML = alertaErro(data.mensagem); return; }
+                const sel = document.getElementById('formIdCidade');
+                const opt = document.createElement('option');
+                opt.value = data.id; opt.textContent = data.nome + ' / ' + data.uf;
+                sel.appendChild(opt); sel.value = data.id;
+                document.getElementById('cidNome').value = '';
+                document.getElementById('cidEstado').value = '';
+                bootstrap.Modal.getInstance(document.getElementById('modalCidadeRapido')).hide();
+            } catch (e) { msg.innerHTML = alertaErro('Erro ao salvar a cidade. Tente novamente.'); }
+            finally { btn.disabled = false; }
+        }
+
+        async function salvarEstadoRapido() {
+            const nome = document.getElementById('estNome').value.trim();
+            const uf = document.getElementById('estUF').value.trim().toUpperCase();
+            const idPais = document.getElementById('estPais').value;
+            const msg = document.getElementById('estMsg');
+            const btn = document.getElementById('btnSalvarEstadoRapido');
+            msg.innerHTML = '';
+            if (!nome) { msg.innerHTML = alertaErro('Informe o nome do estado.'); return; }
+            if (uf.length !== 2) { msg.innerHTML = alertaErro('Informe a UF (2 letras).'); return; }
+            if (!idPais) { msg.innerHTML = alertaErro('Selecione o pais.'); return; }
+            btn.disabled = true;
+            try {
+                const data = await postJson('?handler=EstadoRapido', { sgUF: uf, nmEstado: nome, idPais: parseInt(idPais) });
+                if (!data.sucesso) { msg.innerHTML = alertaErro(data.mensagem); return; }
+                const sel = document.getElementById('cidEstado');
+                const opt = document.createElement('option');
+                opt.value = data.id; opt.textContent = data.nome + ' / ' + data.uf;
+                sel.appendChild(opt); sel.value = data.id;
+                document.getElementById('estNome').value = '';
+                document.getElementById('estUF').value = '';
+                document.getElementById('estPais').value = '';
+                bootstrap.Modal.getInstance(document.getElementById('modalEstadoRapido')).hide();
+            } catch (e) { msg.innerHTML = alertaErro('Erro ao salvar o estado. Tente novamente.'); }
+            finally { btn.disabled = false; }
+        }
+
+        async function salvarPaisRapido() {
+            const nome = document.getElementById('paisNome').value.trim();
+            const sigla = document.getElementById('paisSigla').value.trim().toUpperCase();
+            const ddi = document.getElementById('paisDDI').value.trim();
+            const moeda = document.getElementById('paisMoeda').value.trim();
+            const msg = document.getElementById('paisMsg');
+            const btn = document.getElementById('btnSalvarPaisRapido');
+            msg.innerHTML = '';
+            if (!nome) { msg.innerHTML = alertaErro('Informe o nome do pais.'); return; }
+            if (!sigla) { msg.innerHTML = alertaErro('Informe a sigla do pais.'); return; }
+            btn.disabled = true;
+            try {
+                const data = await postJson('?handler=PaisRapido', { nmPais: nome, sgPais: sigla, nrDDI: ddi || null, dsMoeda: moeda || null });
+                if (!data.sucesso) { msg.innerHTML = alertaErro(data.mensagem); return; }
+                const sel = document.getElementById('estPais');
+                const opt = document.createElement('option');
+                opt.value = data.id; opt.textContent = data.nome;
+                sel.appendChild(opt); sel.value = data.id;
+                document.getElementById('paisNome').value = '';
+                document.getElementById('paisSigla').value = '';
+                document.getElementById('paisDDI').value = '';
+                document.getElementById('paisMoeda').value = '';
+                bootstrap.Modal.getInstance(document.getElementById('modalPaisRapido')).hide();
+            } catch (e) { msg.innerHTML = alertaErro('Erro ao salvar o pais. Tente novamente.'); }
+            finally { btn.disabled = false; }
+        }
+
+        // ===== Busca de Fornecedores via AJAX =====
+        aplicarMascara('buscaDocumento', mascaraCNPJ);
+        ['buscaId', 'buscaRazao', 'buscaFantasia', 'buscaDocumento'].forEach(id => {
+            document.getElementById(id)?.addEventListener('keydown', e => {
+                if (e.key === 'Enter') { e.preventDefault(); buscarFornecedores(); }
+            });
+        });
+
+        function statusBadge(ativo) {
+            return ativo ? '<span class="badge-status badge-ativo">Ativo</span>' : '<span class="badge-status badge-inativo">Inativo</span>';
+        }
+        function documentoExibicao(f) {
+            if (f.tipoPessoa === 'F') return f.cpf ? mascaraCPF(f.cpf) : '-';
+            if (f.tipoPessoa === 'E' || f.tipoPessoa === 'O') return f.documento || '-';
+            return f.cnpj ? mascaraCNPJ(f.cnpj) : '-';
+        }
+
+        function montarLinha(f, i, token) {
+            const tel = f.celular || f.telefoneFixo;
+            return '<tr>' +
+                '<td>' + f.id + '</td>' +
+                '<td><strong>' + (f.razaoSocial || '') + '</strong></td>' +
+                '<td>' + (f.nomeFantasia || '-') + '</td>' +
+                '<td>' + documentoExibicao(f) + '</td>' +
+                '<td>' + (tel ? mascaraTelefone(tel) : '-') + '</td>' +
+                '<td>' + (f.cidadeNome || '-') + '</td>' +
+                '<td>' + statusBadge(f.ativo) + '</td>' +
+                '<td class="text-center">' +
+                    '<button class="btn btn-icon btn-outline-primary" title="Editar" onclick="abrirEdicao(' + i + ')"><i class="bi bi-pencil"></i></button> ' +
+                    '<form method="post" action="?handler=Delete" class="d-inline" onsubmit="return confirm(\'Deseja realmente excluir este fornecedor?\')">' +
+                        '<input type="hidden" name="__RequestVerificationToken" value="' + token + '">' +
+                        '<input type="hidden" name="id" value="' + f.id + '">' +
+                        '<button type="submit" class="btn btn-icon btn-outline-danger" title="Excluir"><i class="bi bi-trash"></i></button>' +
+                    '</form>' +
+                '</td>' +
+            '</tr>';
+        }
+
+        async function buscarFornecedores() {
+            const tbody = document.querySelector('#tblFornecedores tbody');
+            const id = document.getElementById('buscaId').value.trim();
+            const razao = document.getElementById('buscaRazao').value.trim();
+            const fantasia = document.getElementById('buscaFantasia').value.trim();
+            const documento = document.getElementById('buscaDocumento').value.trim();
+            const inativos = document.getElementById('buscaInativos').checked;
+
+            const params = new URLSearchParams();
+            if (id) params.append('id', id);
+            if (razao) params.append('razao', razao);
+            if (fantasia) params.append('fantasia', fantasia);
+            if (documento) params.append('documento', documento);
+            params.append('incluirInativos', inativos);
+
+            tbody.innerHTML = '<tr><td colspan="8" class="text-center text-muted py-3">Buscando...</td></tr>';
+            try {
+                const resp = await fetch('?handler=BuscarFornecedores&' + params.toString());
+                resultadosBusca = await resp.json();
+
+                const contador = document.getElementById('contadorRegistros');
+                if (contador) contador.textContent = resultadosBusca.length + ' registros encontrados';
+
+                if (!resultadosBusca.length) {
+                    tbody.innerHTML = '<tr><td colspan="8" class="text-center text-muted py-4">Nenhum fornecedor encontrado</td></tr>';
+                    return;
+                }
+                const token = document.querySelector('#formTokenAjax input[name="__RequestVerificationToken"]').value;
+                tbody.innerHTML = resultadosBusca.map((f, i) => montarLinha(f, i, token)).join('');
+            } catch (e) {
+                tbody.innerHTML = '<tr><td colspan="8" class="text-center text-danger py-4">Erro ao buscar. Tente novamente.</td></tr>';
+            }
         }
     </script>
 }

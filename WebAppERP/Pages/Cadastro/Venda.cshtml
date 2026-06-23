@@ -11,7 +11,7 @@
         _ => "badge-agendado"
     };
 
-    var produtosJs = Model.Vm.Combos.Produtos.Select(p => new { id = p.IdProduto, nome = p.DsProduto, saldo = p.QtSaldo ?? 0, valor = p.VlCustoMedio ?? 0 });
+    var produtosJs = Model.Vm.Combos.Produtos.Select(p => new { id = p.IdProduto, nome = p.DsProduto, saldo = p.QtSaldo ?? 0, valor = p.VlVenda ?? 0 });
     var servicosJs = Model.Vm.Combos.Servicos.Select(s => new { id = s.IdServico, nome = s.DsServico, valor = s.VlServico });
     var itensJs = Model.Vm.Itens.Select(i => new
     {

@@ -1,36 +1,59 @@
 @page
 @model WebAppERP.Pages.Cadastro.ProdutosModel
+@using System.Globalization
 @{
     ViewData["Title"] = "Produtos";
+
+    string Moeda(decimal? v) => "R$ " + (v ?? 0).ToString("N2", new CultureInfo("pt-BR"));
+    string Inv(decimal? v) => v.HasValue ? v.Value.ToString(CultureInfo.InvariantCulture) : "";
 }
 
 <div class="d-flex justify-content-between align-items-start mb-4">
     <div>
         <h1 class="page-title">Produtos</h1>
-        <p class="page-subtitle">Controle de estoque, saldo e custo medio dos produtos</p>
+        <p class="page-subtitle">Gerencie os produtos do estoque</p>
     </div>
     <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#modalProduto" onclick="limparForm()">
         <i class="bi bi-plus-lg me-1"></i> Novo Produto
     </button>
 </div>
 
-<!-- Filtros -->
+@if (TempData["Erro"] != null)
+{
+    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        <i class="bi bi-exclamation-triangle me-1"></i> @TempData["Erro"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+}
+@if (TempData["Sucesso"] != null)
+{
+    <div class="alert alert-success alert-dismissible fade show" role="alert">
+        <i class="bi bi-check-circle me-1"></i> @TempData["Sucesso"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+}
+
+<!-- Filtros de busca (todos opcionais e combinaveis) -->
 <div class="card mb-3">
-    <div class="card-body py-2">
-        <div class="row g-2 align-items-center">
-            <div class="col-md-4">
-                <div class="search-box">
-                    <i class="bi bi-search search-icon"></i>
-                    <input type="text" class="form-control" placeholder="Buscar por descricao..." id="searchInput" />
-                </div>
+    <div class="card-body py-3">
+        <div class="row g-2 align-items-end">
+            <div class="col-md-2">
+                <label class="form-label small mb-1">ID / Codigo</label>
+                <input type="number" class="form-control" id="buscaId" min="1" autocomplete="off" />
             </div>
-            <div class="col-md-3">
-                <select class="form-select" id="filterSaldo">
-                    <option value="">Todos os saldos</option>
-                    <option value="com">Com saldo</option>
-                    <option value="sem">Sem saldo / zerado</option>
-                </select>
+            <div class="col-md-6">
+                <label class="form-label small mb-1">Nome / Descricao do Produto</label>
+                <input type="text" class="form-control" id="buscaTermo" autocomplete="off" />
             </div>
+        </div>
+        <div class="d-flex justify-content-between align-items-center mt-3">
+            <div class="form-check mb-0">
+                <input class="form-check-input" type="checkbox" id="buscaInativos" onchange="buscarProdutos()" />
+                <label class="form-check-label" for="buscaInativos">Exibir Produtos Inativos</label>
+            </div>
+            <button type="button" class="btn btn-primary" onclick="buscarProdutos()">
+                <i class="bi bi-search me-1"></i>Buscar
+            </button>
         </div>
     </div>
 </div>
@@ -39,18 +62,20 @@
 <div class="table-container">
     <div class="table-header">
         <h5><i class="bi bi-box-seam me-2"></i>Lista de Produtos</h5>
-        <span class="text-muted small">@Model.Produtos.Count registros encontrados</span>
+        <span class="text-muted small" id="contadorRegistros">@Model.Produtos.Count registros encontrados</span>
     </div>
     <div class="table-responsive">
         <table class="table" id="tblProdutos">
             <thead>
                 <tr>
                     <th>ID</th>
-                    <th>Descricao</th>
-                    <th>NCM</th>
+                    <th>Produto</th>
+                    <th>Marca</th>
+                    <th>Categoria</th>
                     <th>Unid.</th>
-                    <th class="text-end">Saldo</th>
-                    <th class="text-end">Custo Medio</th>
+                    <th class="text-end">Valor Venda</th>
+                    <th class="text-end">Estoque</th>
+                    <th>Status</th>
                     <th class="text-center">Acoes</th>
                 </tr>
             </thead>
@@ -59,27 +84,28 @@
                 {
                     @foreach (var p in Model.Produtos)
                     {
-                        var saldo = p.QtSaldo ?? 0;
-                        <tr data-saldo="@(saldo > 0 ? "com" : "sem")">
+                        <tr>
                             <td>@p.IdProduto</td>
                             <td><strong>@p.DsProduto</strong></td>
-                            <td>@(p.IdNCMSH ?? "-")</td>
+                            <td>@(string.IsNullOrWhiteSpace(p.NmMarca) ? "-" : p.NmMarca)</td>
+                            <td>@(string.IsNullOrWhiteSpace(p.DsCategoria) ? "-" : p.DsCategoria)</td>
                             <td>@(p.SgUnidade ?? "-")</td>
-                            <td class="text-end">
-                                @if (saldo > 0)
+                            <td class="text-end">@Moeda(p.VlVenda)</td>
+                            <td class="text-end">@((p.QtSaldo ?? 0).ToString("0.##", new CultureInfo("pt-BR")))</td>
+                            <td>
+                                @if (p.FlAtivo)
                                 {
-                                    <span class="badge-status badge-ativo">@saldo.ToString("N4")</span>
+                                    <span class="badge-status badge-ativo">Ativo</span>
                                 }
                                 else
                                 {
-                                    <span class="badge-status badge-inativo">@saldo.ToString("N4")</span>
+                                    <span class="badge-status badge-inativo">Inativo</span>
                                 }
                             </td>
-                            <td class="text-end">R$ @((p.VlCustoMedio ?? 0).ToString("N4"))</td>
                             <td class="text-center">
                                 <button class="btn btn-icon btn-outline-primary" title="Editar"
                                         data-bs-toggle="modal" data-bs-target="#modalProduto"
-                                        onclick="editarProduto(@p.IdProduto, '@p.DsProduto.Replace("'", "\\'")','@p.IdNCMSH','@p.SgUnidade','@((p.VlPesoBruto ?? 0).ToString(System.Globalization.CultureInfo.InvariantCulture))','@((p.VlPesoLiquido ?? 0).ToString(System.Globalization.CultureInfo.InvariantCulture))','@((p.QtSaldo ?? 0).ToString(System.Globalization.CultureInfo.InvariantCulture))','@((p.VlCustoMedio ?? 0).ToString(System.Globalization.CultureInfo.InvariantCulture))')">
+                                        onclick="editarProduto(@p.IdProduto,'@p.DsProduto.Replace("'", "\\'")','@p.NmMarca?.Replace("'", "\\'")','@p.DsCategoria?.Replace("'", "\\'")','@p.SgUnidade','@Inv(p.VlCusto)','@Inv(p.VlVendaMinimo)','@Inv(p.VlVenda)','@Inv(p.PcComissao)','@Inv(p.VlDesconto)','@Inv(p.QtSaldo)','@p.DsDescricao?.Replace("'", "\\'").Replace("\r", " ").Replace("\n", " ")','@p.DsImagem','@p.FlAtivo')">
                                     <i class="bi bi-pencil"></i>
                                 </button>
                                 <form method="post" asp-page-handler="Delete" class="d-inline" onsubmit="return confirm('Deseja realmente excluir este produto?')">
@@ -94,7 +120,7 @@
                 }
                 else
                 {
-                    <tr><td colspan="7" class="text-center text-muted py-4">Nenhum produto cadastrado</td></tr>
+                    <tr><td colspan="9" class="text-center text-muted py-4">Nenhum produto cadastrado</td></tr>
                 }
             </tbody>
         </table>
@@ -105,99 +131,249 @@
 <div class="modal fade" id="modalProduto" tabindex="-1">
     <div class="modal-dialog modal-lg">
         <div class="modal-content">
-            <form method="post">
+            <form method="post" enctype="multipart/form-data">
                 <div class="modal-header">
                     <h5 class="modal-title" id="modalTitle"><i class="bi bi-box-seam me-2"></i>Novo Produto</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
                     <input type="hidden" asp-for="ProdutoForm.IdProduto" id="formIdProduto" />
+                    <input type="hidden" asp-for="ProdutoForm.DsImagem" id="formDsImagem" />
                     <div class="row g-3">
-                        <div class="col-md-9">
-                            <label class="form-label">Descricao do Produto *</label>
-                            <input type="text" class="form-control" asp-for="ProdutoForm.DsProduto" id="formDsProduto" required />
+                        <!-- Codigo | Produto | Categoria | Status -->
+                        <div class="col-md-2">
+                            <label class="form-label">Codigo</label>
+                            <input type="text" class="form-control bg-light" id="formCodigoDisplay" placeholder="(novo)" readonly />
+                        </div>
+                        <div class="col-md-5">
+                            <label class="form-label">Produto *</label>
+                            <input type="text" class="form-control" asp-for="ProdutoForm.DsProduto" id="formDsProduto" maxlength="300" placeholder="Ex: Pomada modeladora" required />
                         </div>
                         <div class="col-md-3">
-                            <label class="form-label">Unidade</label>
-                            <select class="form-select" asp-for="ProdutoForm.SgUnidade" id="formSgUnidade">
-                                <option value="">Selecione</option>
-                                <option value="UN">UN</option>
-                                <option value="PC">PC</option>
-                                <option value="CX">CX</option>
-                                <option value="KG">KG</option>
-                                <option value="G">G</option>
-                                <option value="L">L</option>
-                                <option value="ML">ML</option>
-                                <option value="M">M</option>
+                            <label class="form-label">Categoria</label>
+                            <input type="text" class="form-control" asp-for="ProdutoForm.DsCategoria" id="formDsCategoria" maxlength="60" placeholder="Ex: Pomada" />
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label">Status</label>
+                            <select class="form-select" asp-for="ProdutoForm.FlAtivo" id="formFlAtivo">
+                                <option value="true">Ativo</option>
+                                <option value="false">Inativo</option>
                             </select>
                         </div>
-                        <div class="col-md-4">
-                            <label class="form-label">NCM/SH</label>
-                            <input type="text" class="form-control" asp-for="ProdutoForm.IdNCMSH" id="formIdNCMSH" maxlength="10" placeholder="00000000" />
+
+                        <!-- Marca | Unidade de Medida -->
+                        <div class="col-md-8">
+                            <label class="form-label">Marca</label>
+                            <input type="text" class="form-control" asp-for="ProdutoForm.NmMarca" id="formNmMarca" maxlength="60" placeholder="Ex: R10" />
                         </div>
                         <div class="col-md-4">
-                            <label class="form-label">Peso Bruto</label>
-                            <input type="number" step="0.0001" class="form-control" asp-for="ProdutoForm.VlPesoBruto" id="formVlPesoBruto" />
+                            <label class="form-label">Unidade de Medida</label>
+                            <select class="form-select" asp-for="ProdutoForm.SgUnidade" id="formSgUnidade">
+                                <option value="">Selecione</option>
+                                <option value="UN">UN - Unidade</option>
+                                <option value="PC">PC - Peca</option>
+                                <option value="CX">CX - Caixa</option>
+                                <option value="KG">KG - Quilograma</option>
+                                <option value="G">G - Grama</option>
+                                <option value="L">L - Litro</option>
+                                <option value="ML">ML - Mililitro</option>
+                                <option value="M">M - Metro</option>
+                            </select>
                         </div>
-                        <div class="col-md-4">
-                            <label class="form-label">Peso Liquido</label>
-                            <input type="number" step="0.0001" class="form-control" asp-for="ProdutoForm.VlPesoLiquido" id="formVlPesoLiquido" />
+
+                        <!-- Valor Custo | Valor Minimo Venda | Valor Venda | % Comissao -->
+                        <div class="col-md-3">
+                            <label class="form-label">Valor Custo (R$)</label>
+                            <input type="number" step="0.01" min="0" class="form-control" asp-for="ProdutoForm.VlCusto" id="formVlCusto" placeholder="0,00" />
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Valor Minimo Venda (R$)</label>
+                            <input type="number" step="0.01" min="0" class="form-control" asp-for="ProdutoForm.VlVendaMinimo" id="formVlVendaMinimo" placeholder="0,00" />
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Valor Venda (R$)</label>
+                            <input type="number" step="0.01" min="0" class="form-control" asp-for="ProdutoForm.VlVenda" id="formVlVenda" placeholder="0,00" />
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Percentual Comissao (%)</label>
+                            <input type="number" step="0.01" min="0" max="999.99" class="form-control" asp-for="ProdutoForm.PcComissao" id="formPcComissao" placeholder="0,00" />
+                        </div>
+
+                        <!-- Estoque | Desconto -->
+                        <div class="col-md-6">
+                            <label class="form-label">Estoque</label>
+                            <input type="number" step="0.01" min="0" class="form-control" asp-for="ProdutoForm.QtSaldo" id="formQtSaldo" placeholder="Ex: 12" />
                         </div>
                         <div class="col-md-6">
-                            <label class="form-label">Saldo em Estoque</label>
-                            <input type="number" step="0.0001" class="form-control" asp-for="ProdutoForm.QtSaldo" id="formQtSaldo" />
+                            <label class="form-label">Desconto (R$)</label>
+                            <input type="number" step="0.01" min="0" class="form-control" asp-for="ProdutoForm.VlDesconto" id="formVlDesconto" placeholder="0,00" />
                         </div>
-                        <div class="col-md-6">
-                            <label class="form-label">Custo Medio (R$)</label>
-                            <input type="number" step="0.0001" class="form-control" asp-for="ProdutoForm.VlCustoMedio" id="formVlCustoMedio" />
+
+                        <!-- Imagem -->
+                        <div class="col-12">
+                            <label class="form-label">Imagem</label>
+                            <input type="file" class="form-control" name="ImagemUpload" id="formImagemUpload" accept="image/*" onchange="previewImagem(event)" />
+                            <small class="text-muted">A imagem sera enviada apenas ao salvar o produto. Formatos: JPG, PNG, WEBP, GIF (max 5 MB).</small>
+                            <div class="mt-2">
+                                <img id="imgPreview" src="" alt="Pre-visualizacao" class="img-thumbnail d-none" style="max-height:120px;" />
+                            </div>
+                        </div>
+
+                        <!-- Descricao -->
+                        <div class="col-12">
+                            <label class="form-label">Descricao</label>
+                            <textarea class="form-control" rows="2" asp-for="ProdutoForm.DsDescricao" id="formDsDescricao" maxlength="500" placeholder="Descreva rapidamente o produto"></textarea>
                         </div>
                     </div>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                    <button type="submit" class="btn btn-primary"><i class="bi bi-check-lg me-1"></i>Salvar</button>
+                    <button type="submit" class="btn btn-primary"><i class="bi bi-check-lg me-1"></i>Salvar produto</button>
                 </div>
             </form>
         </div>
     </div>
 </div>
 
+<!-- Token antiforgery para as chamadas AJAX -->
+<form id="formTokenAjax" class="d-none">@Html.AntiForgeryToken()</form>
+
 @section Scripts {
     <script>
-        function aplicarFiltros() {
-            const texto = document.getElementById('searchInput').value.toLowerCase();
-            const saldo = document.getElementById('filterSaldo').value;
-            document.querySelectorAll('#tblProdutos tbody tr').forEach(row => {
-                const matchTexto = row.textContent.toLowerCase().includes(texto);
-                const matchSaldo = !saldo || row.getAttribute('data-saldo') === saldo;
-                row.style.display = (matchTexto && matchSaldo) ? '' : 'none';
-            });
+        // ===== Helpers de exibicao =====
+        function moeda(v) {
+            if (v === null || v === undefined || v === '') return 'R$ 0,00';
+            return 'R$ ' + parseFloat(v).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
         }
-        document.getElementById('searchInput')?.addEventListener('input', aplicarFiltros);
-        document.getElementById('filterSaldo')?.addEventListener('change', aplicarFiltros);
+        function statusBadge(ativo) {
+            return ativo
+                ? '<span class="badge-status badge-ativo">Ativo</span>'
+                : '<span class="badge-status badge-inativo">Inativo</span>';
+        }
 
+        // ===== Preview da imagem selecionada =====
+        function previewImagem(e) {
+            const file = e.target.files && e.target.files[0];
+            const img = document.getElementById('imgPreview');
+            if (!file) return;
+            img.src = URL.createObjectURL(file);
+            img.classList.remove('d-none');
+        }
+
+        // ===== Modal (novo / editar) =====
         function limparForm() {
             document.getElementById('modalTitle').innerHTML = '<i class="bi bi-box-seam me-2"></i>Novo Produto';
+            ['formDsProduto','formNmMarca','formDsCategoria','formSgUnidade','formVlCusto','formVlVendaMinimo','formVlVenda','formPcComissao','formVlDesconto','formQtSaldo','formDsDescricao','formCodigoDisplay','formDsImagem','formImagemUpload'].forEach(id => {
+                document.getElementById(id).value = '';
+            });
             document.getElementById('formIdProduto').value = '0';
-            document.getElementById('formDsProduto').value = '';
-            document.getElementById('formIdNCMSH').value = '';
-            document.getElementById('formSgUnidade').value = '';
-            document.getElementById('formVlPesoBruto').value = '';
-            document.getElementById('formVlPesoLiquido').value = '';
-            document.getElementById('formQtSaldo').value = '';
-            document.getElementById('formVlCustoMedio').value = '';
+            document.getElementById('formFlAtivo').value = 'true';
+            const img = document.getElementById('imgPreview');
+            img.src = '';
+            img.classList.add('d-none');
         }
 
-        function editarProduto(id, desc, ncm, unid, pesoB, pesoL, saldo, custo) {
+        // Normaliza numero removendo casas decimais sobrando (ex: "15.0000" -> 15)
+        function num(v) {
+            return (v === '' || v === null || v === undefined) ? '' : parseFloat(v);
+        }
+
+        function editarProduto(id, nome, marca, categoria, unidade, custo, vendaMin, venda, comissao, desconto, estoque, descricao, imagem, ativo) {
             document.getElementById('modalTitle').innerHTML = '<i class="bi bi-pencil me-2"></i>Editar Produto';
             document.getElementById('formIdProduto').value = id;
-            document.getElementById('formDsProduto').value = desc;
-            document.getElementById('formIdNCMSH').value = ncm;
-            document.getElementById('formSgUnidade').value = unid;
-            document.getElementById('formVlPesoBruto').value = pesoB;
-            document.getElementById('formVlPesoLiquido').value = pesoL;
-            document.getElementById('formQtSaldo').value = saldo;
-            document.getElementById('formVlCustoMedio').value = custo;
+            document.getElementById('formCodigoDisplay').value = id;
+            document.getElementById('formDsProduto').value = nome;
+            document.getElementById('formNmMarca').value = marca || '';
+            document.getElementById('formDsCategoria').value = categoria || '';
+            document.getElementById('formSgUnidade').value = unidade || '';
+            document.getElementById('formVlCusto').value = num(custo);
+            document.getElementById('formVlVendaMinimo').value = num(vendaMin);
+            document.getElementById('formVlVenda').value = num(venda);
+            document.getElementById('formPcComissao').value = num(comissao);
+            document.getElementById('formVlDesconto').value = num(desconto);
+            document.getElementById('formQtSaldo').value = num(estoque);
+            document.getElementById('formDsDescricao').value = descricao || '';
+            document.getElementById('formDsImagem').value = imagem || '';
+            document.getElementById('formImagemUpload').value = '';
+            document.getElementById('formFlAtivo').value = ativo === 'True' ? 'true' : 'false';
+
+            const img = document.getElementById('imgPreview');
+            if (imagem) { img.src = imagem; img.classList.remove('d-none'); }
+            else { img.src = ''; img.classList.add('d-none'); }
+        }
+
+        // ===== Busca de Produtos (filtros na pagina -> atualiza a grid via AJAX) =====
+        let resultadosBusca = [];
+
+        ['buscaId', 'buscaTermo'].forEach(id => {
+            document.getElementById(id)?.addEventListener('keydown', e => {
+                if (e.key === 'Enter') { e.preventDefault(); buscarProdutos(); }
+            });
+        });
+
+        function montarLinha(p, i, token) {
+            const estoque = (p.estoque !== null && p.estoque !== undefined)
+                ? parseFloat(p.estoque).toLocaleString('pt-BR', { maximumFractionDigits: 2 }) : '0';
+            return '<tr>' +
+                '<td>' + p.id + '</td>' +
+                '<td><strong>' + (p.nome || '') + '</strong></td>' +
+                '<td>' + (p.marca || '-') + '</td>' +
+                '<td>' + (p.categoria || '-') + '</td>' +
+                '<td>' + (p.unidade || '-') + '</td>' +
+                '<td class="text-end">' + moeda(p.venda) + '</td>' +
+                '<td class="text-end">' + estoque + '</td>' +
+                '<td>' + statusBadge(p.ativo) + '</td>' +
+                '<td class="text-center">' +
+                    '<button class="btn btn-icon btn-outline-primary" title="Editar" onclick="abrirEdicao(' + i + ')"><i class="bi bi-pencil"></i></button> ' +
+                    '<form method="post" action="?handler=Delete" class="d-inline" onsubmit="return confirm(\'Deseja realmente excluir este produto?\')">' +
+                        '<input type="hidden" name="__RequestVerificationToken" value="' + token + '">' +
+                        '<input type="hidden" name="id" value="' + p.id + '">' +
+                        '<button type="submit" class="btn btn-icon btn-outline-danger" title="Excluir"><i class="bi bi-trash"></i></button>' +
+                    '</form>' +
+                '</td>' +
+            '</tr>';
+        }
+
+        async function buscarProdutos() {
+            const tbody = document.querySelector('#tblProdutos tbody');
+            const id = document.getElementById('buscaId').value.trim();
+            const termo = document.getElementById('buscaTermo').value.trim();
+            const inativos = document.getElementById('buscaInativos').checked;
+
+            const params = new URLSearchParams();
+            if (id) params.append('id', id);
+            if (termo) params.append('termo', termo);
+            params.append('incluirInativos', inativos);
+
+            tbody.innerHTML = '<tr><td colspan="9" class="text-center text-muted py-3">Buscando...</td></tr>';
+            try {
+                const resp = await fetch('?handler=BuscarProdutos&' + params.toString());
+                resultadosBusca = await resp.json();
+
+                const contador = document.getElementById('contadorRegistros');
+                if (contador) contador.textContent = resultadosBusca.length + ' registros encontrados';
+
+                if (!resultadosBusca.length) {
+                    tbody.innerHTML = '<tr><td colspan="9" class="text-center text-muted py-4">Nenhum produto encontrado</td></tr>';
+                    return;
+                }
+
+                const token = document.querySelector('#formTokenAjax input[name="__RequestVerificationToken"]').value;
+                tbody.innerHTML = resultadosBusca.map((p, i) => montarLinha(p, i, token)).join('');
+            } catch (e) {
+                tbody.innerHTML = '<tr><td colspan="9" class="text-center text-danger py-4">Erro ao buscar. Tente novamente.</td></tr>';
+            }
+        }
+
+        function abrirEdicao(i) {
+            const p = resultadosBusca[i];
+            editarProduto(
+                p.id, p.nome || '', p.marca || '', p.categoria || '', p.unidade || '',
+                (p.custo ?? ''), (p.vendaMin ?? ''), (p.venda ?? ''), (p.comissao ?? ''),
+                (p.desconto ?? ''), (p.estoque ?? ''), p.descricao || '', p.imagem || '',
+                (p.ativo ? 'True' : 'False')
+            );
+            bootstrap.Modal.getOrCreateInstance(document.getElementById('modalProduto')).show();
         }
     </script>
 }

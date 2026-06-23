@@ -29,23 +29,27 @@
     </div>
 }
 
-<!-- Filtros -->
+<!-- Filtros de busca (todos opcionais e combinaveis) -->
 <div class="card mb-3">
-    <div class="card-body py-2">
-        <div class="row g-2 align-items-center">
-            <div class="col-md-4">
-                <div class="search-box">
-                    <i class="bi bi-search search-icon"></i>
-                    <input type="text" class="form-control" placeholder="Buscar por nome ou descricao..." id="searchInput" />
-                </div>
-            </div>
+    <div class="card-body py-3">
+        <div class="row g-2 align-items-end">
             <div class="col-md-2">
-                <select class="form-select" id="filterStatus">
-                    <option value="">Todos os Status</option>
-                    <option value="ativo">Ativo</option>
-                    <option value="inativo">Inativo</option>
-                </select>
+                <label class="form-label small mb-1">ID</label>
+                <input type="number" class="form-control" id="buscaId" min="1" autocomplete="off" />
             </div>
+            <div class="col-md-6">
+                <label class="form-label small mb-1">Nome / Descricao das Atividades</label>
+                <input type="text" class="form-control" id="buscaTermo" autocomplete="off" />
+            </div>
+        </div>
+        <div class="d-flex justify-content-between align-items-center mt-3">
+            <div class="form-check mb-0">
+                <input class="form-check-input" type="checkbox" id="buscaInativos" onchange="buscarCargos()" />
+                <label class="form-check-label" for="buscaInativos">Exibir Cargos Inativos</label>
+            </div>
+            <button type="button" class="btn btn-primary" onclick="buscarCargos()">
+                <i class="bi bi-search me-1"></i>Buscar
+            </button>
         </div>
     </div>
 </div>
@@ -54,7 +58,7 @@
 <div class="table-container">
     <div class="table-header">
         <h5><i class="bi bi-briefcase-fill me-2"></i>Lista de Cargos</h5>
-        <span class="text-muted small">@Model.Cargos.Count registros encontrados</span>
+        <span class="text-muted small" id="contadorRegistros">@Model.Cargos.Count registros encontrados</span>
     </div>
     <div class="table-responsive">
         <table class="table" id="tblCargos">
@@ -62,7 +66,7 @@
                 <tr>
                     <th>ID</th>
                     <th>Nome</th>
-                    <th>Descricao</th>
+                    <th>Descricao das Atividades</th>
                     <th>Comissao Padrao</th>
                     <th>Status</th>
                     <th class="text-center">Acoes</th>
@@ -111,14 +115,10 @@
             </tbody>
         </table>
     </div>
-    <!-- Paginacao -->
-    <div class="d-flex justify-content-between align-items-center px-3 py-2 border-top" id="pagSection">
-        <span class="text-muted small" id="pagInfo"></span>
-        <nav>
-            <ul class="pagination pagination-sm mb-0" id="pagControls"></ul>
-        </nav>
-    </div>
 </div>
+
+<!-- Token antiforgery para as chamadas AJAX -->
+<form id="formTokenAjax" class="d-none">@Html.AntiForgeryToken()</form>
 
 <!-- Modal -->
 <div class="modal fade" id="modalCargo" tabindex="-1">
@@ -137,7 +137,7 @@
                             <input type="text" class="form-control" asp-for="CargoForm.NmCargo" id="cNome" maxlength="100" required />
                         </div>
                         <div class="col-12">
-                            <label class="form-label">Descricao</label>
+                            <label class="form-label">Descricao das Atividades</label>
                             <textarea class="form-control" rows="2" asp-for="CargoForm.DsCargo" id="cDesc" maxlength="300"></textarea>
                         </div>
                         <div class="col-md-6">
@@ -164,61 +164,81 @@
 
 @section Scripts {
     <script>
-        // ===== Pesquisa + Paginacao (client-side, no padrao de busca do sistema) =====
-        const pageSize = 10;
-        let currentPage = 1;
+        // ===== Busca de Cargos (filtros na pagina -> atualiza a grid via AJAX) =====
+        let resultadosBusca = [];
 
-        function getRows() {
-            return Array.from(document.querySelectorAll('#tblCargos tbody tr'))
-                .filter(r => !r.querySelector('td[colspan]'));
-        }
-
-        function getFilteredRows() {
-            const q = (document.getElementById('searchInput').value || '').toLowerCase();
-            const status = document.getElementById('filterStatus').value;
-            return getRows().filter(r => {
-                const matchText = r.textContent.toLowerCase().includes(q);
-                const matchStatus = !status || r.getAttribute('data-status') === status;
-                return matchText && matchStatus;
+        ['buscaId', 'buscaTermo'].forEach(id => {
+            document.getElementById(id)?.addEventListener('keydown', e => {
+                if (e.key === 'Enter') { e.preventDefault(); buscarCargos(); }
             });
+        });
+
+        function statusBadge(ativo) {
+            return ativo
+                ? '<span class="badge-status badge-ativo">Ativo</span>'
+                : '<span class="badge-status badge-inativo">Inativo</span>';
         }
 
-        function render() {
-            const filtered = getFilteredRows();
-            getRows().forEach(r => r.style.display = 'none');
-
-            const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
-            if (currentPage > totalPages) currentPage = totalPages;
-
-            const start = (currentPage - 1) * pageSize;
-            filtered.slice(start, start + pageSize).forEach(r => r.style.display = '');
-
-            const info = document.getElementById('pagInfo');
-            info.textContent = filtered.length === 0
-                ? 'Nenhum registro encontrado'
-                : `Mostrando ${start + 1}-${Math.min(start + pageSize, filtered.length)} de ${filtered.length}`;
-
-            const ctrl = document.getElementById('pagControls');
-            ctrl.innerHTML = '';
-            const addBtn = (label, page, disabled, active) => {
-                const li = document.createElement('li');
-                li.className = 'page-item' + (disabled ? ' disabled' : '') + (active ? ' active' : '');
-                const a = document.createElement('a');
-                a.className = 'page-link';
-                a.href = '#';
-                a.textContent = label;
-                a.onclick = (e) => { e.preventDefault(); if (!disabled && !active) { currentPage = page; render(); } };
-                li.appendChild(a);
-                ctrl.appendChild(li);
-            };
-            addBtn('«', currentPage - 1, currentPage === 1, false);
-            for (let p = 1; p <= totalPages; p++) addBtn(p, p, false, p === currentPage);
-            addBtn('»', currentPage + 1, currentPage === totalPages, false);
+        function montarLinha(c, i, token) {
+            const comissao = (c.comissao !== null && c.comissao !== undefined)
+                ? (parseFloat(c.comissao).toString().replace('.', ',') + '%') : '-';
+            const desc = (c.desc && c.desc.trim()) ? c.desc : '-';
+            return '<tr>' +
+                '<td>' + c.id + '</td>' +
+                '<td><strong>' + (c.nome || '') + '</strong></td>' +
+                '<td>' + desc + '</td>' +
+                '<td>' + comissao + '</td>' +
+                '<td>' + statusBadge(c.ativo) + '</td>' +
+                '<td class="text-center">' +
+                    '<button class="btn btn-icon btn-outline-primary" title="Editar" onclick="abrirEdicao(' + i + ')"><i class="bi bi-pencil"></i></button> ' +
+                    '<form method="post" action="?handler=Delete" class="d-inline" onsubmit="return confirm(\'Deseja realmente excluir este cargo?\')">' +
+                        '<input type="hidden" name="__RequestVerificationToken" value="' + token + '">' +
+                        '<input type="hidden" name="id" value="' + c.id + '">' +
+                        '<button type="submit" class="btn btn-icon btn-outline-danger" title="Excluir"><i class="bi bi-trash"></i></button>' +
+                    '</form>' +
+                '</td>' +
+            '</tr>';
         }
 
-        document.getElementById('searchInput').addEventListener('input', () => { currentPage = 1; render(); });
-        document.getElementById('filterStatus').addEventListener('change', () => { currentPage = 1; render(); });
-        render();
+        async function buscarCargos() {
+            const tbody = document.querySelector('#tblCargos tbody');
+            const id = document.getElementById('buscaId').value.trim();
+            const termo = document.getElementById('buscaTermo').value.trim();
+            const inativos = document.getElementById('buscaInativos').checked;
+
+            const params = new URLSearchParams();
+            if (id) params.append('id', id);
+            if (termo) params.append('termo', termo);
+            params.append('incluirInativos', inativos);
+
+            tbody.innerHTML = '<tr><td colspan="6" class="text-center text-muted py-3">Buscando...</td></tr>';
+            try {
+                const resp = await fetch('?handler=BuscarCargos&' + params.toString());
+                resultadosBusca = await resp.json();
+
+                const contador = document.getElementById('contadorRegistros');
+                if (contador) contador.textContent = resultadosBusca.length + ' registros encontrados';
+
+                if (!resultadosBusca.length) {
+                    tbody.innerHTML = '<tr><td colspan="6" class="text-center text-muted py-4">Nenhum cargo encontrado</td></tr>';
+                    return;
+                }
+
+                const token = document.querySelector('#formTokenAjax input[name="__RequestVerificationToken"]').value;
+                tbody.innerHTML = resultadosBusca.map((c, i) => montarLinha(c, i, token)).join('');
+            } catch (e) {
+                tbody.innerHTML = '<tr><td colspan="6" class="text-center text-danger py-4">Erro ao buscar. Tente novamente.</td></tr>';
+            }
+        }
+
+        function abrirEdicao(i) {
+            const c = resultadosBusca[i];
+            editarCargo(
+                c.id, c.nome || '', c.desc || '',
+                (c.comissao ?? ''), (c.ativo ? 'True' : 'False')
+            );
+            bootstrap.Modal.getOrCreateInstance(document.getElementById('modalCargo')).show();
+        }
 
         // ===== Modal (novo / editar) =====
         function limparForm() {
