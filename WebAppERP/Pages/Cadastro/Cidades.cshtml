@@ -14,17 +14,20 @@
     </button>
 </div>
 
-<!-- Filtros -->
+<!-- Filtros de busca (mesmo padrao da tela de Funcionarios) -->
 <div class="card mb-3">
-    <div class="card-body py-2">
-        <div class="row g-2 align-items-center">
+    <div class="card-body py-3">
+        <div class="row g-2 align-items-end">
+            <div class="col-md-2">
+                <label class="form-label small mb-1">ID</label>
+                <input type="number" class="form-control" id="buscaId" min="1" autocomplete="off" />
+            </div>
             <div class="col-md-4">
-                <div class="search-box">
-                    <i class="bi bi-search search-icon"></i>
-                    <input type="text" class="form-control" placeholder="Buscar por nome da cidade..." id="searchInput" />
-                </div>
+                <label class="form-label small mb-1">Nome da Cidade</label>
+                <input type="text" class="form-control" id="searchInput" autocomplete="off" />
             </div>
             <div class="col-md-3">
+                <label class="form-label small mb-1">Estado</label>
                 <select class="form-select" id="filterEstado">
                     <option value="">Todos os Estados</option>
                     @foreach (var estado in Model.Estados)
@@ -32,6 +35,11 @@
                         <option value="@estado.SgUF">@estado.NmEstado</option>
                     }
                 </select>
+            </div>
+            <div class="col-md-auto">
+                <button type="button" class="btn btn-primary" onclick="aplicarBusca()">
+                    <i class="bi bi-search me-1"></i>Buscar
+                </button>
             </div>
         </div>
     </div>
@@ -130,18 +138,23 @@
 
 @section Scripts {
     <script>
-        function aplicarFiltros() {
+        function aplicarBusca() {
+            const id = document.getElementById('buscaId').value.trim();
             const texto = document.getElementById('searchInput').value.toLowerCase();
             const uf = document.getElementById('filterEstado').value;
             document.querySelectorAll('#tblCidades tbody tr').forEach(row => {
+                if (row.querySelector('td[colspan]')) return;
+                const rowId = row.querySelector('td')?.textContent.trim();
+                const matchId = !id || rowId === id;
                 const matchTexto = row.textContent.toLowerCase().includes(texto);
                 const matchUf = !uf || row.getAttribute('data-uf') === uf;
-                row.style.display = (matchTexto && matchUf) ? '' : 'none';
+                row.style.display = (matchId && matchTexto && matchUf) ? '' : 'none';
             });
         }
 
-        document.getElementById('searchInput')?.addEventListener('input', aplicarFiltros);
-        document.getElementById('filterEstado')?.addEventListener('change', aplicarFiltros);
+        document.getElementById('searchInput')?.addEventListener('input', aplicarBusca);
+        document.getElementById('buscaId')?.addEventListener('input', aplicarBusca);
+        document.getElementById('filterEstado')?.addEventListener('change', aplicarBusca);
 
         function limparForm() {
             document.getElementById('modalTitle').innerHTML = '<i class="bi bi-building me-2"></i>Nova Cidade';

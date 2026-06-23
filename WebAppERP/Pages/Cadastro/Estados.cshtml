@@ -14,15 +14,22 @@
     </button>
 </div>
 
-<!-- Filtros -->
+<!-- Filtros de busca (mesmo padrao da tela de Funcionarios) -->
 <div class="card mb-3">
-    <div class="card-body py-2">
-        <div class="row g-2 align-items-center">
-            <div class="col-md-4">
-                <div class="search-box">
-                    <i class="bi bi-search search-icon"></i>
-                    <input type="text" class="form-control" placeholder="Buscar por nome ou UF..." id="searchInput" />
-                </div>
+    <div class="card-body py-3">
+        <div class="row g-2 align-items-end">
+            <div class="col-md-2">
+                <label class="form-label small mb-1">ID</label>
+                <input type="number" class="form-control" id="buscaId" min="1" autocomplete="off" />
+            </div>
+            <div class="col-md-6">
+                <label class="form-label small mb-1">Nome / UF</label>
+                <input type="text" class="form-control" id="searchInput" autocomplete="off" />
+            </div>
+            <div class="col-md-auto">
+                <button type="button" class="btn btn-primary" onclick="aplicarBusca()">
+                    <i class="bi bi-search me-1"></i>Buscar
+                </button>
             </div>
         </div>
     </div>
@@ -125,12 +132,19 @@
 
 @section Scripts {
     <script>
-        document.getElementById('searchInput')?.addEventListener('input', function () {
-            const filter = this.value.toLowerCase();
+        function aplicarBusca() {
+            const id = document.getElementById('buscaId').value.trim();
+            const txt = document.getElementById('searchInput').value.toLowerCase();
             document.querySelectorAll('#tblEstados tbody tr').forEach(row => {
-                row.style.display = row.textContent.toLowerCase().includes(filter) ? '' : 'none';
+                if (row.querySelector('td[colspan]')) return;
+                const rowId = row.querySelector('td')?.textContent.trim();
+                const matchId = !id || rowId === id;
+                const matchTxt = row.textContent.toLowerCase().includes(txt);
+                row.style.display = (matchId && matchTxt) ? '' : 'none';
             });
-        });
+        }
+        document.getElementById('searchInput')?.addEventListener('input', aplicarBusca);
+        document.getElementById('buscaId')?.addEventListener('input', aplicarBusca);
 
         function limparForm() {
             document.getElementById('modalTitle').innerHTML = '<i class="bi bi-map me-2"></i>Novo Estado';
