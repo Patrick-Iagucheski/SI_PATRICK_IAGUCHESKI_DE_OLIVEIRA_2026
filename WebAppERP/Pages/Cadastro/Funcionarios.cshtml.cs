@@ -292,8 +292,10 @@ public class FuncionariosModel : PageModel
     {
         var query = _db.Funcionarios.Include(f => f.Cargo).AsQueryable();
 
-        // Checkbox desmarcada => apenas ativos. Marcada => ativos + inativos.
-        if (!incluirInativos)
+        // Checkbox desmarcada => apenas ativos. Marcada => apenas inativos.
+        if (incluirInativos)
+            query = query.Where(f => !f.FlAtivo);
+        else
             query = query.Where(f => f.FlAtivo);
 
         // Todos os filtros sao opcionais e combinaveis.

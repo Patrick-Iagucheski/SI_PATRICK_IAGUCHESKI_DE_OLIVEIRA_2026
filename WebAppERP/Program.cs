@@ -21,6 +21,9 @@ if (!app.Environment.IsDevelopment())
 
 app.UseRouting();
 
+// Serve arquivos enviados em tempo de execucao (ex: imagens de produtos em wwwroot/uploads)
+app.UseStaticFiles();
+
 app.UseAuthorization();
 
 app.MapStaticAssets();

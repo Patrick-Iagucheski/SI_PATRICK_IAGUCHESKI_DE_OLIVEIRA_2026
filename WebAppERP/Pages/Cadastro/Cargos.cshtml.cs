@@ -19,9 +19,50 @@ public class CargosModel : PageModel
 
     public async Task OnGetAsync()
     {
+        // Por padrao a listagem mostra apenas ativos (checkbox de inativos desmarcada).
         Cargos = await _db.Cargos
+            .Where(c => c.FlAtivo)
             .OrderBy(c => c.NmCargo)
             .ToListAsync();
+    }
+
+    // ============================================================
+    // Busca de cargos via AJAX (filtros da pagina)
+    // Pesquisa por: codigo ou nome/descricao
+    // ============================================================
+    public async Task<IActionResult> OnGetBuscarCargosAsync(int? id, string? termo, bool incluirInativos = false)
+    {
+        var query = _db.Cargos.AsQueryable();
+
+        // Checkbox desmarcada => apenas ativos. Marcada => apenas inativos.
+        if (incluirInativos)
+            query = query.Where(c => !c.FlAtivo);
+        else
+            query = query.Where(c => c.FlAtivo);
+
+        if (id.HasValue)
+            query = query.Where(c => c.IdCargo == id.Value);
+
+        if (!string.IsNullOrWhiteSpace(termo))
+        {
+            var t = termo.Trim();
+            query = query.Where(c => c.NmCargo.Contains(t) || (c.DsCargo != null && c.DsCargo.Contains(t)));
+        }
+
+        var lista = await query
+            .OrderBy(c => c.NmCargo)
+            .Take(100)
+            .Select(c => new
+            {
+                id = c.IdCargo,
+                nome = c.NmCargo,
+                desc = c.DsCargo,
+                comissao = c.VlComissaoPadrao,
+                ativo = c.FlAtivo
+            })
+            .ToListAsync();
+
+        return new JsonResult(lista);
     }
 
     public async Task<IActionResult> OnPostAsync()
