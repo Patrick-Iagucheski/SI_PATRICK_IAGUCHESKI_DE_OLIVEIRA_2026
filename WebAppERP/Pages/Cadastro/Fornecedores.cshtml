@@ -200,13 +200,24 @@
                             <label class="form-label" id="lblDoc">Documento</label>
                             <input type="text" class="form-control" asp-for="FornecedorForm.NrDocumento" id="formNrDocumento" maxlength="30" placeholder="Documento" />
                         </div>
-                        <div class="col-md-3">
+                        <!-- Slot A: Inscricao Estadual (PJ / Estrangeiro / Outro) ou RG (Pessoa Fisica) -->
+                        <div class="col-md-3 doc-wrap" id="wrapInscEstadual">
                             <label class="form-label">Inscricao Estadual</label>
-                            <input type="text" class="form-control" asp-for="FornecedorForm.NrInscEstadual" id="formNrInscEstadual" maxlength="20" />
+                            <input type="text" class="form-control" asp-for="FornecedorForm.NrInscEstadual" id="formNrInscEstadual" maxlength="13" placeholder="8 a 13 digitos" />
                         </div>
-                        <div class="col-md-3">
+                        <div class="col-md-3 doc-wrap d-none" id="wrapRG">
+                            <label class="form-label">RG *</label>
+                            <input type="text" class="form-control" asp-for="FornecedorForm.NrRG" id="formNrRG" maxlength="12" placeholder="00.000.000-0" />
+                        </div>
+
+                        <!-- Slot B: Inscricao Municipal (PJ) ou Data de Nascimento (Pessoa Fisica / Estrangeiro / Outro) -->
+                        <div class="col-md-3 doc-wrap" id="wrapInscMunicipal">
                             <label class="form-label">Inscricao Municipal</label>
-                            <input type="text" class="form-control" asp-for="FornecedorForm.NrInscMunicipal" id="formNrInscMunicipal" maxlength="20" />
+                            <input type="text" class="form-control" asp-for="FornecedorForm.NrInscMunicipal" id="formNrInscMunicipal" maxlength="15" placeholder="7 a 15 caracteres" />
+                        </div>
+                        <div class="col-md-3 doc-wrap d-none" id="wrapDataNasc">
+                            <label class="form-label">Data de Nascimento</label>
+                            <input type="date" class="form-control" asp-for="FornecedorForm.DtNascimento" id="formDtNascimento" />
                         </div>
                         <div class="col-md-3">
                             <label class="form-label">Status</label>
@@ -481,7 +492,9 @@
         const dadosIniciais = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.Fornecedores.Select(f => new {
             id = f.IdFornecedor, tipoPessoa = f.TpPessoa, razaoSocial = f.DsRazaoSocial, nomeFantasia = f.DsNomeFantasia,
             contatoPrincipal = f.DsContatoPrincipal, cpf = f.NrCpf, cnpj = f.NrCNPJ, documento = f.NrDocumento,
-            inscEstadual = f.NrInscEstadual, inscMunicipal = f.NrInscMunicipal, email = f.DsEmail, observacao = f.DsObservacao,
+            inscEstadual = f.NrInscEstadual, inscMunicipal = f.NrInscMunicipal, rg = f.NrRG,
+            dataNascimento = f.DtNascimento != null ? f.DtNascimento.Value.ToString("yyyy-MM-dd") : null,
+            email = f.DsEmail, observacao = f.DsObservacao,
             cep = f.NrCEP, endereco = f.DsEndereco, numero = f.NrNumero, complemento = f.DsComplemento, bairro = f.DsBairro,
             idCidade = f.IdCidade, telefoneFixo = f.NrTelefoneFixo, celular = f.NrCelular, whatsApp = f.NrWhatsApp,
             banco = f.DsBanco, agencia = f.NrAgencia, tipoConta = f.TpConta, conta = f.NrConta, digitoConta = f.NrDigitoConta,
@@ -505,6 +518,12 @@
                 .replace(/(\d{4})(\d)/, '$1-$2');
         }
         function mascaraCEP(v) { return v.replace(/\D/g, '').slice(0, 8).replace(/^(\d{5})(\d)/, '$1-$2'); }
+        function mascaraRG(v) {
+            return v.replace(/\D/g, '').slice(0, 9)
+                .replace(/^(\d{2})(\d)/, '$1.$2')
+                .replace(/^(\d{2})\.(\d{3})(\d)/, '$1.$2.$3')
+                .replace(/\.(\d{3})(\d)/, '.$1-$2');
+        }
         function mascaraTelefone(v) {
             v = v.replace(/\D/g, '').slice(0, 11);
             if (v.length > 10) return v.replace(/^(\d{2})(\d{5})(\d{4}).*/, '($1) $2-$3');
@@ -520,6 +539,7 @@
         aplicarMascara('formNrTelefoneFixo', mascaraTelefone);
         aplicarMascara('formNrCelular', mascaraTelefone);
         aplicarMascara('formNrWhatsApp', mascaraTelefone);
+        aplicarMascara('formNrRG', mascaraRG);
 
         // ===== Validacao de CPF / CNPJ =====
         function cpfValido(cpf) {
@@ -536,14 +556,29 @@
             return calc(12, p1) === parseInt(d[12]) && calc(13, p2) === parseInt(d[13]);
         }
 
-        // ===== Tipo de Pessoa: alterna o documento exibido =====
+        // ===== Tipo de Pessoa: alterna documento e os campos especificos =====
         function toggleTipoPessoa() {
             const tipo = document.getElementById('formTpPessoa').value;
+            const ehF = tipo === 'F';
+            const ehJ = tipo === 'J';
+
+            // Documento principal (CNPJ / CPF / Documento)
             document.getElementById('wrapCnpj').classList.toggle('d-none', tipo !== 'J');
             document.getElementById('wrapCpf').classList.toggle('d-none', tipo !== 'F');
             document.getElementById('wrapDoc').classList.toggle('d-none', !(tipo === 'E' || tipo === 'O'));
             document.getElementById('lblDoc').textContent = tipo === 'E' ? 'Documento Internacional' : 'Documento';
             document.getElementById('lblRazao').textContent = tipo === 'J' ? 'Razao Social *' : 'Nome / Razao Social *';
+
+            // Slot A: Inscricao Estadual (J / E / O) ou RG (F)
+            document.getElementById('wrapInscEstadual').classList.toggle('d-none', ehF);
+            document.getElementById('wrapRG').classList.toggle('d-none', !ehF);
+
+            // Slot B: Inscricao Municipal (J) ou Data de Nascimento (F / E / O)
+            document.getElementById('wrapInscMunicipal').classList.toggle('d-none', !ehJ);
+            document.getElementById('wrapDataNasc').classList.toggle('d-none', ehJ);
+
+            // RG so e obrigatorio para Pessoa Fisica
+            document.getElementById('formNrRG').required = ehF;
         }
 
         // ===== Mascara da chave PIX conforme o tipo =====
@@ -564,12 +599,22 @@
             const email = document.getElementById('formDsEmail').value.trim();
             if (tipo === 'J' && cnpj.replace(/\D/g, '') && !cnpjValido(cnpj)) { e.preventDefault(); alert('CNPJ invalido. Verifique os numeros informados.'); return; }
             if (tipo === 'F' && cpf.replace(/\D/g, '') && !cpfValido(cpf)) { e.preventDefault(); alert('CPF invalido. Verifique os numeros informados.'); return; }
+            if (tipo === 'F') {
+                const rg = document.getElementById('formNrRG').value.replace(/\D/g, '');
+                if (rg.length !== 9) { e.preventDefault(); alert('Informe o RG com 9 digitos (Pessoa Fisica).'); return; }
+            }
+            if (tipo === 'J') {
+                const ie = document.getElementById('formNrInscEstadual').value.replace(/\D/g, '');
+                if (ie && (ie.length < 8 || ie.length > 13)) { e.preventDefault(); alert('Inscricao Estadual deve ter de 8 a 13 digitos.'); return; }
+                const im = document.getElementById('formNrInscMunicipal').value.trim();
+                if (im && (im.length < 7 || im.length > 15)) { e.preventDefault(); alert('Inscricao Municipal deve ter de 7 a 15 caracteres.'); return; }
+            }
             if (email && !/^[^\s@@]+@@[^\s@@]+\.[^\s@@]+$/.test(email)) { e.preventDefault(); alert('E-mail invalido. Verifique o formato (exemplo: nome@@dominio.com).'); return; }
         });
 
         function limparForm() {
             document.getElementById('modalTitle').innerHTML = '<i class="bi bi-truck me-2"></i>Novo Fornecedor';
-            ['formDsRazaoSocial','formDsNomeFantasia','formDsContatoPrincipal','formNrCNPJ','formNrCpf','formNrDocumento','formNrInscEstadual','formNrInscMunicipal','formDsObservacao','formNrCEP','formDsEndereco','formNrNumero','formDsComplemento','formDsBairro','formIdCidade','formNrTelefoneFixo','formNrCelular','formNrWhatsApp','formDsEmail','formDsBanco','formNrAgencia','formTpConta','formNrConta','formNrDigitoConta','formTpChavePix','formDsChavePix','formCodigoDisplay'].forEach(id => {
+            ['formDsRazaoSocial','formDsNomeFantasia','formDsContatoPrincipal','formNrCNPJ','formNrCpf','formNrDocumento','formNrInscEstadual','formNrInscMunicipal','formNrRG','formDtNascimento','formDsObservacao','formNrCEP','formDsEndereco','formNrNumero','formDsComplemento','formDsBairro','formIdCidade','formNrTelefoneFixo','formNrCelular','formNrWhatsApp','formDsEmail','formDsBanco','formNrAgencia','formTpConta','formNrConta','formNrDigitoConta','formTpChavePix','formDsChavePix','formCodigoDisplay'].forEach(id => {
                 document.getElementById(id).value = '';
             });
             document.getElementById('formId').value = '0';
@@ -591,6 +636,8 @@
             document.getElementById('formNrDocumento').value = f.documento || '';
             document.getElementById('formNrInscEstadual').value = f.inscEstadual || '';
             document.getElementById('formNrInscMunicipal').value = f.inscMunicipal || '';
+            document.getElementById('formNrRG').value = mascaraRG(f.rg || '');
+            document.getElementById('formDtNascimento').value = f.dataNascimento || '';
             document.getElementById('formDsEmail').value = f.email || '';
             document.getElementById('formDsObservacao').value = f.observacao || '';
             document.getElementById('formNrCEP').value = mascaraCEP(f.cep || '');

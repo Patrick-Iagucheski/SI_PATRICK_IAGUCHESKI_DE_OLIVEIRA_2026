@@ -101,7 +101,11 @@
                 <div class="modal-body">
                     <input type="hidden" asp-for="PaisForm.IdPais" id="formIdPais" />
                     <div class="row g-3">
-                        <div class="col-md-8">
+                        <div class="col-md-2">
+                            <label class="form-label">Codigo</label>
+                            <input type="text" class="form-control bg-light" id="formCodigoDisplay" placeholder="(novo)" readonly />
+                        </div>
+                        <div class="col-md-6">
                             <label class="form-label">Nome do Pais *</label>
                             <input type="text" class="form-control" asp-for="PaisForm.NmPais" id="formNmPais" required />
                         </div>
@@ -146,6 +150,7 @@
 
         function limparForm() {
             document.getElementById('modalTitle').innerHTML = '<i class="bi bi-globe-americas me-2"></i>Novo Pais';
+            document.getElementById('formCodigoDisplay').value = '';
             document.getElementById('formIdPais').value = '0';
             document.getElementById('formNmPais').value = '';
             document.getElementById('formSgPais').value = '';
@@ -155,6 +160,7 @@
 
         function editarPais(id, nome, sigla, ddi, moeda) {
             document.getElementById('modalTitle').innerHTML = '<i class="bi bi-pencil me-2"></i>Editar Pais';
+            document.getElementById('formCodigoDisplay').value = id;
             document.getElementById('formIdPais').value = id;
             document.getElementById('formNmPais').value = nome;
             document.getElementById('formSgPais').value = sigla;

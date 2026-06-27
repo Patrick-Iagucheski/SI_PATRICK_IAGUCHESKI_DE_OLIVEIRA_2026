@@ -101,11 +101,15 @@
                 <div class="modal-body">
                     <input type="hidden" asp-for="EstadoForm.IdEstado" id="formIdEstado" />
                     <div class="row g-3">
-                        <div class="col-md-3">
+                        <div class="col-md-2">
+                            <label class="form-label">Codigo</label>
+                            <input type="text" class="form-control bg-light" id="formCodigoDisplay" placeholder="(novo)" readonly />
+                        </div>
+                        <div class="col-md-2">
                             <label class="form-label">UF *</label>
                             <input type="text" class="form-control text-uppercase" asp-for="EstadoForm.SgUF" id="formSgUF" maxlength="2" placeholder="SP" required />
                         </div>
-                        <div class="col-md-9">
+                        <div class="col-md-8">
                             <label class="form-label">Nome do Estado *</label>
                             <input type="text" class="form-control" asp-for="EstadoForm.NmEstado" id="formNmEstado" required />
                         </div>
@@ -148,6 +152,7 @@
 
         function limparForm() {
             document.getElementById('modalTitle').innerHTML = '<i class="bi bi-map me-2"></i>Novo Estado';
+            document.getElementById('formCodigoDisplay').value = '';
             document.getElementById('formIdEstado').value = '0';
             document.getElementById('formSgUF').value = '';
             document.getElementById('formNmEstado').value = '';
@@ -156,6 +161,7 @@
 
         function editarEstado(id, uf, nome, idPais) {
             document.getElementById('modalTitle').innerHTML = '<i class="bi bi-pencil me-2"></i>Editar Estado';
+            document.getElementById('formCodigoDisplay').value = id;
             document.getElementById('formIdEstado').value = id;
             document.getElementById('formSgUF').value = uf;
             document.getElementById('formNmEstado').value = nome;

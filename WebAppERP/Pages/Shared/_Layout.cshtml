@@ -3,7 +3,7 @@
     string[] gCadastros = { "/Cadastro/Clientes", "/Cadastro/Funcionarios", "/Cadastro/Cargos", "/Cadastro/Servicos", "/Cadastro/Fornecedores" };
     string[] gLocalidades = { "/Cadastro/Paises", "/Cadastro/Estados", "/Cadastro/Cidades" };
     string[] gEstoque = { "/Cadastro/Produtos" };
-    string[] gFinanceiro = { "/Cadastro/FormasPagamento", "/Cadastro/ContasAPagar" };
+    string[] gFinanceiro = { "/Cadastro/FormasPagamento", "/Cadastro/CondicoesPagamento", "/Cadastro/ContasAPagar" };
     string[] gOperacional = { "/Cadastro/Agendamentos", "/Cadastro/Vendas", "/Cadastro/Venda" };
     string Active(string page) => curr == page ? "active" : "";
     string Open(string[] grupo) => grupo.Contains(curr) ? "" : "collapsed";
@@ -123,6 +123,11 @@
                         <li class="sidebar-item">
                             <a class="sidebar-link @Active("/Cadastro/FormasPagamento")" asp-page="/Cadastro/FormasPagamento">
                                 <i class="bi bi-credit-card"></i><span>Formas de Pagamento</span>
+                            </a>
+                        </li>
+                        <li class="sidebar-item">
+                            <a class="sidebar-link @Active("/Cadastro/CondicoesPagamento")" asp-page="/Cadastro/CondicoesPagamento">
+                                <i class="bi bi-list-check"></i><span>Condicoes de Pagamento</span>
                             </a>
                         </li>
                         <li class="sidebar-item">

@@ -55,6 +55,7 @@ public class ClientesModel : PageModel
         ClienteForm.NrCnpj = SomenteNumeros(ClienteForm.NrCnpj);
         ClienteForm.NrTelefone = SomenteNumeros(ClienteForm.NrTelefone);
         ClienteForm.NrCEP = SomenteNumeros(ClienteForm.NrCEP);
+        ClienteForm.NrRG = SomenteNumeros(ClienteForm.NrRG);
 
         // Mantem preenchido apenas o documento referente ao tipo selecionado.
         switch (tipo)

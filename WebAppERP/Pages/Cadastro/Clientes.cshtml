@@ -207,7 +207,7 @@
                         </div>
                         <div class="col-md-3">
                             <label class="form-label">RG</label>
-                            <input type="text" class="form-control" asp-for="ClienteForm.NrRG" id="formNrRG" maxlength="20" />
+                            <input type="text" class="form-control" asp-for="ClienteForm.NrRG" id="formNrRG" maxlength="12" placeholder="00.000.000-0" />
                         </div>
                         <div class="col-md-3">
                             <label class="form-label">Sexo</label>
@@ -455,6 +455,12 @@
                 return v.replace(/^(\d{2})(\d{5})(\d{4}).*/, '($1) $2-$3');
             return v.replace(/^(\d{2})(\d{4})(\d{0,4}).*/, '($1) $2-$3').trim();
         }
+        function mascaraRG(v) {
+            return v.replace(/\D/g, '').slice(0, 9)
+                .replace(/^(\d{2})(\d)/, '$1.$2')
+                .replace(/^(\d{2})\.(\d{3})(\d)/, '$1.$2.$3')
+                .replace(/\.(\d{3})(\d)/, '.$1-$2');
+        }
         function aplicarMascara(id, fn) {
             const el = document.getElementById(id);
             el?.addEventListener('input', () => { el.value = fn(el.value); });
@@ -463,6 +469,7 @@
         aplicarMascara('formNrCnpj', mascaraCNPJ);
         aplicarMascara('formNrCEP', mascaraCEP);
         aplicarMascara('formNrTelefone', mascaraTelefone);
+        aplicarMascara('formNrRG', mascaraRG);
 
         // ===== Validacao de CPF / CNPJ (digitos verificadores) =====
         function cpfValido(cpf) {
@@ -549,7 +556,7 @@
             document.getElementById('formNrCpf').value = mascaraCPF(cpf || '');
             document.getElementById('formNrCnpj').value = mascaraCNPJ(cnpj || '');
             document.getElementById('formNrDocumento').value = doc || '';
-            document.getElementById('formNrRG').value = rg || '';
+            document.getElementById('formNrRG').value = mascaraRG(rg || '');
             document.getElementById('formNrTelefone').value = mascaraTelefone(tel || '');
             document.getElementById('formDsEmail').value = email || '';
             document.getElementById('formDsEndereco').value = end || '';

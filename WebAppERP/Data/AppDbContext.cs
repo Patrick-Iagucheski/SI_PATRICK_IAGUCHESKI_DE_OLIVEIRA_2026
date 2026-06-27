@@ -23,5 +23,19 @@ public class AppDbContext : DbContext
     public DbSet<GerVeiculo> Veiculos => Set<GerVeiculo>();
     public DbSet<EstProduto> Produtos => Set<EstProduto>();
     public DbSet<FinContaPagar> ContasAPagar => Set<FinContaPagar>();
+    public DbSet<FinCondicaoPagamento> CondicoesPagamento => Set<FinCondicaoPagamento>();
+    public DbSet<FinCondicaoPagamentoParcela> CondicoesPagamentoParcelas => Set<FinCondicaoPagamentoParcela>();
     public DbSet<OpeVendaItem> VendaItens => Set<OpeVendaItem>();
+
+    protected override void OnModelCreating(ModelBuilder modelBuilder)
+    {
+        base.OnModelCreating(modelBuilder);
+
+        // Parcelas seguem o ciclo de vida da condicao (exclusao em cascata).
+        modelBuilder.Entity<FinCondicaoPagamento>()
+            .HasMany(c => c.Parcelas)
+            .WithOne(p => p.Condicao!)
+            .HasForeignKey(p => p.IdCondicaoPagamento)
+            .OnDelete(DeleteBehavior.Cascade);
+    }
 }

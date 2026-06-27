@@ -1,11 +1,17 @@
 using Microsoft.EntityFrameworkCore;
 using WebAppERP.Data;
+using WebAppERP.Infrastructure;
 using WebAppERP.Repositories;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 builder.Services.AddRazorPages();
+
+// Parsing invariante de numeros (decimal/double/float) para casar com o formato
+// enviado por <input type="number"> (ponto decimal), sem alterar a exibicao pt-BR.
+builder.Services.Configure<Microsoft.AspNetCore.Mvc.MvcOptions>(options =>
+    options.ModelBinderProviders.Insert(0, new InvariantDecimalModelBinderProvider()));
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 

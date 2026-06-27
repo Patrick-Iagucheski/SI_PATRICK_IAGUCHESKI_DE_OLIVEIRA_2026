@@ -43,12 +43,21 @@ public class GerFornecedor
     public string? NrDocumento { get; set; }
 
     [Column("nrInscEstadual")]
-    [MaxLength(20)]
+    [MaxLength(13)]
     public string? NrInscEstadual { get; set; }
 
     [Column("nrInscMunicipal")]
-    [MaxLength(20)]
+    [MaxLength(15)]
     public string? NrInscMunicipal { get; set; }
+
+    // RG (Pessoa Fisica) - 9 digitos
+    [Column("nrRG")]
+    [MaxLength(9)]
+    public string? NrRG { get; set; }
+
+    // Data de Nascimento (Pessoa Fisica / Estrangeiro / Outro)
+    [Column("dtNascimento")]
+    public DateOnly? DtNascimento { get; set; }
 
     [Column("dsEmail")]
     [MaxLength(150)]

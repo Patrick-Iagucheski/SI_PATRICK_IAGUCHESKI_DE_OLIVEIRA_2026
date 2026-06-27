@@ -165,7 +165,7 @@
                         </div>
                         <div class="col-md-3">
                             <label class="form-label">RG</label>
-                            <input type="text" class="form-control" asp-for="FuncionarioForm.NrRG" id="fRg" maxlength="9" />
+                            <input type="text" class="form-control" asp-for="FuncionarioForm.NrRG" id="fRg" maxlength="12" placeholder="00.000.000-0" />
                         </div>
                         <div class="col-md-3">
                             <label class="form-label">Sexo</label>
@@ -485,6 +485,12 @@
                 return v.replace(/^(\d{2})(\d{5})(\d{4}).*/, '($1) $2-$3');
             return v.replace(/^(\d{2})(\d{4})(\d{0,4}).*/, '($1) $2-$3').trim();
         }
+        function mascaraRG(v) {
+            return v.replace(/\D/g, '').slice(0, 9)
+                .replace(/^(\d{2})(\d)/, '$1.$2')
+                .replace(/^(\d{2})\.(\d{3})(\d)/, '$1.$2.$3')
+                .replace(/\.(\d{3})(\d)/, '.$1-$2');
+        }
         function aplicarMascara(id, fn) {
             const el = document.getElementById(id);
             el?.addEventListener('input', () => { el.value = fn(el.value); });
@@ -492,6 +498,7 @@
         aplicarMascara('fCpf', mascaraCPF);
         aplicarMascara('fCep', mascaraCEP);
         aplicarMascara('fTel', mascaraTelefone);
+        aplicarMascara('fRg', mascaraRG);
 
         function limparForm() {
             document.getElementById('modalTitle').innerHTML = '<i class="bi bi-person-badge me-2"></i>Novo Funcionario';
@@ -509,7 +516,7 @@
             document.getElementById('fNome').value = nome;
             document.getElementById('fApelido').value = apelido;
             document.getElementById('fCpf').value = mascaraCPF(cpf || '');
-            document.getElementById('fRg').value = rg;
+            document.getElementById('fRg').value = mascaraRG(rg || '');
             document.getElementById('fSexo').value = sexo || '';
             document.getElementById('fTel').value = mascaraTelefone(tel || '');
             document.getElementById('fEmail').value = email;

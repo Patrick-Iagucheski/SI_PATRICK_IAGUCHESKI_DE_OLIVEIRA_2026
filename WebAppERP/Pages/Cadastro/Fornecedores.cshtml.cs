@@ -56,13 +56,26 @@ public class FornecedoresModel : PageModel
         FornecedorForm.NrTelefoneFixo = SomenteNumeros(FornecedorForm.NrTelefoneFixo);
         FornecedorForm.NrCelular = SomenteNumeros(FornecedorForm.NrCelular);
         FornecedorForm.NrWhatsApp = SomenteNumeros(FornecedorForm.NrWhatsApp);
+        FornecedorForm.NrRG = SomenteNumeros(FornecedorForm.NrRG);
 
-        // Mantem preenchido apenas o documento referente ao tipo selecionado
+        // Mantem preenchidos apenas os campos referentes ao tipo selecionado.
+        // PJ (J)  -> CNPJ, Inscricao Estadual, Inscricao Municipal
+        // PF (F)  -> CPF, RG, Data de Nascimento
+        // E / O   -> Documento, Inscricao Estadual, Data de Nascimento
         switch (tipo)
         {
-            case "F": FornecedorForm.NrCNPJ = null; FornecedorForm.NrDocumento = null; break;
-            case "J": FornecedorForm.NrCpf = null; FornecedorForm.NrDocumento = null; break;
-            default:  FornecedorForm.NrCpf = null; FornecedorForm.NrCNPJ = null; break; // E / O
+            case "F":
+                FornecedorForm.NrCNPJ = null; FornecedorForm.NrDocumento = null;
+                FornecedorForm.NrInscEstadual = null; FornecedorForm.NrInscMunicipal = null;
+                break;
+            case "J":
+                FornecedorForm.NrCpf = null; FornecedorForm.NrDocumento = null;
+                FornecedorForm.NrRG = null; FornecedorForm.DtNascimento = null;
+                break;
+            default: // E / O
+                FornecedorForm.NrCpf = null; FornecedorForm.NrCNPJ = null;
+                FornecedorForm.NrRG = null; FornecedorForm.NrInscMunicipal = null;
+                break;
         }
 
         // Chave PIX: tira a mascara quando o tipo for CPF/CNPJ/CELULAR
@@ -77,8 +90,9 @@ public class FornecedoresModel : PageModel
         FornecedorForm.NrCpf = Truncar(FornecedorForm.NrCpf, 11);
         FornecedorForm.NrCNPJ = Truncar(FornecedorForm.NrCNPJ, 14);
         FornecedorForm.NrDocumento = Truncar(FornecedorForm.NrDocumento, 30);
-        FornecedorForm.NrInscEstadual = Truncar(FornecedorForm.NrInscEstadual, 20);
-        FornecedorForm.NrInscMunicipal = Truncar(FornecedorForm.NrInscMunicipal, 20);
+        FornecedorForm.NrInscEstadual = Truncar(FornecedorForm.NrInscEstadual, 13);
+        FornecedorForm.NrInscMunicipal = Truncar(FornecedorForm.NrInscMunicipal, 15);
+        FornecedorForm.NrRG = Truncar(FornecedorForm.NrRG, 9);
         FornecedorForm.DsEmail = Truncar(FornecedorForm.DsEmail, 150);
         FornecedorForm.DsObservacao = Truncar(FornecedorForm.DsObservacao, 500);
         FornecedorForm.NrCEP = Truncar(FornecedorForm.NrCEP, 8);
@@ -104,6 +118,27 @@ public class FornecedoresModel : PageModel
 
         if (tipo == "J" && !string.IsNullOrEmpty(FornecedorForm.NrCNPJ) && !CnpjValido(FornecedorForm.NrCNPJ))
             return await ComErroAsync("CNPJ invalido. Verifique os numeros informados.");
+
+        // RG obrigatorio (9 digitos) para Pessoa Fisica
+        if (tipo == "F")
+        {
+            if (string.IsNullOrWhiteSpace(FornecedorForm.NrRG))
+                return await ComErroAsync("Informe o RG do fornecedor (Pessoa Fisica).");
+            if (FornecedorForm.NrRG.Length != 9)
+                return await ComErroAsync("RG invalido. Informe 9 digitos.");
+        }
+
+        // Inscricoes para Pessoa Juridica (validadas apenas quando preenchidas)
+        if (tipo == "J")
+        {
+            if (!string.IsNullOrEmpty(FornecedorForm.NrInscEstadual) &&
+                (FornecedorForm.NrInscEstadual.Length < 8 || !FornecedorForm.NrInscEstadual.All(char.IsDigit)))
+                return await ComErroAsync("Inscricao Estadual deve ter de 8 a 13 digitos.");
+
+            if (!string.IsNullOrEmpty(FornecedorForm.NrInscMunicipal) &&
+                FornecedorForm.NrInscMunicipal.Length < 7)
+                return await ComErroAsync("Inscricao Municipal deve ter de 7 a 15 caracteres.");
+        }
 
         if (!string.IsNullOrWhiteSpace(FornecedorForm.DsEmail) &&
             !new EmailAddressAttribute().IsValid(FornecedorForm.DsEmail))
@@ -144,6 +179,8 @@ public class FornecedoresModel : PageModel
                 e.NrDocumento = FornecedorForm.NrDocumento;
                 e.NrInscEstadual = FornecedorForm.NrInscEstadual;
                 e.NrInscMunicipal = FornecedorForm.NrInscMunicipal;
+                e.NrRG = FornecedorForm.NrRG;
+                e.DtNascimento = FornecedorForm.DtNascimento;
                 e.DsEmail = FornecedorForm.DsEmail;
                 e.DsObservacao = FornecedorForm.DsObservacao;
                 e.FlAtivo = FornecedorForm.FlAtivo;
@@ -351,6 +388,8 @@ public class FornecedoresModel : PageModel
                 documento = f.NrDocumento,
                 inscEstadual = f.NrInscEstadual,
                 inscMunicipal = f.NrInscMunicipal,
+                rg = f.NrRG,
+                dataNascimento = f.DtNascimento,
                 email = f.DsEmail,
                 observacao = f.DsObservacao,
                 cep = f.NrCEP,

@@ -111,7 +111,11 @@
                 <div class="modal-body">
                     <input type="hidden" asp-for="CidadeForm.IdCidade" id="formIdCidade" />
                     <div class="row g-3">
-                        <div class="col-12">
+                        <div class="col-md-2">
+                            <label class="form-label">Codigo</label>
+                            <input type="text" class="form-control bg-light" id="formCodigoDisplay" placeholder="(novo)" readonly />
+                        </div>
+                        <div class="col-md-10">
                             <label class="form-label">Nome da Cidade *</label>
                             <input type="text" class="form-control" asp-for="CidadeForm.NmCidade" id="formNmCidade" required />
                         </div>
@@ -158,6 +162,7 @@
 
         function limparForm() {
             document.getElementById('modalTitle').innerHTML = '<i class="bi bi-building me-2"></i>Nova Cidade';
+            document.getElementById('formCodigoDisplay').value = '';
             document.getElementById('formIdCidade').value = '0';
             document.getElementById('formNmCidade').value = '';
             document.getElementById('formIdEstado').value = '';
@@ -165,6 +170,7 @@
 
         function editarCidade(id, nome, idEstado) {
             document.getElementById('modalTitle').innerHTML = '<i class="bi bi-pencil me-2"></i>Editar Cidade';
+            document.getElementById('formCodigoDisplay').value = id;
             document.getElementById('formIdCidade').value = id;
             document.getElementById('formNmCidade').value = nome;
             document.getElementById('formIdEstado').value = idEstado;

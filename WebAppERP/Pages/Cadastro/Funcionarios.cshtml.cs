@@ -49,6 +49,7 @@ public class FuncionariosModel : PageModel
         FuncionarioForm.NrCpf = SomenteNumeros(FuncionarioForm.NrCpf) ?? string.Empty;
         FuncionarioForm.NrTelefone = SomenteNumeros(FuncionarioForm.NrTelefone);
         FuncionarioForm.NrCEP = SomenteNumeros(FuncionarioForm.NrCEP);
+        FuncionarioForm.NrRG = SomenteNumeros(FuncionarioForm.NrRG);
 
         // O cargo agora vem do dropdown (idCargo). A coluna dsCargo (NOT NULL)
         // e mantida sincronizada com o nome do cargo selecionado.

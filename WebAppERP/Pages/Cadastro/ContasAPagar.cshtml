@@ -1,14 +1,16 @@
 @page
 @model WebAppERP.Pages.Cadastro.ContasAPagarModel
+@using System.Globalization
 @{
     ViewData["Title"] = "Contas a Pagar";
     var hoje = DateOnly.FromDateTime(DateTime.Today);
+    CultureInfo inv = CultureInfo.InvariantCulture;
 }
 
 <div class="d-flex justify-content-between align-items-start mb-4">
     <div>
         <h1 class="page-title">Contas a Pagar</h1>
-        <p class="page-subtitle">Controle de parcelas, vencimentos e baixas financeiras</p>
+        <p class="page-subtitle">Controle contas, fornecedores, vencimentos, pagamentos e status financeiro</p>
     </div>
     <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#modalConta" onclick="limparForm()">
         <i class="bi bi-plus-lg me-1"></i> Nova Conta
@@ -58,36 +60,41 @@
     </div>
 </div>
 
-<!-- Filtros -->
+<!-- Filtros de busca (todos opcionais e combinaveis) -->
 <div class="card mb-3">
-    <div class="card-body py-2">
-        <div class="row g-2 align-items-center">
-            <div class="col-md-3">
-                <div class="search-box">
-                    <i class="bi bi-search search-icon"></i>
-                    <input type="text" class="form-control" placeholder="Buscar por NFe ou fornecedor..." id="searchInput" />
-                </div>
+    <div class="card-body py-3">
+        <div class="row g-2 align-items-end">
+            <div class="col-md-2">
+                <label class="form-label small mb-1">ID</label>
+                <input type="number" class="form-control" id="buscaId" min="1" autocomplete="off" />
+            </div>
+            <div class="col-md-4">
+                <label class="form-label small mb-1">Conta</label>
+                <input type="text" class="form-control" id="buscaConta" autocomplete="off" />
             </div>
             <div class="col-md-3">
-                <select class="form-select" id="filterFornecedor">
-                    <option value="">Todos os Fornecedores</option>
+                <label class="form-label small mb-1">Documento</label>
+                <input type="text" class="form-control" id="buscaDocumento" autocomplete="off" />
+            </div>
+            <div class="col-md-3">
+                <label class="form-label small mb-1">Fornecedor</label>
+                <select class="form-select" id="buscaFornecedor">
+                    <option value="">Todos</option>
                     @foreach (var f in Model.Fornecedores)
                     {
                         <option value="@f.IdFornecedor">@f.DsRazaoSocial</option>
                     }
                 </select>
             </div>
-            <div class="col-md-2">
-                <select class="form-select" id="filterSituacao">
-                    <option value="">Todas as Situacoes</option>
-                    <option value="ABERTA">Em Aberto</option>
-                    <option value="VENCIDA">Vencida</option>
-                    <option value="PAGA">Paga</option>
-                </select>
+        </div>
+        <div class="d-flex justify-content-between align-items-center mt-3">
+            <div class="form-check mb-0">
+                <input class="form-check-input" type="checkbox" id="buscaInativos" onchange="buscarContas()" />
+                <label class="form-check-label" for="buscaInativos">Exibir Contas Inativas</label>
             </div>
-            <div class="col-md-2">
-                <input type="date" class="form-control" id="filterVencAte" title="Vencimento ate" />
-            </div>
+            <button type="button" class="btn btn-primary" onclick="buscarContas()">
+                <i class="bi bi-search me-1"></i>Buscar
+            </button>
         </div>
     </div>
 </div>
@@ -95,23 +102,21 @@
 <!-- Tabela -->
 <div class="table-container">
     <div class="table-header">
-        <h5><i class="bi bi-cash-stack me-2"></i>Parcelas a Pagar</h5>
-        <span class="text-muted small">@Model.Contas.Count registros encontrados</span>
+        <h5><i class="bi bi-cash-stack me-2"></i>Contas a pagar cadastradas</h5>
+        <span class="text-muted small" id="contadorRegistros">@Model.Contas.Count registros encontrados</span>
     </div>
     <div class="table-responsive">
         <table class="table" id="tblContas">
             <thead>
                 <tr>
-                    <th>NFe</th>
-                    <th>Serie</th>
-                    <th>Mod.</th>
+                    <th>Conta</th>
                     <th>Fornecedor</th>
-                    <th>Parc.</th>
-                    <th class="text-end">Valor</th>
                     <th>Vencimento</th>
-                    <th>Pagamento</th>
+                    <th class="text-end">Valor</th>
+                    <th class="text-end">Pago</th>
+                    <th>Status</th>
+                    <th class="text-center">Ativo</th>
                     <th>Forma</th>
-                    <th>Situacao</th>
                     <th class="text-center">Acoes</th>
                 </tr>
             </thead>
@@ -123,30 +128,31 @@
                         var sit = WebAppERP.Pages.Cadastro.ContasAPagarModel.Situacao(c, hoje);
                         var badge = sit switch
                         {
-                            "PAGA" => "badge-concluido",
+                            "PAGO" => "badge-concluido",
                             "VENCIDA" => "badge-cancelado",
+                            "CANCELADO" => "badge-inativo",
                             _ => "badge-agendado"
                         };
                         <tr data-fornecedor="@c.IdFornecedor" data-situacao="@sit" data-venc="@(c.DtVencimento?.ToString("yyyy-MM-dd"))">
-                            <td><strong>@c.NrNFe</strong></td>
-                            <td>@c.NrSerie</td>
-                            <td>@c.NrModelo</td>
-                            <td>@(c.Fornecedor?.DsRazaoSocial ?? "-")</td>
-                            <td>@c.NrParcela</td>
-                            <td class="text-end">R$ @((c.VlParcela ?? 0).ToString("N2"))</td>
-                            <td>@(c.DtVencimento?.ToString("dd/MM/yyyy") ?? "-")</td>
-                            <td>@(c.DtPagamento?.ToString("dd/MM/yyyy") ?? "-")</td>
-                            <td>@(c.FormaPagamento?.DsFormaPagamento ?? "-")</td>
-                            <td><span class="badge-status @badge">@sit</span></td>
-                            <td class="text-center" style="white-space: nowrap;">
-                                @if (sit != "PAGA")
+                            <td>
+                                <strong>@c.DsConta</strong>
+                                @if (!string.IsNullOrWhiteSpace(c.NrDocumento))
                                 {
-                                    <form method="post" asp-page-handler="Baixa" class="d-inline" onsubmit="return confirm('Confirmar baixa (pagamento) desta parcela hoje?')">
-                                        <input type="hidden" name="nrNFe" value="@c.NrNFe" />
-                                        <input type="hidden" name="nrSerie" value="@c.NrSerie" />
-                                        <input type="hidden" name="nrModelo" value="@c.NrModelo" />
-                                        <input type="hidden" name="idFornecedor" value="@c.IdFornecedor" />
-                                        <input type="hidden" name="nrParcela" value="@c.NrParcela" />
+                                    <div class="text-muted small">Doc: @c.NrDocumento</div>
+                                }
+                            </td>
+                            <td>@(c.Fornecedor?.DsRazaoSocial ?? "-")</td>
+                            <td>@(c.DtVencimento?.ToString("dd/MM/yyyy") ?? "-")</td>
+                            <td class="text-end"><strong>R$ @c.VlValor.ToString("N2")</strong></td>
+                            <td class="text-end">R$ @c.VlPago.ToString("N2")</td>
+                            <td><span class="badge-status @badge">@sit</span></td>
+                            <td class="text-center">@(c.FlAtivo ? "S" : "N")</td>
+                            <td>@(c.FormaPagamento?.DsFormaPagamento ?? "-")</td>
+                            <td class="text-center" style="white-space: nowrap;">
+                                @if (sit != "PAGO" && sit != "CANCELADO")
+                                {
+                                    <form method="post" asp-page-handler="Baixa" class="d-inline" onsubmit="return confirm('Confirmar baixa (pagamento) desta conta hoje?')">
+                                        <input type="hidden" name="id" value="@c.IdContaPagar" />
                                         <button type="submit" class="btn btn-icon btn-outline-success" title="Dar baixa / Marcar como pago">
                                             <i class="bi bi-cash-coin"></i>
                                         </button>
@@ -154,15 +160,11 @@
                                 }
                                 <button class="btn btn-icon btn-outline-primary" title="Editar"
                                         data-bs-toggle="modal" data-bs-target="#modalConta"
-                                        onclick="editarConta(@c.NrNFe,@c.NrSerie,@c.NrModelo,@c.IdFornecedor,@c.NrParcela,'@((c.VlParcela ?? 0).ToString(System.Globalization.CultureInfo.InvariantCulture))','@(c.DtVencimento?.ToString("yyyy-MM-dd"))','@(c.DtPagamento?.ToString("yyyy-MM-dd"))','@(c.IdFormaPagamento?.ToString())','@c.DsObservacao?.Replace("'", "\\'")')">
+                                        onclick="editarConta(@c.IdContaPagar,'@c.DsConta.Replace("'", "\\'")','@(c.NrDocumento?.Replace("'", "\\'"))',@c.IdFornecedor,'@(c.IdFormaPagamento?.ToString())','@(c.DtEmissao?.ToString("yyyy-MM-dd"))','@(c.DtVencimento?.ToString("yyyy-MM-dd"))','@(c.DtPagamento?.ToString("yyyy-MM-dd"))','@c.VlValor.ToString(inv)','@c.VlPago.ToString(inv)','@c.DsStatus','@(c.FlAtivo ? "true" : "false")','@(c.DsObservacao?.Replace("'", "\\'").Replace("\n", " ").Replace("\r", " "))')">
                                     <i class="bi bi-pencil"></i>
                                 </button>
-                                <form method="post" asp-page-handler="Delete" class="d-inline" onsubmit="return confirm('Deseja realmente excluir esta parcela?')">
-                                    <input type="hidden" name="nrNFe" value="@c.NrNFe" />
-                                    <input type="hidden" name="nrSerie" value="@c.NrSerie" />
-                                    <input type="hidden" name="nrModelo" value="@c.NrModelo" />
-                                    <input type="hidden" name="idFornecedor" value="@c.IdFornecedor" />
-                                    <input type="hidden" name="nrParcela" value="@c.NrParcela" />
+                                <form method="post" asp-page-handler="Delete" class="d-inline" onsubmit="return confirm('Deseja realmente excluir esta conta?')">
+                                    <input type="hidden" name="id" value="@c.IdContaPagar" />
                                     <button type="submit" class="btn btn-icon btn-outline-danger" title="Excluir">
                                         <i class="bi bi-trash"></i>
                                     </button>
@@ -173,7 +175,7 @@
                 }
                 else
                 {
-                    <tr><td colspan="11" class="text-center text-muted py-4">Nenhuma conta a pagar cadastrada</td></tr>
+                    <tr><td colspan="9" class="text-center text-muted py-4">Nenhuma conta a pagar cadastrada</td></tr>
                 }
             </tbody>
         </table>
@@ -190,132 +192,234 @@
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
-                    <p class="text-muted small mb-3" id="chaveHint"><i class="bi bi-info-circle me-1"></i>NFe + Serie + Modelo + Fornecedor + Parcela identificam a parcela (chave). Na edicao nao podem ser alterados.</p>
+                    <input type="hidden" asp-for="ContaForm.IdContaPagar" id="formIdConta" />
                     <div class="row g-3">
-                        <div class="col-md-3">
-                            <label class="form-label">Numero NFe *</label>
-                            <input type="number" class="form-control" asp-for="ContaForm.NrNFe" id="formNrNFe" required />
-                        </div>
                         <div class="col-md-2">
-                            <label class="form-label">Serie *</label>
-                            <input type="number" class="form-control" asp-for="ContaForm.NrSerie" id="formNrSerie" required />
+                            <label class="form-label">Codigo</label>
+                            <input type="text" class="form-control bg-light" id="formCodigoDisplay" placeholder="(novo)" readonly />
                         </div>
-                        <div class="col-md-2">
-                            <label class="form-label">Modelo *</label>
-                            <input type="number" class="form-control" asp-for="ContaForm.NrModelo" id="formNrModelo" required />
-                        </div>
-                        <div class="col-md-2">
-                            <label class="form-label">Parcela *</label>
-                            <input type="number" class="form-control" asp-for="ContaForm.NrParcela" id="formNrParcela" required />
+                        <div class="col-md-7">
+                            <label class="form-label">Conta a Pagar *</label>
+                            <input type="text" class="form-control" asp-for="ContaForm.DsConta" id="formDsConta" maxlength="100" placeholder="Ex: Aluguel, fornecedor de produtos, energia" required />
                         </div>
                         <div class="col-md-3">
-                            <label class="form-label">Valor (R$)</label>
-                            <input type="number" step="0.01" class="form-control" asp-for="ContaForm.VlParcela" id="formVlParcela" />
+                            <label class="form-label">Documento</label>
+                            <input type="text" class="form-control" asp-for="ContaForm.NrDocumento" id="formNrDocumento" maxlength="20" placeholder="Ex: NF 1234, boleto 9988" />
                         </div>
-                        <div class="col-12">
+
+                        <div class="col-md-6">
                             <label class="form-label">Fornecedor *</label>
                             <select class="form-select" asp-for="ContaForm.IdFornecedor" id="formIdFornecedor" required>
-                                <option value="">Selecione o fornecedor</option>
+                                <option value="">Selecione um fornecedor</option>
                                 @foreach (var f in Model.Fornecedores)
                                 {
                                     <option value="@f.IdFornecedor">@f.DsRazaoSocial</option>
                                 }
                             </select>
                         </div>
-                        <div class="col-md-4">
-                            <label class="form-label">Vencimento</label>
-                            <input type="date" class="form-control" asp-for="ContaForm.DtVencimento" id="formDtVencimento" />
-                        </div>
-                        <div class="col-md-4">
-                            <label class="form-label">Pagamento</label>
-                            <input type="date" class="form-control" asp-for="ContaForm.DtPagamento" id="formDtPagamento" />
-                        </div>
-                        <div class="col-md-4">
+                        <div class="col-md-6">
                             <label class="form-label">Forma de Pagamento</label>
                             <select class="form-select" asp-for="ContaForm.IdFormaPagamento" id="formIdFormaPagamento">
-                                <option value="">Selecione</option>
+                                <option value="">Selecione uma forma</option>
                                 @foreach (var fp in Model.Formas)
                                 {
                                     <option value="@fp.IdFormaPagamento">@fp.DsFormaPagamento</option>
                                 }
                             </select>
                         </div>
+
+                        <div class="col-md-3">
+                            <label class="form-label">Emissao</label>
+                            <input type="date" class="form-control" asp-for="ContaForm.DtEmissao" id="formDtEmissao" />
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Vencimento</label>
+                            <input type="date" class="form-control" asp-for="ContaForm.DtVencimento" id="formDtVencimento" />
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Pagamento</label>
+                            <input type="date" class="form-control" asp-for="ContaForm.DtPagamento" id="formDtPagamento" />
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Status</label>
+                            <select class="form-select" asp-for="ContaForm.DsStatus" id="formDsStatus">
+                                <option value="PENDENTE">Pendente</option>
+                                <option value="PAGO">Pago</option>
+                                <option value="CANCELADO">Cancelado</option>
+                            </select>
+                        </div>
+
+                        <div class="col-md-3">
+                            <label class="form-label">Valor (R$) *</label>
+                            <input type="number" step="0.01" min="0" class="form-control" asp-for="ContaForm.VlValor" id="formVlValor" required />
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Valor pago (R$)</label>
+                            <input type="number" step="0.01" min="0" class="form-control" asp-for="ContaForm.VlPago" id="formVlPago" />
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Ativo</label>
+                            <select class="form-select" asp-for="ContaForm.FlAtivo" id="formFlAtivo">
+                                <option value="true">Sim</option>
+                                <option value="false">Nao</option>
+                            </select>
+                        </div>
+
                         <div class="col-12">
-                            <label class="form-label">Observacao</label>
-                            <textarea class="form-control" rows="2" asp-for="ContaForm.DsObservacao" id="formDsObservacao"></textarea>
+                            <label class="form-label">Observacoes</label>
+                            <textarea class="form-control" rows="2" asp-for="ContaForm.DsObservacao" id="formDsObservacao" placeholder="Detalhes da conta, negociacao ou baixa"></textarea>
                         </div>
                     </div>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                    <button type="submit" class="btn btn-primary"><i class="bi bi-check-lg me-1"></i>Salvar</button>
+                    <button type="submit" class="btn btn-primary"><i class="bi bi-check-lg me-1"></i>Salvar conta</button>
                 </div>
             </form>
         </div>
     </div>
 </div>
 
+<!-- Token antiforgery para os forms reconstruidos via AJAX (busca) -->
+<form id="formBuscaToken" class="d-none">@Html.AntiForgeryToken()</form>
+
 @section Scripts {
     <script>
-        function aplicarFiltros() {
-            const texto = document.getElementById('searchInput').value.toLowerCase();
-            const forn = document.getElementById('filterFornecedor').value;
-            const sit = document.getElementById('filterSituacao').value;
-            const vencAte = document.getElementById('filterVencAte').value;
-            document.querySelectorAll('#tblContas tbody tr').forEach(row => {
-                if (!row.hasAttribute('data-fornecedor')) return;
-                const matchTexto = row.textContent.toLowerCase().includes(texto);
-                const matchForn = !forn || row.getAttribute('data-fornecedor') === forn;
-                const matchSit = !sit || row.getAttribute('data-situacao') === sit;
-                const venc = row.getAttribute('data-venc');
-                const matchVenc = !vencAte || (venc && venc <= vencAte);
-                row.style.display = (matchTexto && matchForn && matchSit && matchVenc) ? '' : 'none';
-            });
-        }
-        ['searchInput', 'filterFornecedor', 'filterSituacao', 'filterVencAte'].forEach(id => {
-            const el = document.getElementById(id);
-            el?.addEventListener('input', aplicarFiltros);
-            el?.addEventListener('change', aplicarFiltros);
-        });
+        // ===== Busca de Contas a Pagar (filtros na pagina -> atualiza a grid via AJAX) =====
+        let resultadosBusca = [];
 
-        const camposChave = ['formNrNFe', 'formNrSerie', 'formNrModelo', 'formNrParcela', 'formIdFornecedor'];
-        function setChaveReadonly(ro) {
-            camposChave.forEach(id => {
-                const el = document.getElementById(id);
-                if (el.tagName === 'SELECT') { el.style.pointerEvents = ro ? 'none' : ''; el.style.background = ro ? '#e9ecef' : ''; }
-                else { el.readOnly = ro; }
+        // Enter em qualquer filtro dispara a busca.
+        ['buscaId', 'buscaConta', 'buscaDocumento'].forEach(id => {
+            document.getElementById(id)?.addEventListener('keydown', e => {
+                if (e.key === 'Enter') { e.preventDefault(); buscarContas(); }
             });
-            document.getElementById('chaveHint').style.display = ro ? 'block' : 'none';
+        });
+        document.getElementById('buscaFornecedor')?.addEventListener('change', buscarContas);
+
+        function situacaoConta(c) {
+            if (c.status === 'PAGO') return 'PAGO';
+            if (c.status === 'CANCELADO') return 'CANCELADO';
+            const hoje = new Date().toISOString().slice(0, 10);
+            if (c.venc && c.venc < hoje) return 'VENCIDA';
+            return 'PENDENTE';
+        }
+        function badgeSituacao(sit) {
+            const map = { 'PAGO': 'badge-concluido', 'VENCIDA': 'badge-cancelado', 'CANCELADO': 'badge-inativo' };
+            return '<span class="badge-status ' + (map[sit] || 'badge-agendado') + '">' + sit + '</span>';
+        }
+        function dataBr(d) { return d ? d.split('-').reverse().join('/') : '-'; }
+        function moeda(v) { return 'R$ ' + Number(v || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
+
+        function montarLinha(c, i, token) {
+            const sit = situacaoConta(c);
+            const docHtml = c.documento ? '<div class="text-muted small">Doc: ' + c.documento + '</div>' : '';
+            const baixaHtml = (sit !== 'PAGO' && sit !== 'CANCELADO')
+                ? '<form method="post" action="?handler=Baixa" class="d-inline" onsubmit="return confirm(\'Confirmar baixa (pagamento) desta conta hoje?\')">' +
+                      '<input type="hidden" name="__RequestVerificationToken" value="' + token + '">' +
+                      '<input type="hidden" name="id" value="' + c.id + '">' +
+                      '<button type="submit" class="btn btn-icon btn-outline-success" title="Dar baixa / Marcar como pago"><i class="bi bi-cash-coin"></i></button>' +
+                  '</form> '
+                : '';
+            return '<tr>' +
+                '<td><strong>' + (c.conta || '') + '</strong>' + docHtml + '</td>' +
+                '<td>' + (c.fornecedorNome || '-') + '</td>' +
+                '<td>' + dataBr(c.venc) + '</td>' +
+                '<td class="text-end"><strong>' + moeda(c.valor) + '</strong></td>' +
+                '<td class="text-end">' + moeda(c.pago) + '</td>' +
+                '<td>' + badgeSituacao(sit) + '</td>' +
+                '<td class="text-center">' + (c.ativo ? 'S' : 'N') + '</td>' +
+                '<td>' + (c.formaNome || '-') + '</td>' +
+                '<td class="text-center" style="white-space: nowrap;">' +
+                    baixaHtml +
+                    '<button class="btn btn-icon btn-outline-primary" title="Editar" onclick="abrirEdicao(' + i + ')"><i class="bi bi-pencil"></i></button> ' +
+                    '<form method="post" action="?handler=Delete" class="d-inline" onsubmit="return confirm(\'Deseja realmente excluir esta conta?\')">' +
+                        '<input type="hidden" name="__RequestVerificationToken" value="' + token + '">' +
+                        '<input type="hidden" name="id" value="' + c.id + '">' +
+                        '<button type="submit" class="btn btn-icon btn-outline-danger" title="Excluir"><i class="bi bi-trash"></i></button>' +
+                    '</form>' +
+                '</td>' +
+            '</tr>';
+        }
+
+        async function buscarContas() {
+            const tbody = document.querySelector('#tblContas tbody');
+            const id = document.getElementById('buscaId').value.trim();
+            const conta = document.getElementById('buscaConta').value.trim();
+            const documento = document.getElementById('buscaDocumento').value.trim();
+            const idFornecedor = document.getElementById('buscaFornecedor').value;
+            const inativos = document.getElementById('buscaInativos').checked;
+
+            const params = new URLSearchParams();
+            if (id) params.append('id', id);
+            if (conta) params.append('conta', conta);
+            if (documento) params.append('documento', documento);
+            if (idFornecedor) params.append('idFornecedor', idFornecedor);
+            params.append('incluirInativos', inativos);
+
+            tbody.innerHTML = '<tr><td colspan="9" class="text-center text-muted py-3">Buscando...</td></tr>';
+            try {
+                const resp = await fetch('?handler=BuscarContas&' + params.toString());
+                resultadosBusca = await resp.json();
+
+                const contador = document.getElementById('contadorRegistros');
+                if (contador) contador.textContent = resultadosBusca.length + ' registros encontrados';
+
+                if (!resultadosBusca.length) {
+                    tbody.innerHTML = '<tr><td colspan="9" class="text-center text-muted py-4">Nenhuma conta a pagar encontrada</td></tr>';
+                    return;
+                }
+
+                const token = document.querySelector('#formBuscaToken input[name="__RequestVerificationToken"]').value;
+                tbody.innerHTML = resultadosBusca.map((c, i) => montarLinha(c, i, token)).join('');
+            } catch (e) {
+                tbody.innerHTML = '<tr><td colspan="9" class="text-center text-danger py-4">Erro ao buscar. Tente novamente.</td></tr>';
+            }
+        }
+
+        function abrirEdicao(i) {
+            const c = resultadosBusca[i];
+            editarConta(
+                c.id, c.conta || '', c.documento || '', c.idFornecedor, (c.idForma ?? ''),
+                c.emissao || '', c.venc || '', c.pgto || '', c.valor, c.pago,
+                c.status || 'PENDENTE', (c.ativo ? 'true' : 'false'), c.obs || ''
+            );
+            bootstrap.Modal.getOrCreateInstance(document.getElementById('modalConta')).show();
         }
 
         function limparForm() {
             document.getElementById('modalTitle').innerHTML = '<i class="bi bi-cash-stack me-2"></i>Nova Conta a Pagar';
-            document.getElementById('formNrNFe').value = '';
-            document.getElementById('formNrSerie').value = '';
-            document.getElementById('formNrModelo').value = '';
-            document.getElementById('formNrParcela').value = '';
+            document.getElementById('formIdConta').value = '0';
+            document.getElementById('formCodigoDisplay').value = '';
+            document.getElementById('formDsConta').value = '';
+            document.getElementById('formNrDocumento').value = '';
             document.getElementById('formIdFornecedor').value = '';
-            document.getElementById('formVlParcela').value = '';
+            document.getElementById('formIdFormaPagamento').value = '';
+            document.getElementById('formDtEmissao').value = '';
             document.getElementById('formDtVencimento').value = '';
             document.getElementById('formDtPagamento').value = '';
-            document.getElementById('formIdFormaPagamento').value = '';
+            document.getElementById('formDsStatus').value = 'PENDENTE';
+            document.getElementById('formVlValor').value = '0';
+            document.getElementById('formVlPago').value = '0';
+            document.getElementById('formFlAtivo').value = 'true';
             document.getElementById('formDsObservacao').value = '';
-            setChaveReadonly(false);
         }
 
-        function editarConta(nfe, serie, modelo, idForn, parcela, valor, venc, pgto, idForma, obs) {
+        function editarConta(id, conta, doc, idForn, idForma, emissao, venc, pgto, valor, pago, status, ativo, obs) {
             document.getElementById('modalTitle').innerHTML = '<i class="bi bi-pencil me-2"></i>Editar Conta a Pagar';
-            document.getElementById('formNrNFe').value = nfe;
-            document.getElementById('formNrSerie').value = serie;
-            document.getElementById('formNrModelo').value = modelo;
-            document.getElementById('formNrParcela').value = parcela;
+            document.getElementById('formIdConta').value = id;
+            document.getElementById('formCodigoDisplay').value = id;
+            document.getElementById('formDsConta').value = conta;
+            document.getElementById('formNrDocumento').value = doc || '';
             document.getElementById('formIdFornecedor').value = idForn;
-            document.getElementById('formVlParcela').value = valor;
-            document.getElementById('formDtVencimento').value = venc;
-            document.getElementById('formDtPagamento').value = pgto;
-            document.getElementById('formIdFormaPagamento').value = idForma;
-            document.getElementById('formDsObservacao').value = obs;
-            setChaveReadonly(true);
+            document.getElementById('formIdFormaPagamento').value = idForma || '';
+            document.getElementById('formDtEmissao').value = emissao || '';
+            document.getElementById('formDtVencimento').value = venc || '';
+            document.getElementById('formDtPagamento').value = pgto || '';
+            document.getElementById('formDsStatus').value = status || 'PENDENTE';
+            document.getElementById('formVlValor').value = valor;
+            document.getElementById('formVlPago').value = pago;
+            document.getElementById('formFlAtivo').value = ativo;
+            document.getElementById('formDsObservacao').value = obs || '';
         }
     </script>
 }
