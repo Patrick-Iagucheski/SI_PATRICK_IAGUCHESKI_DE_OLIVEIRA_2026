@@ -1,16 +1,16 @@
-@page
+﻿@page
 @model WebAppERP.Pages.Cadastro.VeiculosModel
 @{
-    ViewData["Title"] = "Veiculos";
+    ViewData["Title"] = "Veículos";
 }
 
 <div class="d-flex justify-content-between align-items-start mb-4">
     <div>
-        <h1 class="page-title">Veiculos</h1>
-        <p class="page-subtitle">Gerencie os veiculos cadastrados no sistema</p>
+        <h1 class="page-title">Veículos</h1>
+        <p class="page-subtitle">Gerencie os veículos cadastrados no sistema</p>
     </div>
     <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#modalVeiculo" onclick="limparForm()">
-        <i class="bi bi-plus-lg me-1"></i> Novo Veiculo
+        <i class="bi bi-plus-lg me-1"></i> Novo Veículo
     </button>
 </div>
 
@@ -31,7 +31,7 @@
 <!-- Tabela -->
 <div class="table-container">
     <div class="table-header">
-        <h5><i class="bi bi-truck-flatbed me-2"></i>Lista de Veiculos</h5>
+        <h5><i class="bi bi-truck-flatbed me-2"></i>Lista de Veículos</h5>
         <span class="text-muted small">@Model.Veiculos.Count registros encontrados</span>
     </div>
     <div class="table-responsive">
@@ -43,7 +43,7 @@
                     <th>Estado</th>
                     <th>UF</th>
                     <th>ANTT</th>
-                    <th class="text-center">Acoes</th>
+                    <th class="text-center">Ações</th>
                 </tr>
             </thead>
             <tbody>
@@ -75,7 +75,7 @@
                 }
                 else
                 {
-                    <tr><td colspan="6" class="text-center text-muted py-4">Nenhum veiculo cadastrado</td></tr>
+                    <tr><td colspan="6" class="text-center text-muted py-4">Nenhum veículo cadastrado</td></tr>
                 }
             </tbody>
         </table>
@@ -88,7 +88,7 @@
         <div class="modal-content">
             <form method="post">
                 <div class="modal-header">
-                    <h5 class="modal-title" id="modalTitle"><i class="bi bi-truck-flatbed me-2"></i>Novo Veiculo</h5>
+                    <h5 class="modal-title" id="modalTitle"><i class="bi bi-truck-flatbed me-2"></i>Novo Veículo</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">

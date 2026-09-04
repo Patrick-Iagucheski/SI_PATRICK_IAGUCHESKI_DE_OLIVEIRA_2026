@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.EntityFrameworkCore;
 using WebAppERP.Data;
@@ -55,10 +55,20 @@ public class TransportadoresModel : PageModel
     public async Task<IActionResult> OnPostDeleteAsync(int id)
     {
         var transportador = await _db.Transportadores.FindAsync(id);
-        if (transportador != null)
+        if (transportador == null)
+            return RedirectToPage();
+
+        // A unica filha e tbFisNFe.idTransportador, que nao tem DbSet -
+        // por isso a checagem fica a cargo do catch de DbUpdateException.
+        try
         {
             _db.Transportadores.Remove(transportador);
             await _db.SaveChangesAsync();
+            TempData["Sucesso"] = "Transportador excluído com sucesso.";
+        }
+        catch (DbUpdateException)
+        {
+            TempData["Erro"] = "Não é possível excluir: existe nota fiscal vinculada a este transportador.";
         }
         return RedirectToPage();
     }

@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.EntityFrameworkCore;
 using WebAppERP.Data;
@@ -54,10 +54,31 @@ public class EstadosModel : PageModel
     public async Task<IActionResult> OnPostDeleteAsync(int id)
     {
         var estado = await _db.Estados.FindAsync(id);
-        if (estado != null)
+        if (estado == null)
+            return RedirectToPage();
+
+        // Filhas: tbGerCidades.idEstado e tbGerVeiculos.idEstado.
+        if (await _db.Cidades.AnyAsync(c => c.IdEstado == id))
+        {
+            TempData["Erro"] = "Não é possível excluir: existe cidade vinculada a este estado.";
+            return RedirectToPage();
+        }
+
+        if (await _db.Veiculos.AnyAsync(v => v.IdEstado == id))
+        {
+            TempData["Erro"] = "Não é possível excluir: existe veículo vinculado a este estado.";
+            return RedirectToPage();
+        }
+
+        try
         {
             _db.Estados.Remove(estado);
             await _db.SaveChangesAsync();
+            TempData["Sucesso"] = "Estado excluído com sucesso.";
+        }
+        catch (DbUpdateException)
+        {
+            TempData["Erro"] = "Não é possível excluir: existem registros vinculados a este estado.";
         }
         return RedirectToPage();
     }

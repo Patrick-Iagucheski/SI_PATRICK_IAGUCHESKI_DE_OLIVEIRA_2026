@@ -1,16 +1,16 @@
-@page
+﻿@page
 @model WebAppERP.Pages.Cadastro.PaisesModel
 @{
-    ViewData["Title"] = "Paises";
+    ViewData["Title"] = "Países";
 }
 
 <div class="d-flex justify-content-between align-items-start mb-4">
     <div>
-        <h1 class="page-title">Paises</h1>
-        <p class="page-subtitle">Gerencie os paises cadastrados no sistema</p>
+        <h1 class="page-title">Países</h1>
+        <p class="page-subtitle">Gerencie os países cadastrados no sistema</p>
     </div>
     <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#modalPais" onclick="limparForm()">
-        <i class="bi bi-plus-lg me-1"></i> Novo Pais
+        <i class="bi bi-plus-lg me-1"></i> Novo País
     </button>
 </div>
 
@@ -38,7 +38,7 @@
 <!-- Tabela -->
 <div class="table-container">
     <div class="table-header">
-        <h5><i class="bi bi-globe-americas me-2"></i>Lista de Paises</h5>
+        <h5><i class="bi bi-globe-americas me-2"></i>Lista de Países</h5>
         <span class="text-muted small">@Model.Paises.Count registros encontrados</span>
     </div>
     <div class="table-responsive">
@@ -50,7 +50,7 @@
                     <th>Sigla</th>
                     <th>DDI</th>
                     <th>Moeda</th>
-                    <th class="text-center">Acoes</th>
+                    <th class="text-center">Ações</th>
                 </tr>
             </thead>
             <tbody>
@@ -82,7 +82,7 @@
                 }
                 else
                 {
-                    <tr><td colspan="6" class="text-center text-muted py-4">Nenhum pais cadastrado</td></tr>
+                    <tr><td colspan="6" class="text-center text-muted py-4">Nenhum país cadastrado</td></tr>
                 }
             </tbody>
         </table>
@@ -95,18 +95,18 @@
         <div class="modal-content">
             <form method="post">
                 <div class="modal-header">
-                    <h5 class="modal-title" id="modalTitle"><i class="bi bi-globe-americas me-2"></i>Novo Pais</h5>
+                    <h5 class="modal-title" id="modalTitle"><i class="bi bi-globe-americas me-2"></i>Novo País</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
                     <input type="hidden" asp-for="PaisForm.IdPais" id="formIdPais" />
                     <div class="row g-3">
                         <div class="col-md-2">
-                            <label class="form-label">Codigo</label>
+                            <label class="form-label">Código</label>
                             <input type="text" class="form-control bg-light" id="formCodigoDisplay" placeholder="(novo)" readonly />
                         </div>
                         <div class="col-md-6">
-                            <label class="form-label">Nome do Pais *</label>
+                            <label class="form-label">Nome do País *</label>
                             <input type="text" class="form-control" asp-for="PaisForm.NmPais" id="formNmPais" required />
                         </div>
                         <div class="col-md-4">

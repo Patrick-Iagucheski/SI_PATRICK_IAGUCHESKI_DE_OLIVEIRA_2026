@@ -1,4 +1,4 @@
-@page
+﻿@page
 @model WebAppERP.Pages.Cadastro.FornecedoresModel
 @{
     ViewData["Title"] = "Fornecedores";
@@ -55,7 +55,7 @@
                 <input type="number" class="form-control" id="buscaId" min="1" autocomplete="off" />
             </div>
             <div class="col-md-4">
-                <label class="form-label small mb-1">Razao Social</label>
+                <label class="form-label small mb-1">Razão Social</label>
                 <input type="text" class="form-control" id="buscaRazao" autocomplete="off" />
             </div>
             <div class="col-md-3">
@@ -90,13 +90,13 @@
             <thead>
                 <tr>
                     <th>ID</th>
-                    <th>Razao Social</th>
+                    <th>Razão Social</th>
                     <th>Nome Fantasia</th>
                     <th>CPF / CNPJ</th>
                     <th>Telefone</th>
                     <th>Cidade</th>
                     <th>Status</th>
-                    <th class="text-center">Acoes</th>
+                    <th class="text-center">Ações</th>
                 </tr>
             </thead>
             <tbody>
@@ -162,20 +162,20 @@
                     <h6 class="text-primary border-bottom pb-1 mb-3"><i class="bi bi-card-list me-1"></i>Dados Cadastrais</h6>
                     <div class="row g-3">
                         <div class="col-md-2">
-                            <label class="form-label">Codigo</label>
+                            <label class="form-label">Código</label>
                             <input type="text" class="form-control bg-light" id="formCodigoDisplay" placeholder="(novo)" readonly />
                         </div>
                         <div class="col-md-4">
                             <label class="form-label">Tipo de Pessoa *</label>
                             <select class="form-select" asp-for="FornecedorForm.TpPessoa" id="formTpPessoa" onchange="toggleTipoPessoa()">
-                                <option value="J">Pessoa Juridica</option>
-                                <option value="F">Pessoa Fisica</option>
+                                <option value="J">Pessoa Jurídica</option>
+                                <option value="F">Pessoa Física</option>
                                 <option value="E">Estrangeiro</option>
                                 <option value="O">Outro</option>
                             </select>
                         </div>
                         <div class="col-md-6">
-                            <label class="form-label" id="lblRazao">Razao Social *</label>
+                            <label class="form-label" id="lblRazao">Razão Social *</label>
                             <input type="text" class="form-control" asp-for="FornecedorForm.DsRazaoSocial" id="formDsRazaoSocial" maxlength="200" required />
                         </div>
 
@@ -202,8 +202,8 @@
                         </div>
                         <!-- Slot A: Inscricao Estadual (PJ / Estrangeiro / Outro) ou RG (Pessoa Fisica) -->
                         <div class="col-md-3 doc-wrap" id="wrapInscEstadual">
-                            <label class="form-label">Inscricao Estadual</label>
-                            <input type="text" class="form-control" asp-for="FornecedorForm.NrInscEstadual" id="formNrInscEstadual" maxlength="13" placeholder="8 a 13 digitos" />
+                            <label class="form-label">Inscrição Estadual</label>
+                            <input type="text" class="form-control" asp-for="FornecedorForm.NrInscEstadual" id="formNrInscEstadual" maxlength="13" placeholder="8 a 13 dígitos" />
                         </div>
                         <div class="col-md-3 doc-wrap d-none" id="wrapRG">
                             <label class="form-label">RG *</label>
@@ -212,7 +212,7 @@
 
                         <!-- Slot B: Inscricao Municipal (PJ) ou Data de Nascimento (Pessoa Fisica / Estrangeiro / Outro) -->
                         <div class="col-md-3 doc-wrap" id="wrapInscMunicipal">
-                            <label class="form-label">Inscricao Municipal</label>
+                            <label class="form-label">Inscrição Municipal</label>
                             <input type="text" class="form-control" asp-for="FornecedorForm.NrInscMunicipal" id="formNrInscMunicipal" maxlength="15" placeholder="7 a 15 caracteres" />
                         </div>
                         <div class="col-md-3 doc-wrap d-none" id="wrapDataNasc">
@@ -227,13 +227,13 @@
                             </select>
                         </div>
                         <div class="col-12">
-                            <label class="form-label">Observacoes</label>
+                            <label class="form-label">Observações</label>
                             <textarea class="form-control" rows="2" asp-for="FornecedorForm.DsObservacao" id="formDsObservacao" maxlength="500"></textarea>
                         </div>
                     </div>
 
                     <!-- ===== Endereco ===== -->
-                    <h6 class="text-primary border-bottom pb-1 mb-3 mt-4"><i class="bi bi-geo-alt me-1"></i>Endereco</h6>
+                    <h6 class="text-primary border-bottom pb-1 mb-3 mt-4"><i class="bi bi-geo-alt me-1"></i>Endereço</h6>
                     <div class="row g-3">
                         <div class="col-md-3">
                             <label class="form-label">CEP</label>
@@ -244,7 +244,7 @@
                             <input type="text" class="form-control" asp-for="FornecedorForm.DsEndereco" id="formDsEndereco" maxlength="200" />
                         </div>
                         <div class="col-md-2">
-                            <label class="form-label">Numero</label>
+                            <label class="form-label">Número</label>
                             <input type="text" class="form-control" asp-for="FornecedorForm.NrNumero" id="formNrNumero" maxlength="10" />
                         </div>
                         <div class="col-md-5">
@@ -265,8 +265,8 @@
                                         <option value="@cidade.IdCidade">@cidade.NmCidade / @cidade.Estado?.SgUF</option>
                                     }
                                 </select>
-                                <button type="button" class="btn btn-outline-primary" data-bs-toggle="modal"
-                                        data-bs-target="#modalCidadeRapido" title="Cadastrar nova cidade">
+                                <button type="button" class="btn btn-outline-primary"
+                                        onclick="abrirModalEmpilhado('modalCidadeRapido')" title="Cadastrar nova cidade">
                                     <i class="bi bi-plus-lg"></i>
                                 </button>
                             </div>
@@ -311,7 +311,7 @@
                                 <option value="">Selecione</option>
                                 <option value="CC">Conta Corrente</option>
                                 <option value="CP">Conta Poupanca</option>
-                                <option value="CS">Conta Salario</option>
+                                <option value="CS">Conta Salário</option>
                                 <option value="CE">Conta Empresarial</option>
                             </select>
                         </div>
@@ -379,8 +379,8 @@
                                     <option value="@estado.IdEstado">@estado.NmEstado / @estado.SgUF</option>
                                 }
                             </select>
-                            <button type="button" class="btn btn-outline-primary" data-bs-toggle="modal"
-                                    data-bs-target="#modalEstadoRapido" title="Cadastrar novo estado">
+                            <button type="button" class="btn btn-outline-primary"
+                                    onclick="abrirModalEmpilhado('modalEstadoRapido')" title="Cadastrar novo estado">
                                 <i class="bi bi-plus-lg"></i>
                             </button>
                         </div>
@@ -417,7 +417,7 @@
                         <input type="text" class="form-control text-uppercase" id="estUF" maxlength="2" placeholder="Ex: PR" />
                     </div>
                     <div class="col-12">
-                        <label class="form-label">Pais *</label>
+                        <label class="form-label">País *</label>
                         <div class="input-group">
                             <select class="form-select" id="estPais">
                                 <option value="">Selecione</option>
@@ -426,8 +426,8 @@
                                     <option value="@pais.IdPais">@pais.NmPais</option>
                                 }
                             </select>
-                            <button type="button" class="btn btn-outline-primary" data-bs-toggle="modal"
-                                    data-bs-target="#modalPaisRapido" title="Cadastrar novo pais">
+                            <button type="button" class="btn btn-outline-primary"
+                                    onclick="abrirModalEmpilhado('modalPaisRapido')" title="Cadastrar novo país">
                                 <i class="bi bi-plus-lg"></i>
                             </button>
                         </div>
@@ -449,14 +449,14 @@
     <div class="modal-dialog">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title"><i class="bi bi-globe-americas me-2"></i>Cadastrar Pais</h5>
+                <h5 class="modal-title"><i class="bi bi-globe-americas me-2"></i>Cadastrar País</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
                 <div id="paisMsg"></div>
                 <div class="row g-3">
                     <div class="col-md-8">
-                        <label class="form-label">Nome do Pais *</label>
+                        <label class="form-label">Nome do País *</label>
                         <input type="text" class="form-control" id="paisNome" maxlength="100" />
                     </div>
                     <div class="col-md-4">
@@ -476,7 +476,7 @@
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
                 <button type="button" class="btn btn-primary" id="btnSalvarPaisRapido" onclick="salvarPaisRapido()">
-                    <i class="bi bi-check-lg me-1"></i>Salvar Pais
+                    <i class="bi bi-check-lg me-1"></i>Salvar País
                 </button>
             </div>
         </div>

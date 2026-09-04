@@ -1,4 +1,4 @@
-using System.ComponentModel.DataAnnotations;
+﻿using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
 namespace WebAppERP.Models;
@@ -12,7 +12,7 @@ public class GerCargo
     public int IdCargo { get; set; }
 
     [Column("nmCargo")]
-    [Required(ErrorMessage = "O nome do cargo e obrigatorio.")]
+    [Required(ErrorMessage = "O nome do cargo é obrigatório.")]
     [MaxLength(100)]
     public string NmCargo { get; set; } = string.Empty;
 
@@ -21,7 +21,7 @@ public class GerCargo
     public string? DsCargo { get; set; }
 
     [Column("vlComissaoPadrao", TypeName = "decimal(5,2)")]
-    [Range(0, 999.99, ErrorMessage = "Comissao invalida.")]
+    [Range(0, 999.99, ErrorMessage = "Comissão inválida.")]
     public decimal? VlComissaoPadrao { get; set; }
 
     [Column("flAtivo")]

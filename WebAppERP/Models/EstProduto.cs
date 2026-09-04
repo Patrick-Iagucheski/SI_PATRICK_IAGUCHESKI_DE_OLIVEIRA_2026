@@ -15,15 +15,20 @@ public class EstProduto
     [Required, MaxLength(300)]
     public string DsProduto { get; set; } = string.Empty;
 
-    // Marca: texto livre, sem tabela / sem FK
-    [Column("nmMarca")]
-    [MaxLength(60)]
-    public string? NmMarca { get; set; }
+    // Marca: vinculo com o cadastro de Marcas (tbEstMarcas).
+    [Column("idMarca")]
+    public int? IdMarca { get; set; }
 
-    // Categoria: texto livre, sem tabela / sem FK
-    [Column("dsCategoria")]
-    [MaxLength(60)]
-    public string? DsCategoria { get; set; }
+    [ForeignKey("IdMarca")]
+    public EstMarca? Marca { get; set; }
+
+    // Categoria: vinculo com o cadastro de Categorias (tbEstCategorias).
+    // Substituiu o antigo campo de texto livre dsCategoria.
+    [Column("idCategoria")]
+    public int? IdCategoria { get; set; }
+
+    [ForeignKey("IdCategoria")]
+    public EstCategoria? Categoria { get; set; }
 
     [Column("sgUnidade")]
     [MaxLength(10)]

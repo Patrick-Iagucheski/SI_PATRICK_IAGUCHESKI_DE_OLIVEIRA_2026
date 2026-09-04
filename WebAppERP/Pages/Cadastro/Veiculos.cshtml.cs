@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.EntityFrameworkCore;
 using WebAppERP.Data;
@@ -52,10 +52,20 @@ public class VeiculosModel : PageModel
     public async Task<IActionResult> OnPostDeleteAsync(int id)
     {
         var veiculo = await _db.Veiculos.FindAsync(id);
-        if (veiculo != null)
+        if (veiculo == null)
+            return RedirectToPage();
+
+        // A unica filha e tbFisNFe.idVeiculo, que nao tem DbSet -
+        // por isso a checagem fica a cargo do catch de DbUpdateException.
+        try
         {
             _db.Veiculos.Remove(veiculo);
             await _db.SaveChangesAsync();
+            TempData["Sucesso"] = "Veículo excluído com sucesso.";
+        }
+        catch (DbUpdateException)
+        {
+            TempData["Erro"] = "Não é possível excluir: existe nota fiscal vinculada a este veículo.";
         }
         return RedirectToPage();
     }

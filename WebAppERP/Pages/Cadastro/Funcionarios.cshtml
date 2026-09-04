@@ -1,7 +1,7 @@
-@page
+﻿@page
 @model WebAppERP.Pages.Cadastro.FuncionariosModel
 @{
-    ViewData["Title"] = "Funcionarios";
+    ViewData["Title"] = "Funcionários";
 
     string FormatarCPF(string? v)
     {
@@ -22,11 +22,11 @@
 
 <div class="d-flex justify-content-between align-items-start mb-4">
     <div>
-        <h1 class="page-title">Funcionarios</h1>
+        <h1 class="page-title">Funcionários</h1>
         <p class="page-subtitle">Gerencie os profissionais da barbearia</p>
     </div>
     <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#modalFuncionario" onclick="limparForm()">
-        <i class="bi bi-plus-lg me-1"></i> Novo Funcionario
+        <i class="bi bi-plus-lg me-1"></i> Novo Funcionário
     </button>
 </div>
 
@@ -39,7 +39,7 @@
                 <input type="number" class="form-control" id="buscaId" min="1" autocomplete="off" />
             </div>
             <div class="col-md-3">
-                <label class="form-label small mb-1">Funcionario</label>
+                <label class="form-label small mb-1">Funcionário</label>
                 <input type="text" class="form-control" id="buscaNome" autocomplete="off" />
             </div>
             <div class="col-md-3">
@@ -54,7 +54,7 @@
         <div class="d-flex justify-content-between align-items-center mt-3">
             <div class="form-check mb-0">
                 <input class="form-check-input" type="checkbox" id="buscaInativos" onchange="buscarFuncionarios()" />
-                <label class="form-check-label" for="buscaInativos">Exibir Funcionarios Inativos</label>
+                <label class="form-check-label" for="buscaInativos">Exibir Funcionários Inativos</label>
             </div>
             <button type="button" class="btn btn-primary" onclick="buscarFuncionarios()">
                 <i class="bi bi-search me-1"></i>Buscar
@@ -66,7 +66,7 @@
 <!-- Tabela -->
 <div class="table-container">
     <div class="table-header">
-        <h5><i class="bi bi-person-badge-fill me-2"></i>Lista de Funcionarios</h5>
+        <h5><i class="bi bi-person-badge-fill me-2"></i>Lista de Funcionários</h5>
         <span class="text-muted small" id="contadorRegistros">@Model.Funcionarios.Count registros encontrados</span>
     </div>
     <div class="table-responsive">
@@ -74,14 +74,14 @@
             <thead>
                 <tr>
                     <th>ID</th>
-                    <th>Funcionario</th>
+                    <th>Funcionário</th>
                     <th>CPF</th>
                     <th>Cargo</th>
                     <th>Telefone</th>
-                    <th>Admissao</th>
-                    <th>Comissao</th>
+                    <th>Admissão</th>
+                    <th>Comissão</th>
                     <th>Status</th>
-                    <th class="text-center">Acoes</th>
+                    <th class="text-center">Ações</th>
                 </tr>
             </thead>
             <tbody>
@@ -93,7 +93,7 @@
                             <td>@f.IdFuncionario</td>
                             <td><strong>@f.NmFuncionario</strong></td>
                             <td>@FormatarCPF(f.NrCpf)</td>
-                            <td>@(f.Cargo?.NmCargo ?? f.DsCargo)</td>
+                            <td>@(f.Cargo?.NmCargo ?? "-")</td>
                             <td>@FormatarTelefone(f.NrTelefone)</td>
                             <td>@f.DtAdmissao.ToString("dd/MM/yyyy")</td>
                             <td>@(f.VlComissao.HasValue ? $"{f.VlComissao}%" : "-")</td>
@@ -110,7 +110,7 @@
                             <td class="text-center">
                                 <button class="btn btn-icon btn-outline-primary" title="Editar"
                                         data-bs-toggle="modal" data-bs-target="#modalFuncionario"
-                                        onclick="editarFunc(@f.IdFuncionario,'@f.NmFuncionario.Replace("'", "\\'")','@f.NrCpf','@f.NrTelefone','@f.DsEmail','@f.DsEndereco?.Replace("'", "\\'")','@f.DsBairro?.Replace("'", "\\'")','@(f.IdCidade?.ToString() ?? "")','@f.NrCEP','@(f.DtNascimento?.ToString("yyyy-MM-dd") ?? "")','@f.DtAdmissao.ToString("yyyy-MM-dd")','@(f.DtDemissao?.ToString("yyyy-MM-dd") ?? "")','@(f.IdCargo?.ToString() ?? "")','@(f.VlSalario?.ToString("F2") ?? "")','@(f.VlComissao?.ToString("F2") ?? "")','@f.DsObservacao?.Replace("'", "\\'")','@f.FlAtivo','@f.NmApelido?.Replace("'", "\\'")','@f.NrRG','@f.NrNumero','@f.DsComplemento?.Replace("'", "\\'")','@f.DsSexo')">
+                                        onclick="editarFunc(@f.IdFuncionario,'@f.NmFuncionario.Replace("'", "\\'")','@f.NrCpf','@f.NrTelefone','@f.DsEmail','@f.DsEndereco?.Replace("'", "\\'")','@f.DsBairro?.Replace("'", "\\'")','@(f.IdCidade?.ToString() ?? "")','@f.NrCEP','@(f.DtNascimento?.ToString("yyyy-MM-dd") ?? "")','@f.DtAdmissao.ToString("yyyy-MM-dd")','@(f.DtDemissao?.ToString("yyyy-MM-dd") ?? "")','@f.IdCargo','@(f.VlSalario?.ToString("F2") ?? "")','@(f.VlComissao?.ToString("F2") ?? "")','@f.DsObservacao?.Replace("'", "\\'")','@f.FlAtivo','@f.NmApelido?.Replace("'", "\\'")','@f.NrRG','@f.NrNumero','@f.DsComplemento?.Replace("'", "\\'")','@f.DsSexo')">
                                     <i class="bi bi-pencil"></i>
                                 </button>
                                 <form method="post" asp-page-handler="Delete" class="d-inline" onsubmit="return confirm('Deseja realmente excluir este funcionario?')">
@@ -125,7 +125,7 @@
                 }
                 else
                 {
-                    <tr><td colspan="9" class="text-center text-muted py-4">Nenhum funcionario cadastrado</td></tr>
+                    <tr><td colspan="9" class="text-center text-muted py-4">Nenhum funcionário cadastrado</td></tr>
                 }
             </tbody>
         </table>
@@ -138,7 +138,7 @@
         <div class="modal-content">
             <form method="post">
                 <div class="modal-header">
-                    <h5 class="modal-title" id="modalTitle"><i class="bi bi-person-badge me-2"></i>Novo Funcionario</h5>
+                    <h5 class="modal-title" id="modalTitle"><i class="bi bi-person-badge me-2"></i>Novo Funcionário</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
@@ -146,11 +146,11 @@
                     <div class="row g-3">
                         <!-- Codigo (somente leitura) | Funcionario | Apelido -->
                         <div class="col-md-2">
-                            <label class="form-label">Codigo</label>
+                            <label class="form-label">Código</label>
                             <input type="text" class="form-control bg-light" id="fCodigoDisplay" placeholder="(novo)" readonly />
                         </div>
                         <div class="col-md-6">
-                            <label class="form-label">Funcionario *</label>
+                            <label class="form-label">Funcionário *</label>
                             <input type="text" class="form-control" asp-for="FuncionarioForm.NmFuncionario" id="fNome" maxlength="200" required />
                         </div>
                         <div class="col-md-4">
@@ -174,7 +174,7 @@
                                 <option value="Masculino">Masculino</option>
                                 <option value="Feminino">Feminino</option>
                                 <option value="Outro">Outro</option>
-                                <option value="Prefiro nao informar">Prefiro nao informar</option>
+                                <option value="Prefiro nao informar">Prefiro não informar</option>
                             </select>
                         </div>
                         <div class="col-md-3">
@@ -184,11 +184,11 @@
 
                         <!-- Endereco | Numero -->
                         <div class="col-md-8">
-                            <label class="form-label">Endereco</label>
+                            <label class="form-label">Endereço</label>
                             <input type="text" class="form-control" asp-for="FuncionarioForm.DsEndereco" id="fEnd" maxlength="200" />
                         </div>
                         <div class="col-md-4">
-                            <label class="form-label">Numero</label>
+                            <label class="form-label">Número</label>
                             <input type="text" class="form-control" asp-for="FuncionarioForm.NrNumero" id="fNumero" maxlength="10" />
                         </div>
 
@@ -213,8 +213,8 @@
                                         <option value="@cidade.IdCidade">@cidade.NmCidade / @cidade.Estado?.SgUF</option>
                                     }
                                 </select>
-                                <button type="button" class="btn btn-outline-primary" data-bs-toggle="modal"
-                                        data-bs-target="#modalCidadeRapido" title="Cadastrar nova cidade">
+                                <button type="button" class="btn btn-outline-primary"
+                                        onclick="abrirModalEmpilhado('modalCidadeRapido')" title="Cadastrar nova cidade">
                                     <i class="bi bi-plus-lg"></i>
                                 </button>
                             </div>
@@ -245,18 +245,18 @@
                                         <option value="@cargo.IdCargo">@cargo.NmCargo</option>
                                     }
                                 </select>
-                                <button type="button" class="btn btn-outline-primary" data-bs-toggle="modal"
-                                        data-bs-target="#modalCargoRapido" title="Cadastrar novo cargo">
+                                <button type="button" class="btn btn-outline-primary"
+                                        onclick="abrirModalEmpilhado('modalCargoRapido')" title="Cadastrar novo cargo">
                                     <i class="bi bi-plus-lg"></i>
                                 </button>
                             </div>
                         </div>
                         <div class="col-md-4">
-                            <label class="form-label">Data de Admissao *</label>
+                            <label class="form-label">Data de Admissão *</label>
                             <input type="date" class="form-control" asp-for="FuncionarioForm.DtAdmissao" id="fAdm" required />
                         </div>
                         <div class="col-md-4">
-                            <label class="form-label">Data de Demissao</label>
+                            <label class="form-label">Data de Demissão</label>
                             <input type="date" class="form-control" asp-for="FuncionarioForm.DtDemissao" id="fDem" />
                         </div>
 
@@ -279,7 +279,7 @@
 
                         <!-- Observacoes -->
                         <div class="col-12">
-                            <label class="form-label">Observacoes</label>
+                            <label class="form-label">Observações</label>
                             <textarea class="form-control" rows="2" asp-for="FuncionarioForm.DsObservacao" id="fObs" maxlength="500"></textarea>
                         </div>
                     </div>
@@ -309,7 +309,7 @@
                         <input type="text" class="form-control" id="crNome" maxlength="100" />
                     </div>
                     <div class="col-12">
-                        <label class="form-label">Descricao</label>
+                        <label class="form-label">Descrição</label>
                         <textarea class="form-control" rows="2" id="crDesc" maxlength="300"></textarea>
                     </div>
                     <div class="col-md-6">
@@ -353,8 +353,8 @@
                                     <option value="@estado.IdEstado">@estado.NmEstado / @estado.SgUF</option>
                                 }
                             </select>
-                            <button type="button" class="btn btn-outline-primary" data-bs-toggle="modal"
-                                    data-bs-target="#modalEstadoRapido" title="Cadastrar novo estado">
+                            <button type="button" class="btn btn-outline-primary"
+                                    onclick="abrirModalEmpilhado('modalEstadoRapido')" title="Cadastrar novo estado">
                                 <i class="bi bi-plus-lg"></i>
                             </button>
                         </div>
@@ -391,7 +391,7 @@
                         <input type="text" class="form-control text-uppercase" id="estUF" maxlength="2" placeholder="Ex: PR" />
                     </div>
                     <div class="col-12">
-                        <label class="form-label">Pais *</label>
+                        <label class="form-label">País *</label>
                         <div class="input-group">
                             <select class="form-select" id="estPais">
                                 <option value="">Selecione</option>
@@ -400,8 +400,8 @@
                                     <option value="@pais.IdPais">@pais.NmPais</option>
                                 }
                             </select>
-                            <button type="button" class="btn btn-outline-primary" data-bs-toggle="modal"
-                                    data-bs-target="#modalPaisRapido" title="Cadastrar novo pais">
+                            <button type="button" class="btn btn-outline-primary"
+                                    onclick="abrirModalEmpilhado('modalPaisRapido')" title="Cadastrar novo país">
                                 <i class="bi bi-plus-lg"></i>
                             </button>
                         </div>
@@ -423,14 +423,14 @@
     <div class="modal-dialog">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title"><i class="bi bi-globe-americas me-2"></i>Cadastrar Pais</h5>
+                <h5 class="modal-title"><i class="bi bi-globe-americas me-2"></i>Cadastrar País</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
                 <div id="paisMsg"></div>
                 <div class="row g-3">
                     <div class="col-md-8">
-                        <label class="form-label">Nome do Pais *</label>
+                        <label class="form-label">Nome do País *</label>
                         <input type="text" class="form-control" id="paisNome" maxlength="100" />
                     </div>
                     <div class="col-md-4">
@@ -450,7 +450,7 @@
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
                 <button type="button" class="btn btn-primary" id="btnSalvarPaisRapido" onclick="salvarPaisRapido()">
-                    <i class="bi bi-check-lg me-1"></i>Salvar Pais
+                    <i class="bi bi-check-lg me-1"></i>Salvar País
                 </button>
             </div>
         </div>
@@ -781,7 +781,7 @@
                 if (contador) contador.textContent = resultadosBusca.length + ' registros encontrados';
 
                 if (!resultadosBusca.length) {
-                    tbody.innerHTML = '<tr><td colspan="9" class="text-center text-muted py-4">Nenhum funcionario encontrado</td></tr>';
+                    tbody.innerHTML = '<tr><td colspan="9" class="text-center text-muted py-4">Nenhum funcionário encontrado</td></tr>';
                     return;
                 }
 

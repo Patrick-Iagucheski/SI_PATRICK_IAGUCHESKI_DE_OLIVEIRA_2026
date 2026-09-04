@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.EntityFrameworkCore;
 using WebAppERP.Data;
@@ -53,10 +53,43 @@ public class CidadesModel : PageModel
     public async Task<IActionResult> OnPostDeleteAsync(int id)
     {
         var cidade = await _db.Cidades.FindAsync(id);
-        if (cidade != null)
+        if (cidade == null)
+            return RedirectToPage();
+
+        // Filhas: clientes, fornecedores, funcionarios e transportadores (idCidade).
+        if (await _db.Clientes.AnyAsync(c => c.IdCidade == id))
+        {
+            TempData["Erro"] = "Não é possível excluir: existe cliente vinculado a esta cidade.";
+            return RedirectToPage();
+        }
+
+        if (await _db.Fornecedores.AnyAsync(f => f.IdCidade == id))
+        {
+            TempData["Erro"] = "Não é possível excluir: existe fornecedor vinculado a esta cidade.";
+            return RedirectToPage();
+        }
+
+        if (await _db.Funcionarios.AnyAsync(f => f.IdCidade == id))
+        {
+            TempData["Erro"] = "Não é possível excluir: existe funcionário vinculado a esta cidade.";
+            return RedirectToPage();
+        }
+
+        if (await _db.Transportadores.AnyAsync(t => t.IdCidade == id))
+        {
+            TempData["Erro"] = "Não é possível excluir: existe transportador vinculado a esta cidade.";
+            return RedirectToPage();
+        }
+
+        try
         {
             _db.Cidades.Remove(cidade);
             await _db.SaveChangesAsync();
+            TempData["Sucesso"] = "Cidade excluída com sucesso.";
+        }
+        catch (DbUpdateException)
+        {
+            TempData["Erro"] = "Não é possível excluir: existem registros vinculados a esta cidade.";
         }
         return RedirectToPage();
     }

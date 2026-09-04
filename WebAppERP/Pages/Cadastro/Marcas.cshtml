@@ -1,0 +1,229 @@
+﻿@page
+@model WebAppERP.Pages.Cadastro.MarcasModel
+@{
+    ViewData["Title"] = "Marcas";
+}
+
+<div class="d-flex justify-content-between align-items-start mb-4">
+    <div>
+        <h1 class="page-title">Marcas</h1>
+        <p class="page-subtitle">Cadastre marcas para organizar produtos por fabricante ou linha</p>
+    </div>
+    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#modalMarca" onclick="limparForm()">
+        <i class="bi bi-plus-lg me-1"></i> Nova Marca
+    </button>
+</div>
+
+<!-- Filtros de busca (todos opcionais e combinaveis) -->
+<div class="card mb-3">
+    <div class="card-body py-3">
+        <div class="row g-2 align-items-end">
+            <div class="col-md-2">
+                <label class="form-label small mb-1">ID</label>
+                <input type="number" class="form-control" id="buscaId" min="1" autocomplete="off" />
+            </div>
+            <div class="col-md-6">
+                <label class="form-label small mb-1">Marca</label>
+                <input type="text" class="form-control" id="buscaTermo" autocomplete="off" />
+            </div>
+        </div>
+        <div class="d-flex justify-content-between align-items-center mt-3">
+            <div class="form-check mb-0">
+                <input class="form-check-input" type="checkbox" id="buscaInativos" onchange="buscarMarcas()" />
+                <label class="form-check-label" for="buscaInativos">Exibir Marcas Inativas</label>
+            </div>
+            <button type="button" class="btn btn-primary" onclick="buscarMarcas()">
+                <i class="bi bi-search me-1"></i>Buscar
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Tabela -->
+<div class="table-container">
+    <div class="table-header">
+        <h5><i class="bi bi-tags-fill me-2"></i>Lista de Marcas</h5>
+        <span class="text-muted small" id="contadorRegistros">@Model.Marcas.Count registros encontrados</span>
+    </div>
+    <div class="table-responsive">
+        <table class="table" id="tblMarcas">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Marca</th>
+                    <th>Status</th>
+                    <th class="text-center">Ações</th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (Model.Marcas.Any())
+                {
+                    @foreach (var m in Model.Marcas)
+                    {
+                        <tr data-status="@(m.FlAtivo ? "ativo" : "inativo")">
+                            <td>@m.IdMarca</td>
+                            <td><strong>@m.NmMarca</strong></td>
+                            <td>
+                                @if (m.FlAtivo)
+                                {
+                                    <span class="badge-status badge-ativo">Ativo</span>
+                                }
+                                else
+                                {
+                                    <span class="badge-status badge-inativo">Inativo</span>
+                                }
+                            </td>
+                            <td class="text-center">
+                                <button class="btn btn-icon btn-outline-primary" title="Editar"
+                                        data-bs-toggle="modal" data-bs-target="#modalMarca"
+                                        onclick="editarMarca(@m.IdMarca,'@m.NmMarca.Replace("'", "\\'")','@m.FlAtivo')">
+                                    <i class="bi bi-pencil"></i>
+                                </button>
+                                <form method="post" asp-page-handler="Delete" class="d-inline" onsubmit="return confirm('Deseja realmente excluir esta marca?')">
+                                    <input type="hidden" name="id" value="@m.IdMarca" />
+                                    <button type="submit" class="btn btn-icon btn-outline-danger" title="Excluir">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </form>
+                            </td>
+                        </tr>
+                    }
+                }
+                else
+                {
+                    <tr><td colspan="4" class="text-center text-muted py-4">Nenhuma marca cadastrada</td></tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Token antiforgery para as chamadas AJAX -->
+<form id="formTokenAjax" class="d-none">@Html.AntiForgeryToken()</form>
+
+<!-- Modal -->
+<div class="modal fade" id="modalMarca" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form method="post">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="modalTitle"><i class="bi bi-tags me-2"></i>Nova Marca</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <input type="hidden" asp-for="MarcaForm.IdMarca" id="mId" />
+                    <div class="row g-3">
+                        <div class="col-md-3">
+                            <label class="form-label">Código</label>
+                            <input type="text" class="form-control bg-light" id="mCodigoDisplay" placeholder="(novo)" readonly />
+                        </div>
+                        <div class="col-md-9">
+                            <label class="form-label">Marca *</label>
+                            <input type="text" class="form-control" asp-for="MarcaForm.NmMarca" id="mNome" maxlength="100" placeholder="Ex: Don Alcides" required />
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label">Status</label>
+                            <select class="form-select" asp-for="MarcaForm.FlAtivo" id="mAtivo">
+                                <option value="true">Ativo</option>
+                                <option value="false">Inativo</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary"><i class="bi bi-check-lg me-1"></i>Salvar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        // ===== Busca de Marcas (filtros na pagina -> atualiza a grid via AJAX) =====
+        let resultadosBusca = [];
+
+        ['buscaId', 'buscaTermo'].forEach(id => {
+            document.getElementById(id)?.addEventListener('keydown', e => {
+                if (e.key === 'Enter') { e.preventDefault(); buscarMarcas(); }
+            });
+        });
+
+        function statusBadge(ativo) {
+            return ativo
+                ? '<span class="badge-status badge-ativo">Ativo</span>'
+                : '<span class="badge-status badge-inativo">Inativo</span>';
+        }
+
+        function montarLinha(m, i, token) {
+            return '<tr>' +
+                '<td>' + m.id + '</td>' +
+                '<td><strong>' + (m.nome || '') + '</strong></td>' +
+                '<td>' + statusBadge(m.ativo) + '</td>' +
+                '<td class="text-center">' +
+                    '<button class="btn btn-icon btn-outline-primary" title="Editar" onclick="abrirEdicao(' + i + ')"><i class="bi bi-pencil"></i></button> ' +
+                    '<form method="post" action="?handler=Delete" class="d-inline" onsubmit="return confirm(\'Deseja realmente excluir esta marca?\')">' +
+                        '<input type="hidden" name="__RequestVerificationToken" value="' + token + '">' +
+                        '<input type="hidden" name="id" value="' + m.id + '">' +
+                        '<button type="submit" class="btn btn-icon btn-outline-danger" title="Excluir"><i class="bi bi-trash"></i></button>' +
+                    '</form>' +
+                '</td>' +
+            '</tr>';
+        }
+
+        async function buscarMarcas() {
+            const tbody = document.querySelector('#tblMarcas tbody');
+            const id = document.getElementById('buscaId').value.trim();
+            const termo = document.getElementById('buscaTermo').value.trim();
+            const inativos = document.getElementById('buscaInativos').checked;
+
+            const params = new URLSearchParams();
+            if (id) params.append('id', id);
+            if (termo) params.append('termo', termo);
+            params.append('incluirInativos', inativos);
+
+            tbody.innerHTML = '<tr><td colspan="4" class="text-center text-muted py-3">Buscando...</td></tr>';
+            try {
+                const resp = await fetch('?handler=BuscarMarcas&' + params.toString());
+                resultadosBusca = await resp.json();
+
+                const contador = document.getElementById('contadorRegistros');
+                if (contador) contador.textContent = resultadosBusca.length + ' registros encontrados';
+
+                if (!resultadosBusca.length) {
+                    tbody.innerHTML = '<tr><td colspan="4" class="text-center text-muted py-4">Nenhuma marca encontrada</td></tr>';
+                    return;
+                }
+
+                const token = document.querySelector('#formTokenAjax input[name="__RequestVerificationToken"]').value;
+                tbody.innerHTML = resultadosBusca.map((m, i) => montarLinha(m, i, token)).join('');
+            } catch (e) {
+                tbody.innerHTML = '<tr><td colspan="4" class="text-center text-danger py-4">Erro ao buscar. Tente novamente.</td></tr>';
+            }
+        }
+
+        function abrirEdicao(i) {
+            const m = resultadosBusca[i];
+            editarMarca(m.id, m.nome || '', (m.ativo ? 'True' : 'False'));
+            bootstrap.Modal.getOrCreateInstance(document.getElementById('modalMarca')).show();
+        }
+
+        // ===== Modal (novo / editar) =====
+        function limparForm() {
+            document.getElementById('modalTitle').innerHTML = '<i class="bi bi-tags me-2"></i>Nova Marca';
+            document.getElementById('mId').value = '0';
+            document.getElementById('mCodigoDisplay').value = '';
+            document.getElementById('mNome').value = '';
+            document.getElementById('mAtivo').value = 'true';
+        }
+
+        function editarMarca(id, nome, ativo) {
+            document.getElementById('modalTitle').innerHTML = '<i class="bi bi-pencil me-2"></i>Editar Marca';
+            document.getElementById('mId').value = id;
+            document.getElementById('mCodigoDisplay').value = id;
+            document.getElementById('mNome').value = nome;
+            document.getElementById('mAtivo').value = ativo === 'True' ? 'true' : 'false';
+        }
+    </script>
+}

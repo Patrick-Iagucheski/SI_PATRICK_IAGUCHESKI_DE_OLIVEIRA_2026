@@ -1,4 +1,4 @@
-@page
+﻿@page
 @model WebAppERP.Pages.Cadastro.FormasPagamentoModel
 @{
     ViewData["Title"] = "Formas de Pagamento";
@@ -46,10 +46,10 @@
             <thead>
                 <tr>
                     <th>ID</th>
-                    <th>Descricao</th>
+                    <th>Descrição</th>
                     <th>Criado em</th>
                     <th>Status</th>
-                    <th class="text-center">Acoes</th>
+                    <th class="text-center">Ações</th>
                 </tr>
             </thead>
             <tbody>
@@ -124,7 +124,7 @@
                     <input type="hidden" asp-for="FormaForm.IdFormaPagamento" id="formIdForma" />
                     <div class="row g-3">
                         <div class="col-12">
-                            <label class="form-label">Descricao *</label>
+                            <label class="form-label">Descrição *</label>
                             <input type="text" class="form-control" asp-for="FormaForm.DsFormaPagamento" id="formDsForma" maxlength="100" required />
                         </div>
                         <div class="col-12">

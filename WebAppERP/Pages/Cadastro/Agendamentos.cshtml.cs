@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.EntityFrameworkCore;
 using WebAppERP.Data;
@@ -97,10 +97,25 @@ public class AgendamentosModel : PageModel
     public async Task<IActionResult> OnPostDeleteAsync(int id, string? data)
     {
         var agendamento = await _db.Agendamentos.FindAsync(id);
-        if (agendamento != null)
+        if (agendamento == null)
+            return RedirectToPage(new { DataFiltro = data });
+
+        // Filha: tbOpeVendas.idAgendamento.
+        if (await _db.Vendas.AnyAsync(v => v.IdAgendamento == id))
+        {
+            TempData["Erro"] = "Não é possível excluir: existe venda gerada a partir deste agendamento.";
+            return RedirectToPage(new { DataFiltro = data });
+        }
+
+        try
         {
             _db.Agendamentos.Remove(agendamento);
             await _db.SaveChangesAsync();
+            TempData["Sucesso"] = "Agendamento excluído com sucesso.";
+        }
+        catch (DbUpdateException)
+        {
+            TempData["Erro"] = "Não é possível excluir: existem registros vinculados a este agendamento.";
         }
         return RedirectToPage(new { DataFiltro = data });
     }

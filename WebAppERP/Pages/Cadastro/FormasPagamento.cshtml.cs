@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.EntityFrameworkCore;
 using WebAppERP.Data;
@@ -57,10 +57,37 @@ public class FormasPagamentoModel : PageModel
     public async Task<IActionResult> OnPostDeleteAsync(int id)
     {
         var forma = await _db.FormasPagamento.FindAsync(id);
-        if (forma != null)
+        if (forma == null)
+            return RedirectToPage();
+
+        // Filhas: parcelas de condicao, contas a pagar e vendas (idFormaPagamento).
+        if (await _db.CondicoesPagamentoParcelas.AnyAsync(p => p.IdFormaPagamento == id))
+        {
+            TempData["Erro"] = "Não é possível excluir: esta forma é usada em uma condição de pagamento.";
+            return RedirectToPage();
+        }
+
+        if (await _db.ContasAPagar.AnyAsync(c => c.IdFormaPagamento == id))
+        {
+            TempData["Erro"] = "Não é possível excluir: existe conta a pagar com esta forma de pagamento.";
+            return RedirectToPage();
+        }
+
+        if (await _db.Vendas.AnyAsync(v => v.IdFormaPagamento == id))
+        {
+            TempData["Erro"] = "Não é possível excluir: existe venda com esta forma de pagamento.";
+            return RedirectToPage();
+        }
+
+        try
         {
             _db.FormasPagamento.Remove(forma);
             await _db.SaveChangesAsync();
+            TempData["Sucesso"] = "Forma de pagamento excluída com sucesso.";
+        }
+        catch (DbUpdateException)
+        {
+            TempData["Erro"] = "Não é possível excluir: existem registros vinculados a esta forma de pagamento.";
         }
         return RedirectToPage();
     }

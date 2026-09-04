@@ -73,13 +73,12 @@ public class GerFuncionario
     [Column("dtDemissao")]
     public DateOnly? DtDemissao { get; set; }
 
-    [Column("dsCargo")]
-    [Required, MaxLength(100)]
-    public string DsCargo { get; set; } = string.Empty;
-
-    // Novo vinculo com a tabela de Cargos (tbGerCargos).
+    // Cargo: vinculo obrigatorio com tbGerCargos.
+    // A antiga coluna dsCargo (nome do cargo repetido aqui) foi removida
+    // do banco - o nome vem da navegacao Cargo.NmCargo.
     [Column("idCargo")]
-    public int? IdCargo { get; set; }
+    [Required]
+    public int IdCargo { get; set; }
 
     [ForeignKey("IdCargo")]
     public GerCargo? Cargo { get; set; }

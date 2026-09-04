@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.EntityFrameworkCore;
 using WebAppERP.Data;
@@ -128,10 +128,20 @@ public class ContasAPagarModel : PageModel
     public async Task<IActionResult> OnPostDeleteAsync(int id)
     {
         var conta = await _db.ContasAPagar.FindAsync(id);
-        if (conta != null)
+        if (conta == null)
+            return RedirectToPage();
+
+        // Nenhuma tabela referencia tbFinContasAPagar hoje; o catch fica como
+        // rede de seguranca caso alguma FK nova aponte para ca.
+        try
         {
             _db.ContasAPagar.Remove(conta);
             await _db.SaveChangesAsync();
+            TempData["Sucesso"] = "Conta a pagar excluída com sucesso.";
+        }
+        catch (DbUpdateException)
+        {
+            TempData["Erro"] = "Não é possível excluir: existem registros vinculados a esta conta.";
         }
         return RedirectToPage();
     }

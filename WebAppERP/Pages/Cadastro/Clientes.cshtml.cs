@@ -1,4 +1,4 @@
-using System.ComponentModel.DataAnnotations;
+﻿using System.ComponentModel.DataAnnotations;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.EntityFrameworkCore;
@@ -94,14 +94,14 @@ public class ClientesModel : PageModel
             return await ComErroAsync("Informe o nome do cliente.");
 
         if (tipo == "F" && !string.IsNullOrEmpty(ClienteForm.NrCpf) && !CpfValido(ClienteForm.NrCpf))
-            return await ComErroAsync("CPF invalido. Verifique os numeros informados.");
+            return await ComErroAsync("CPF inválido. Verifique os números informados.");
 
         if (tipo == "J" && !string.IsNullOrEmpty(ClienteForm.NrCnpj) && !CnpjValido(ClienteForm.NrCnpj))
-            return await ComErroAsync("CNPJ invalido. Verifique os numeros informados.");
+            return await ComErroAsync("CNPJ inválido. Verifique os números informados.");
 
         if (!string.IsNullOrWhiteSpace(ClienteForm.DsEmail) &&
             !new EmailAddressAttribute().IsValid(ClienteForm.DsEmail))
-            return await ComErroAsync("E-mail invalido. Verifique o formato (exemplo: nome@dominio.com).");
+            return await ComErroAsync("E-mail inválido. Verifique o formato (exemplo: nome@dominio.com).");
 
         if (ClienteForm.IdCliente == 0)
         {
@@ -150,10 +150,31 @@ public class ClientesModel : PageModel
     public async Task<IActionResult> OnPostDeleteAsync(int id)
     {
         var cliente = await _db.Clientes.FindAsync(id);
-        if (cliente != null)
+        if (cliente == null)
+            return RedirectToPage();
+
+        // Filhas: tbOpeAgendamentos.idCliente e tbOpeVendas.idCliente.
+        if (await _db.Agendamentos.AnyAsync(a => a.IdCliente == id))
+        {
+            TempData["Erro"] = "Não é possível excluir: existe agendamento para este cliente. Inative-o.";
+            return RedirectToPage();
+        }
+
+        if (await _db.Vendas.AnyAsync(v => v.IdCliente == id))
+        {
+            TempData["Erro"] = "Não é possível excluir: existe venda para este cliente. Inative-o.";
+            return RedirectToPage();
+        }
+
+        try
         {
             _db.Clientes.Remove(cliente);
             await _db.SaveChangesAsync();
+            TempData["Sucesso"] = "Cliente excluído com sucesso.";
+        }
+        catch (DbUpdateException)
+        {
+            TempData["Erro"] = "Não é possível excluir: existem registros vinculados a este cliente. Inative-o.";
         }
         return RedirectToPage();
     }
@@ -177,12 +198,12 @@ public class ClientesModel : PageModel
 
         var estado = await _db.Estados.FindAsync(dto.IdEstado);
         if (estado is null)
-            return new JsonResult(new { sucesso = false, mensagem = "Estado invalido." });
+            return new JsonResult(new { sucesso = false, mensagem = "Estado inválido." });
 
         var nome = dto.NmCidade.Trim();
         bool existe = await _db.Cidades.AnyAsync(c => c.NmCidade == nome && c.IdEstado == dto.IdEstado);
         if (existe)
-            return new JsonResult(new { sucesso = false, mensagem = "Ja existe uma cidade com esse nome neste estado." });
+            return new JsonResult(new { sucesso = false, mensagem = "Já existe uma cidade com esse nome neste estado." });
 
         var cidade = new GerCidade
         {
@@ -222,16 +243,16 @@ public class ClientesModel : PageModel
             return new JsonResult(new { sucesso = false, mensagem = "Informe a UF (2 letras)." });
 
         if (dto.IdPais <= 0)
-            return new JsonResult(new { sucesso = false, mensagem = "Selecione o pais." });
+            return new JsonResult(new { sucesso = false, mensagem = "Selecione o país." });
 
         var pais = await _db.Paises.FindAsync(dto.IdPais);
         if (pais is null)
-            return new JsonResult(new { sucesso = false, mensagem = "Pais invalido." });
+            return new JsonResult(new { sucesso = false, mensagem = "País inválido." });
 
         var uf = dto.SgUF.Trim().ToUpper();
         bool existe = await _db.Estados.AnyAsync(e => e.SgUF == uf && e.IdPais == dto.IdPais);
         if (existe)
-            return new JsonResult(new { sucesso = false, mensagem = "Ja existe um estado com essa UF neste pais." });
+            return new JsonResult(new { sucesso = false, mensagem = "Já existe um estado com essa UF neste país." });
 
         var estado = new GerEstado
         {
@@ -267,15 +288,15 @@ public class ClientesModel : PageModel
     public async Task<IActionResult> OnPostPaisRapidoAsync([FromBody] PaisRapidoDto dto)
     {
         if (dto is null || string.IsNullOrWhiteSpace(dto.NmPais))
-            return new JsonResult(new { sucesso = false, mensagem = "Informe o nome do pais." });
+            return new JsonResult(new { sucesso = false, mensagem = "Informe o nome do país." });
 
         if (string.IsNullOrWhiteSpace(dto.SgPais))
-            return new JsonResult(new { sucesso = false, mensagem = "Informe a sigla do pais." });
+            return new JsonResult(new { sucesso = false, mensagem = "Informe a sigla do país." });
 
         var nome = dto.NmPais.Trim();
         bool existe = await _db.Paises.AnyAsync(p => p.NmPais == nome);
         if (existe)
-            return new JsonResult(new { sucesso = false, mensagem = "Ja existe um pais com esse nome." });
+            return new JsonResult(new { sucesso = false, mensagem = "Já existe um país com esse nome." });
 
         var pais = new GerPais
         {
@@ -291,10 +312,10 @@ public class ClientesModel : PageModel
         return new JsonResult(new { sucesso = true, id = pais.IdPais, nome = pais.NmPais });
     }
 
-    // ============================================================
+
     // Busca de clientes via AJAX (filtros da pagina)
     // Pesquisa por: codigo, nome, documento (CPF/CNPJ/outro) ou e-mail
-    // ============================================================
+
     public async Task<IActionResult> OnGetBuscarClientesAsync(
         int? id, string? nome, string? documento, string? email, bool incluirInativos = false)
     {

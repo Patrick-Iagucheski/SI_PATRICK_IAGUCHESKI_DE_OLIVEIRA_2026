@@ -1,9 +1,9 @@
-@page
+﻿@page
 @model WebAppERP.Pages.Cadastro.CondicoesPagamentoModel
 @using System.Globalization
 @using System.Text.Json
 @{
-    ViewData["Title"] = "Condicoes de Pagamento";
+    ViewData["Title"] = "Condições de Pagamento";
     CultureInfo inv = CultureInfo.InvariantCulture;
 
     var parcelasMap = Model.Condicoes.ToDictionary(
@@ -19,11 +19,11 @@
 
 <div class="d-flex justify-content-between align-items-start mb-4">
     <div>
-        <h1 class="page-title">Condicoes de Pagamento</h1>
+        <h1 class="page-title">Condições de Pagamento</h1>
         <p class="page-subtitle">Cadastre prazos, parcelas e ajustes financeiros (juro, multa e desconto)</p>
     </div>
     <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#modalCondicao" onclick="limparForm()">
-        <i class="bi bi-plus-lg me-1"></i> Nova Condicao
+        <i class="bi bi-plus-lg me-1"></i> Nova Condição
     </button>
 </div>
 
@@ -43,14 +43,14 @@
                 <input type="number" class="form-control" id="buscaId" min="1" autocomplete="off" />
             </div>
             <div class="col-md-6">
-                <label class="form-label small mb-1">Condicao</label>
+                <label class="form-label small mb-1">Condição</label>
                 <input type="text" class="form-control" id="buscaCondicao" autocomplete="off" />
             </div>
         </div>
         <div class="d-flex justify-content-between align-items-center mt-3">
             <div class="form-check mb-0">
                 <input class="form-check-input" type="checkbox" id="buscaInativos" onchange="buscarCondicoes()" />
-                <label class="form-check-label" for="buscaInativos">Exibir Condicoes Inativas</label>
+                <label class="form-check-label" for="buscaInativos">Exibir Condições Inativas</label>
             </div>
             <button type="button" class="btn btn-primary" onclick="buscarCondicoes()">
                 <i class="bi bi-search me-1"></i>Buscar
@@ -62,14 +62,14 @@
 <!-- Tabela -->
 <div class="table-container">
     <div class="table-header">
-        <h5><i class="bi bi-list-check me-2"></i>Condicoes de pagamento cadastradas</h5>
+        <h5><i class="bi bi-list-check me-2"></i>Condições de pagamento cadastradas</h5>
         <span class="text-muted small" id="contadorRegistros">@Model.Condicoes.Count registros encontrados</span>
     </div>
     <div class="table-responsive">
         <table class="table" id="tblCondicoes">
             <thead>
                 <tr>
-                    <th>Condicao</th>
+                    <th>Condição</th>
                     <th>Forma</th>
                     <th class="text-center">Prazo</th>
                     <th class="text-center">Parcelas</th>
@@ -77,7 +77,7 @@
                     <th class="text-end">Multa</th>
                     <th class="text-end">Desconto</th>
                     <th class="text-center">Ativo</th>
-                    <th class="text-center">Acoes</th>
+                    <th class="text-center">Ações</th>
                 </tr>
             </thead>
             <tbody>
@@ -139,7 +139,7 @@
                 }
                 else
                 {
-                    <tr><td colspan="9" class="text-center text-muted py-4">Nenhuma condicao de pagamento cadastrada</td></tr>
+                    <tr><td colspan="9" class="text-center text-muted py-4">Nenhuma condição de pagamento cadastrada</td></tr>
                 }
             </tbody>
         </table>
@@ -152,7 +152,7 @@
         <div class="modal-content">
             <form method="post" id="formCondicao">
                 <div class="modal-header">
-                    <h5 class="modal-title" id="modalTitle"><i class="bi bi-list-check me-2"></i>Nova Condicao de Pagamento</h5>
+                    <h5 class="modal-title" id="modalTitle"><i class="bi bi-list-check me-2"></i>Nova Condição de Pagamento</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
@@ -161,18 +161,18 @@
 
                     <div class="row g-3">
                         <div class="col-md-2">
-                            <label class="form-label">Codigo</label>
+                            <label class="form-label">Código</label>
                             <input type="text" class="form-control bg-light" id="formCodigoDisplay" placeholder="(novo)" readonly />
                         </div>
                         <div class="col-md-7">
-                            <label class="form-label">Condicao de Pagamento *</label>
+                            <label class="form-label">Condição de Pagamento *</label>
                             <input type="text" class="form-control" asp-for="CondicaoForm.DsCondicao" id="formDsCondicao" maxlength="100" placeholder="Ex: A vista, 30 dias, Parcelado 3x" required />
                         </div>
                         <div class="col-md-3">
                             <label class="form-label">Ativo</label>
                             <select class="form-select" asp-for="CondicaoForm.FlAtivo" id="formFlAtivo">
                                 <option value="true">Sim</option>
-                                <option value="false">Nao</option>
+                                <option value="false">Não</option>
                             </select>
                         </div>
 
@@ -210,7 +210,7 @@
                                     <th>Dias para vencimento *</th>
                                     <th>Forma de Pagamento *</th>
                                     <th style="width:140px;">Percentual (%) *</th>
-                                    <th class="text-center" style="width:70px;">Acoes</th>
+                                    <th class="text-center" style="width:70px;">Ações</th>
                                 </tr>
                             </thead>
                             <tbody></tbody>
@@ -226,7 +226,7 @@
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                    <button type="submit" class="btn btn-primary"><i class="bi bi-check-lg me-1"></i>Salvar condicao</button>
+                    <button type="submit" class="btn btn-primary"><i class="bi bi-check-lg me-1"></i>Salvar condição</button>
                 </div>
             </form>
         </div>
@@ -310,7 +310,7 @@
                 if (contador) contador.textContent = resultadosBusca.length + ' registros encontrados';
 
                 if (!resultadosBusca.length) {
-                    tbody.innerHTML = '<tr><td colspan="9" class="text-center text-muted py-4">Nenhuma condicao de pagamento encontrada</td></tr>';
+                    tbody.innerHTML = '<tr><td colspan="9" class="text-center text-muted py-4">Nenhuma condição de pagamento encontrada</td></tr>';
                     return;
                 }
 

@@ -1,4 +1,4 @@
-@page
+﻿@page
 @model WebAppERP.Pages.Cadastro.TransportadoresModel
 @{
     ViewData["Title"] = "Transportadores";
@@ -21,7 +21,7 @@
             <div class="col-md-4">
                 <div class="search-box">
                     <i class="bi bi-search search-icon"></i>
-                    <input type="text" class="form-control" placeholder="Buscar por razao social ou CPF/CNPJ..." id="searchInput" />
+                    <input type="text" class="form-control" placeholder="Buscar por razão social ou CPF/CNPJ..." id="searchInput" />
                 </div>
             </div>
         </div>
@@ -39,12 +39,12 @@
             <thead>
                 <tr>
                     <th>ID</th>
-                    <th>Razao Social</th>
+                    <th>Razão Social</th>
                     <th>CPF/CNPJ</th>
-                    <th>Endereco</th>
+                    <th>Endereço</th>
                     <th>Cidade</th>
                     <th>Insc. Estadual</th>
-                    <th class="text-center">Acoes</th>
+                    <th class="text-center">Ações</th>
                 </tr>
             </thead>
             <tbody>
@@ -97,7 +97,7 @@
                     <input type="hidden" asp-for="TransportadorForm.IdTransportador" id="formIdTransportador" />
                     <div class="row g-3">
                         <div class="col-md-8">
-                            <label class="form-label">Razao Social</label>
+                            <label class="form-label">Razão Social</label>
                             <input type="text" class="form-control" asp-for="TransportadorForm.DsRazaoSocial" id="formDsRazaoSocial" />
                         </div>
                         <div class="col-md-4">
@@ -105,7 +105,7 @@
                             <input type="text" class="form-control" asp-for="TransportadorForm.NrCpfCnpj" id="formNrCpfCnpj" maxlength="18" placeholder="000.000.000-00" />
                         </div>
                         <div class="col-md-8">
-                            <label class="form-label">Endereco</label>
+                            <label class="form-label">Endereço</label>
                             <input type="text" class="form-control" asp-for="TransportadorForm.DsEndereco" id="formDsEndereco" />
                         </div>
                         <div class="col-md-4">
@@ -119,7 +119,7 @@
                             </select>
                         </div>
                         <div class="col-md-6">
-                            <label class="form-label">Inscricao Estadual</label>
+                            <label class="form-label">Inscrição Estadual</label>
                             <input type="text" class="form-control" asp-for="TransportadorForm.NrInscEstadual" id="formNrInscEstadual" maxlength="20" />
                         </div>
                     </div>

@@ -1,4 +1,4 @@
-@page
+﻿@page
 @model WebAppERP.Pages.Cadastro.AgendamentosModel
 @{
     ViewData["Title"] = "Agendamentos";
@@ -90,12 +90,12 @@
                 <tr>
                     <th>Horario</th>
                     <th>Cliente</th>
-                    <th>Servico</th>
+                    <th>Serviço</th>
                     <th>Profissional</th>
-                    <th>Duracao</th>
+                    <th>Duração</th>
                     <th>Valor</th>
                     <th>Status</th>
-                    <th class="text-center">Acoes</th>
+                    <th class="text-center">Ações</th>
                 </tr>
             </thead>
             <tbody>
@@ -204,9 +204,9 @@
                             </select>
                         </div>
                         <div class="col-md-6">
-                            <label class="form-label">Servico *</label>
+                            <label class="form-label">Serviço *</label>
                             <select class="form-select" asp-for="AgendamentoForm.IdServico" required>
-                                <option value="">Selecione o servico</option>
+                                <option value="">Selecione o serviço</option>
                                 @foreach (var s in Model.Servicos)
                                 {
                                     <option value="@s.IdServico">@s.DsServico - R$ @s.VlServico.ToString("N2") (@(s.NrDuracaoMin ?? 0) min)</option>
@@ -233,7 +233,7 @@
                             </select>
                         </div>
                         <div class="col-12">
-                            <label class="form-label">Observacoes</label>
+                            <label class="form-label">Observações</label>
                             <textarea class="form-control" rows="2" asp-for="AgendamentoForm.DsObservacao"></textarea>
                         </div>
                     </div>
