@@ -22,6 +22,8 @@ public class AppDbContext : DbContext
     public DbSet<GerTransportador> Transportadores => Set<GerTransportador>();
     public DbSet<GerVeiculo> Veiculos => Set<GerVeiculo>();
     public DbSet<EstProduto> Produtos => Set<EstProduto>();
+    public DbSet<EstMarca> Marcas => Set<EstMarca>();
+    public DbSet<EstCategoria> Categorias => Set<EstCategoria>();
     public DbSet<FinContaPagar> ContasAPagar => Set<FinContaPagar>();
     public DbSet<FinCondicaoPagamento> CondicoesPagamento => Set<FinCondicaoPagamento>();
     public DbSet<FinCondicaoPagamentoParcela> CondicoesPagamentoParcelas => Set<FinCondicaoPagamentoParcela>();

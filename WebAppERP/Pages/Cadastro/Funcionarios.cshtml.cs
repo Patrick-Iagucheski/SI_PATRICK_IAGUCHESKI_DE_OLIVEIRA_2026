@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.EntityFrameworkCore;
 using WebAppERP.Data;
@@ -51,18 +51,11 @@ public class FuncionariosModel : PageModel
         FuncionarioForm.NrCEP = SomenteNumeros(FuncionarioForm.NrCEP);
         FuncionarioForm.NrRG = SomenteNumeros(FuncionarioForm.NrRG);
 
-        // O cargo agora vem do dropdown (idCargo). A coluna dsCargo (NOT NULL)
-        // e mantida sincronizada com o nome do cargo selecionado.
-        string nomeCargo = "";
-        if (FuncionarioForm.IdCargo.HasValue)
-        {
-            var cargoSel = await _db.Cargos.FindAsync(FuncionarioForm.IdCargo.Value);
-            nomeCargo = cargoSel?.NmCargo ?? "";
-        }
+        // O cargo vem do dropdown (idCargo) e e a unica fonte da verdade:
+        // o nome sai da navegacao Cargo.NmCargo na hora de exibir.
 
         if (FuncionarioForm.IdFuncionario == 0)
         {
-            FuncionarioForm.DsCargo = nomeCargo;
             FuncionarioForm.DtCriacao = DateTime.Now;
             _db.Funcionarios.Add(FuncionarioForm);
         }
@@ -88,7 +81,6 @@ public class FuncionariosModel : PageModel
                 existing.DtAdmissao = FuncionarioForm.DtAdmissao;
                 existing.DtDemissao = FuncionarioForm.DtDemissao;
                 existing.IdCargo = FuncionarioForm.IdCargo;
-                existing.DsCargo = nomeCargo;
                 existing.VlSalario = FuncionarioForm.VlSalario;
                 existing.VlComissao = FuncionarioForm.VlComissao;
                 existing.DsObservacao = FuncionarioForm.DsObservacao;
@@ -104,10 +96,31 @@ public class FuncionariosModel : PageModel
     public async Task<IActionResult> OnPostDeleteAsync(int id)
     {
         var func = await _db.Funcionarios.FindAsync(id);
-        if (func != null)
+        if (func == null)
+            return RedirectToPage();
+
+        // Filhas: tbOpeAgendamentos.idFuncionario e tbOpeVendas.idFuncionario.
+        if (await _db.Agendamentos.AnyAsync(a => a.IdFuncionario == id))
+        {
+            TempData["Erro"] = "Não é possível excluir: existe agendamento para este funcionário. Inative-o.";
+            return RedirectToPage();
+        }
+
+        if (await _db.Vendas.AnyAsync(v => v.IdFuncionario == id))
+        {
+            TempData["Erro"] = "Não é possível excluir: existe venda registrada por este funcionário. Inative-o.";
+            return RedirectToPage();
+        }
+
+        try
         {
             _db.Funcionarios.Remove(func);
             await _db.SaveChangesAsync();
+            TempData["Sucesso"] = "Funcionário excluído com sucesso.";
+        }
+        catch (DbUpdateException)
+        {
+            TempData["Erro"] = "Não é possível excluir: existem registros vinculados a este funcionário. Inative-o.";
         }
         return RedirectToPage();
     }
@@ -131,10 +144,10 @@ public class FuncionariosModel : PageModel
 
         bool existe = await _db.Cargos.AnyAsync(c => c.NmCargo == nome);
         if (existe)
-            return new JsonResult(new { sucesso = false, mensagem = "Ja existe um cargo com esse nome." });
+            return new JsonResult(new { sucesso = false, mensagem = "Já existe um cargo com esse nome." });
 
         if (dto.VlComissaoPadrao is < 0 or > 999.99m)
-            return new JsonResult(new { sucesso = false, mensagem = "Comissao padrao invalida." });
+            return new JsonResult(new { sucesso = false, mensagem = "Comissão padrão inválida." });
 
         var cargo = new GerCargo
         {
@@ -170,12 +183,12 @@ public class FuncionariosModel : PageModel
 
         var estado = await _db.Estados.FindAsync(dto.IdEstado);
         if (estado is null)
-            return new JsonResult(new { sucesso = false, mensagem = "Estado invalido." });
+            return new JsonResult(new { sucesso = false, mensagem = "Estado inválido." });
 
         var nome = dto.NmCidade.Trim();
         bool existe = await _db.Cidades.AnyAsync(c => c.NmCidade == nome && c.IdEstado == dto.IdEstado);
         if (existe)
-            return new JsonResult(new { sucesso = false, mensagem = "Ja existe uma cidade com esse nome neste estado." });
+            return new JsonResult(new { sucesso = false, mensagem = "Já existe uma cidade com esse nome neste estado." });
 
         var cidade = new GerCidade
         {
@@ -215,16 +228,16 @@ public class FuncionariosModel : PageModel
             return new JsonResult(new { sucesso = false, mensagem = "Informe a UF (2 letras)." });
 
         if (dto.IdPais <= 0)
-            return new JsonResult(new { sucesso = false, mensagem = "Selecione o pais." });
+            return new JsonResult(new { sucesso = false, mensagem = "Selecione o país." });
 
         var pais = await _db.Paises.FindAsync(dto.IdPais);
         if (pais is null)
-            return new JsonResult(new { sucesso = false, mensagem = "Pais invalido." });
+            return new JsonResult(new { sucesso = false, mensagem = "País inválido." });
 
         var uf = dto.SgUF.Trim().ToUpper();
         bool existe = await _db.Estados.AnyAsync(e => e.SgUF == uf && e.IdPais == dto.IdPais);
         if (existe)
-            return new JsonResult(new { sucesso = false, mensagem = "Ja existe um estado com essa UF neste pais." });
+            return new JsonResult(new { sucesso = false, mensagem = "Já existe um estado com essa UF neste país." });
 
         var estado = new GerEstado
         {
@@ -260,15 +273,15 @@ public class FuncionariosModel : PageModel
     public async Task<IActionResult> OnPostPaisRapidoAsync([FromBody] PaisRapidoDto dto)
     {
         if (dto is null || string.IsNullOrWhiteSpace(dto.NmPais))
-            return new JsonResult(new { sucesso = false, mensagem = "Informe o nome do pais." });
+            return new JsonResult(new { sucesso = false, mensagem = "Informe o nome do país." });
 
         if (string.IsNullOrWhiteSpace(dto.SgPais))
-            return new JsonResult(new { sucesso = false, mensagem = "Informe a sigla do pais." });
+            return new JsonResult(new { sucesso = false, mensagem = "Informe a sigla do país." });
 
         var nome = dto.NmPais.Trim();
         bool existe = await _db.Paises.AnyAsync(p => p.NmPais == nome);
         if (existe)
-            return new JsonResult(new { sucesso = false, mensagem = "Ja existe um pais com esse nome." });
+            return new JsonResult(new { sucesso = false, mensagem = "Já existe um país com esse nome." });
 
         var pais = new GerPais
         {
@@ -333,7 +346,7 @@ public class FuncionariosModel : PageModel
                 cpf = f.NrCpf,
                 rg = f.NrRG,
                 sexo = f.DsSexo,
-                cargoNome = f.Cargo != null ? f.Cargo.NmCargo : f.DsCargo,
+                cargoNome = f.Cargo != null ? f.Cargo.NmCargo : null,
                 idCargo = f.IdCargo,
                 tel = f.NrTelefone,
                 email = f.DsEmail,

@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.EntityFrameworkCore;
 using WebAppERP.Data;
@@ -26,10 +26,9 @@ public class CargosModel : PageModel
             .ToListAsync();
     }
 
-    // ============================================================
+   
     // Busca de cargos via AJAX (filtros da pagina)
     // Pesquisa por: codigo ou nome/descricao
-    // ============================================================
     public async Task<IActionResult> OnGetBuscarCargosAsync(int? id, string? termo, bool incluirInativos = false)
     {
         var query = _db.Cargos.AsQueryable();
@@ -70,7 +69,7 @@ public class CargosModel : PageModel
         // --- Validacoes ---
         if (string.IsNullOrWhiteSpace(CargoForm.NmCargo))
         {
-            TempData["Erro"] = "O nome do cargo e obrigatorio.";
+            TempData["Erro"] = "O nome do cargo é obrigatório.";
             return RedirectToPage();
         }
 
@@ -79,13 +78,13 @@ public class CargosModel : PageModel
             c.NmCargo == CargoForm.NmCargo && c.IdCargo != CargoForm.IdCargo);
         if (nomeExiste)
         {
-            TempData["Erro"] = $"Ja existe um cargo chamado \"{CargoForm.NmCargo}\".";
+            TempData["Erro"] = $"Já existe um cargo chamado \"{CargoForm.NmCargo}\".";
             return RedirectToPage();
         }
 
         if (CargoForm.VlComissaoPadrao is < 0 or > 999.99m)
         {
-            TempData["Erro"] = "Comissao padrao invalida.";
+            TempData["Erro"] = "Comissão padrão inválida.";
             return RedirectToPage();
         }
 
@@ -125,13 +124,13 @@ public class CargosModel : PageModel
         bool emUso = await _db.Funcionarios.AnyAsync(f => f.IdCargo == id);
         if (emUso)
         {
-            TempData["Erro"] = "Nao e possivel excluir: existe funcionario vinculado a este cargo.";
+            TempData["Erro"] = "Não é possível excluir: existe funcionário vinculado a este cargo.";
             return RedirectToPage();
         }
 
         _db.Cargos.Remove(cargo);
         await _db.SaveChangesAsync();
-        TempData["Sucesso"] = "Cargo excluido com sucesso.";
+        TempData["Sucesso"] = "Cargo excluído com sucesso.";
         return RedirectToPage();
     }
 }

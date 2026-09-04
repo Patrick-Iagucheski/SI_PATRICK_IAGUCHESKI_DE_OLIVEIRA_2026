@@ -1,5 +1,6 @@
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
+using Microsoft.EntityFrameworkCore;
 using WebAppERP.Models;
 using WebAppERP.Repositories;
 
@@ -26,7 +27,17 @@ public class VendasModel : PageModel
 
     public async Task<IActionResult> OnPostDeleteAsync(int id)
     {
-        await _repo.ExcluirAsync(id);
+        // O repositorio ja remove os itens antes da venda e estorna o estoque.
+        // O catch cobre qualquer FK futura que passe a apontar para tbOpeVendas.
+        try
+        {
+            await _repo.ExcluirAsync(id);
+            TempData["Sucesso"] = "Venda excluída com sucesso.";
+        }
+        catch (DbUpdateException)
+        {
+            TempData["Erro"] = "Não é possível excluir: existem registros vinculados a esta venda.";
+        }
         return RedirectToPage();
     }
 }

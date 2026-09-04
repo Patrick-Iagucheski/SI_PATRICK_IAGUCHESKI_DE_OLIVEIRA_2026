@@ -1,16 +1,16 @@
 ﻿@page
-@model WebAppERP.Pages.Cadastro.CargosModel
+@model WebAppERP.Pages.Cadastro.CategoriasModel
 @{
-    ViewData["Title"] = "Cargos";
+    ViewData["Title"] = "Categorias";
 }
 
 <div class="d-flex justify-content-between align-items-start mb-4">
     <div>
-        <h1 class="page-title">Cargos</h1>
-        <p class="page-subtitle">Gerencie os cargos dos funcionários</p>
+        <h1 class="page-title">Categorias</h1>
+        <p class="page-subtitle">Cadastre categorias para classificar os produtos do estoque</p>
     </div>
-    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#modalCargo" onclick="limparForm()">
-        <i class="bi bi-plus-lg me-1"></i> Novo Cargo
+    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#modalCategoria" onclick="limparForm()">
+        <i class="bi bi-plus-lg me-1"></i> Nova Categoria
     </button>
 </div>
 
@@ -23,16 +23,16 @@
                 <input type="number" class="form-control" id="buscaId" min="1" autocomplete="off" />
             </div>
             <div class="col-md-6">
-                <label class="form-label small mb-1">Nome / Descricao das Atividades</label>
+                <label class="form-label small mb-1">Categoria</label>
                 <input type="text" class="form-control" id="buscaTermo" autocomplete="off" />
             </div>
         </div>
         <div class="d-flex justify-content-between align-items-center mt-3">
             <div class="form-check mb-0">
-                <input class="form-check-input" type="checkbox" id="buscaInativos" onchange="buscarCargos()" />
-                <label class="form-check-label" for="buscaInativos">Exibir Cargos Inativos</label>
+                <input class="form-check-input" type="checkbox" id="buscaInativos" onchange="buscarCategorias()" />
+                <label class="form-check-label" for="buscaInativos">Exibir Categorias Inativas</label>
             </div>
-            <button type="button" class="btn btn-primary" onclick="buscarCargos()">
+            <button type="button" class="btn btn-primary" onclick="buscarCategorias()">
                 <i class="bi bi-search me-1"></i>Buscar
             </button>
         </div>
@@ -42,31 +42,27 @@
 <!-- Tabela -->
 <div class="table-container">
     <div class="table-header">
-        <h5><i class="bi bi-briefcase-fill me-2"></i>Lista de Cargos</h5>
-        <span class="text-muted small" id="contadorRegistros">@Model.Cargos.Count registros encontrados</span>
+        <h5><i class="bi bi-collection-fill me-2"></i>Lista de Categorias</h5>
+        <span class="text-muted small" id="contadorRegistros">@Model.Categorias.Count registros encontrados</span>
     </div>
     <div class="table-responsive">
-        <table class="table" id="tblCargos">
+        <table class="table" id="tblCategorias">
             <thead>
                 <tr>
                     <th>ID</th>
-                    <th>Nome</th>
-                    <th>Descrição das Atividades</th>
-                    <th>Comissão Padrão</th>
+                    <th>Categoria</th>
                     <th>Status</th>
                     <th class="text-center">Ações</th>
                 </tr>
             </thead>
             <tbody>
-                @if (Model.Cargos.Any())
+                @if (Model.Categorias.Any())
                 {
-                    @foreach (var c in Model.Cargos)
+                    @foreach (var c in Model.Categorias)
                     {
                         <tr data-status="@(c.FlAtivo ? "ativo" : "inativo")">
-                            <td>@c.IdCargo</td>
-                            <td><strong>@c.NmCargo</strong></td>
-                            <td>@(string.IsNullOrWhiteSpace(c.DsCargo) ? "-" : c.DsCargo)</td>
-                            <td>@(c.VlComissaoPadrao.HasValue ? $"{c.VlComissaoPadrao.Value.ToString("0.##")}%" : "-")</td>
+                            <td>@c.IdCategoria</td>
+                            <td><strong>@c.NmCategoria</strong></td>
                             <td>
                                 @if (c.FlAtivo)
                                 {
@@ -79,12 +75,12 @@
                             </td>
                             <td class="text-center">
                                 <button class="btn btn-icon btn-outline-primary" title="Editar"
-                                        data-bs-toggle="modal" data-bs-target="#modalCargo"
-                                        onclick="editarCargo(@c.IdCargo,'@c.NmCargo.Replace("'", "\\'")','@(c.DsCargo?.Replace("'", "\\'").Replace("\r", " ").Replace("\n", " "))','@(c.VlComissaoPadrao?.ToString("F2", System.Globalization.CultureInfo.InvariantCulture) ?? "")','@c.FlAtivo')">
+                                        data-bs-toggle="modal" data-bs-target="#modalCategoria"
+                                        onclick="editarCategoria(@c.IdCategoria,'@c.NmCategoria.Replace("'", "\\'")','@c.FlAtivo')">
                                     <i class="bi bi-pencil"></i>
                                 </button>
-                                <form method="post" asp-page-handler="Delete" class="d-inline" onsubmit="return confirm('Deseja realmente excluir este cargo?')">
-                                    <input type="hidden" name="id" value="@c.IdCargo" />
+                                <form method="post" asp-page-handler="Delete" class="d-inline" onsubmit="return confirm('Deseja realmente excluir esta categoria?')">
+                                    <input type="hidden" name="id" value="@c.IdCategoria" />
                                     <button type="submit" class="btn btn-icon btn-outline-danger" title="Excluir">
                                         <i class="bi bi-trash"></i>
                                     </button>
@@ -95,7 +91,7 @@
                 }
                 else
                 {
-                    <tr><td colspan="6" class="text-center text-muted py-4">Nenhum cargo cadastrado</td></tr>
+                    <tr><td colspan="4" class="text-center text-muted py-4">Nenhuma categoria cadastrada</td></tr>
                 }
             </tbody>
         </table>
@@ -106,32 +102,28 @@
 <form id="formTokenAjax" class="d-none">@Html.AntiForgeryToken()</form>
 
 <!-- Modal -->
-<div class="modal fade" id="modalCargo" tabindex="-1">
+<div class="modal fade" id="modalCategoria" tabindex="-1">
     <div class="modal-dialog">
         <div class="modal-content">
             <form method="post">
                 <div class="modal-header">
-                    <h5 class="modal-title" id="modalTitle"><i class="bi bi-briefcase me-2"></i>Novo Cargo</h5>
+                    <h5 class="modal-title" id="modalTitle"><i class="bi bi-collection me-2"></i>Nova Categoria</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
-                    <input type="hidden" asp-for="CargoForm.IdCargo" id="cId" />
+                    <input type="hidden" asp-for="CategoriaForm.IdCategoria" id="cId" />
                     <div class="row g-3">
-                        <div class="col-12">
-                            <label class="form-label">Nome do Cargo *</label>
-                            <input type="text" class="form-control" asp-for="CargoForm.NmCargo" id="cNome" maxlength="100" required />
+                        <div class="col-md-3">
+                            <label class="form-label">Código</label>
+                            <input type="text" class="form-control bg-light" id="cCodigoDisplay" placeholder="(novo)" readonly />
+                        </div>
+                        <div class="col-md-9">
+                            <label class="form-label">Categoria *</label>
+                            <input type="text" class="form-control" asp-for="CategoriaForm.NmCategoria" id="cNome" maxlength="100" placeholder="Ex: Bebida" required />
                         </div>
                         <div class="col-12">
-                            <label class="form-label">Descrição das Atividades</label>
-                            <textarea class="form-control" rows="2" asp-for="CargoForm.DsCargo" id="cDesc" maxlength="300"></textarea>
-                        </div>
-                        <div class="col-md-6">
-                            <label class="form-label">Comissao Padrao (%)</label>
-                            <input type="number" class="form-control" asp-for="CargoForm.VlComissaoPadrao" id="cComissao" step="0.01" min="0" max="100" />
-                        </div>
-                        <div class="col-md-6">
                             <label class="form-label">Status</label>
-                            <select class="form-select" asp-for="CargoForm.FlAtivo" id="cAtivo">
+                            <select class="form-select" asp-for="CategoriaForm.FlAtivo" id="cAtivo">
                                 <option value="true">Ativo</option>
                                 <option value="false">Inativo</option>
                             </select>
@@ -149,12 +141,12 @@
 
 @section Scripts {
     <script>
-        // ===== Busca de Cargos (filtros na pagina -> atualiza a grid via AJAX) =====
+        // ===== Busca de Categorias (filtros na pagina -> atualiza a grid via AJAX) =====
         let resultadosBusca = [];
 
         ['buscaId', 'buscaTermo'].forEach(id => {
             document.getElementById(id)?.addEventListener('keydown', e => {
-                if (e.key === 'Enter') { e.preventDefault(); buscarCargos(); }
+                if (e.key === 'Enter') { e.preventDefault(); buscarCategorias(); }
             });
         });
 
@@ -165,18 +157,13 @@
         }
 
         function montarLinha(c, i, token) {
-            const comissao = (c.comissao !== null && c.comissao !== undefined)
-                ? (parseFloat(c.comissao).toString().replace('.', ',') + '%') : '-';
-            const desc = (c.desc && c.desc.trim()) ? c.desc : '-';
             return '<tr>' +
                 '<td>' + c.id + '</td>' +
                 '<td><strong>' + (c.nome || '') + '</strong></td>' +
-                '<td>' + desc + '</td>' +
-                '<td>' + comissao + '</td>' +
                 '<td>' + statusBadge(c.ativo) + '</td>' +
                 '<td class="text-center">' +
                     '<button class="btn btn-icon btn-outline-primary" title="Editar" onclick="abrirEdicao(' + i + ')"><i class="bi bi-pencil"></i></button> ' +
-                    '<form method="post" action="?handler=Delete" class="d-inline" onsubmit="return confirm(\'Deseja realmente excluir este cargo?\')">' +
+                    '<form method="post" action="?handler=Delete" class="d-inline" onsubmit="return confirm(\'Deseja realmente excluir esta categoria?\')">' +
                         '<input type="hidden" name="__RequestVerificationToken" value="' + token + '">' +
                         '<input type="hidden" name="id" value="' + c.id + '">' +
                         '<button type="submit" class="btn btn-icon btn-outline-danger" title="Excluir"><i class="bi bi-trash"></i></button>' +
@@ -185,8 +172,8 @@
             '</tr>';
         }
 
-        async function buscarCargos() {
-            const tbody = document.querySelector('#tblCargos tbody');
+        async function buscarCategorias() {
+            const tbody = document.querySelector('#tblCategorias tbody');
             const id = document.getElementById('buscaId').value.trim();
             const termo = document.getElementById('buscaTermo').value.trim();
             const inativos = document.getElementById('buscaInativos').checked;
@@ -196,51 +183,46 @@
             if (termo) params.append('termo', termo);
             params.append('incluirInativos', inativos);
 
-            tbody.innerHTML = '<tr><td colspan="6" class="text-center text-muted py-3">Buscando...</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="4" class="text-center text-muted py-3">Buscando...</td></tr>';
             try {
-                const resp = await fetch('?handler=BuscarCargos&' + params.toString());
+                const resp = await fetch('?handler=BuscarCategorias&' + params.toString());
                 resultadosBusca = await resp.json();
 
                 const contador = document.getElementById('contadorRegistros');
                 if (contador) contador.textContent = resultadosBusca.length + ' registros encontrados';
 
                 if (!resultadosBusca.length) {
-                    tbody.innerHTML = '<tr><td colspan="6" class="text-center text-muted py-4">Nenhum cargo encontrado</td></tr>';
+                    tbody.innerHTML = '<tr><td colspan="4" class="text-center text-muted py-4">Nenhuma categoria encontrada</td></tr>';
                     return;
                 }
 
                 const token = document.querySelector('#formTokenAjax input[name="__RequestVerificationToken"]').value;
                 tbody.innerHTML = resultadosBusca.map((c, i) => montarLinha(c, i, token)).join('');
             } catch (e) {
-                tbody.innerHTML = '<tr><td colspan="6" class="text-center text-danger py-4">Erro ao buscar. Tente novamente.</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="4" class="text-center text-danger py-4">Erro ao buscar. Tente novamente.</td></tr>';
             }
         }
 
         function abrirEdicao(i) {
             const c = resultadosBusca[i];
-            editarCargo(
-                c.id, c.nome || '', c.desc || '',
-                (c.comissao ?? ''), (c.ativo ? 'True' : 'False')
-            );
-            bootstrap.Modal.getOrCreateInstance(document.getElementById('modalCargo')).show();
+            editarCategoria(c.id, c.nome || '', (c.ativo ? 'True' : 'False'));
+            bootstrap.Modal.getOrCreateInstance(document.getElementById('modalCategoria')).show();
         }
 
         // ===== Modal (novo / editar) =====
         function limparForm() {
-            document.getElementById('modalTitle').innerHTML = '<i class="bi bi-briefcase me-2"></i>Novo Cargo';
+            document.getElementById('modalTitle').innerHTML = '<i class="bi bi-collection me-2"></i>Nova Categoria';
             document.getElementById('cId').value = '0';
+            document.getElementById('cCodigoDisplay').value = '';
             document.getElementById('cNome').value = '';
-            document.getElementById('cDesc').value = '';
-            document.getElementById('cComissao').value = '';
             document.getElementById('cAtivo').value = 'true';
         }
 
-        function editarCargo(id, nome, desc, comissao, ativo) {
-            document.getElementById('modalTitle').innerHTML = '<i class="bi bi-pencil me-2"></i>Editar Cargo';
+        function editarCategoria(id, nome, ativo) {
+            document.getElementById('modalTitle').innerHTML = '<i class="bi bi-pencil me-2"></i>Editar Categoria';
             document.getElementById('cId').value = id;
+            document.getElementById('cCodigoDisplay').value = id;
             document.getElementById('cNome').value = nome;
-            document.getElementById('cDesc').value = desc;
-            document.getElementById('cComissao').value = comissao;
             document.getElementById('cAtivo').value = ativo === 'True' ? 'true' : 'false';
         }
     </script>

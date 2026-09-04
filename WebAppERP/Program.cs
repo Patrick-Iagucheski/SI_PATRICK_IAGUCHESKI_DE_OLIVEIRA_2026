@@ -8,6 +8,17 @@ var builder = WebApplication.CreateBuilder(args);
 // Add services to the container.
 builder.Services.AddRazorPages();
 
+// Limite de upload (ex.: imagem do produto): ate 500 MB.
+// Sem isso valem os padroes (Kestrel ~30 MB e multipart 128 MB), que barram
+// arquivos maiores antes de chegarem no handler da pagina.
+const long tamanhoMaxUpload = 500L * 1024 * 1024;
+builder.WebHost.ConfigureKestrel(options => options.Limits.MaxRequestBodySize = tamanhoMaxUpload);
+builder.Services.Configure<Microsoft.AspNetCore.Http.Features.FormOptions>(options =>
+{
+    options.MultipartBodyLengthLimit = tamanhoMaxUpload;
+    options.ValueLengthLimit = int.MaxValue;
+});
+
 // Parsing invariante de numeros (decimal/double/float) para casar com o formato
 // enviado por <input type="number"> (ponto decimal), sem alterar a exibicao pt-BR.
 builder.Services.Configure<Microsoft.AspNetCore.Mvc.MvcOptions>(options =>

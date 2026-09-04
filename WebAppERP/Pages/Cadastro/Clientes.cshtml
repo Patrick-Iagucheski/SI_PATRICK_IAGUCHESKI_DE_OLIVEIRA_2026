@@ -1,4 +1,4 @@
-@page
+﻿@page
 @model WebAppERP.Pages.Cadastro.ClientesModel
 @{
     ViewData["Title"] = "Clientes";
@@ -111,7 +111,7 @@
                     <th>E-mail</th>
                     <th>Cidade</th>
                     <th>Status</th>
-                    <th class="text-center">Acoes</th>
+                    <th class="text-center">Ações</th>
                 </tr>
             </thead>
             <tbody>
@@ -176,14 +176,14 @@
                     <div class="row g-3">
                         <!-- Codigo (somente leitura) | Tipo de Pessoa | Nome -->
                         <div class="col-md-2">
-                            <label class="form-label">Codigo</label>
+                            <label class="form-label">Código</label>
                             <input type="text" class="form-control bg-light" id="formCodigoDisplay" placeholder="(novo)" readonly />
                         </div>
                         <div class="col-md-4">
                             <label class="form-label">Tipo de Pessoa *</label>
                             <select class="form-select" asp-for="ClienteForm.TpPessoa" id="formTpPessoa" onchange="toggleTipoPessoa()">
-                                <option value="F">Pessoa Fisica</option>
-                                <option value="J">Pessoa Juridica</option>
+                                <option value="F">Pessoa Física</option>
+                                <option value="J">Pessoa Jurídica</option>
                                 <option value="E">Estrangeiro / Outro</option>
                             </select>
                         </div>
@@ -235,11 +235,11 @@
 
                         <!-- Endereco | Numero -->
                         <div class="col-md-8">
-                            <label class="form-label">Endereco</label>
+                            <label class="form-label">Endereço</label>
                             <input type="text" class="form-control" asp-for="ClienteForm.DsEndereco" id="formDsEndereco" maxlength="200" />
                         </div>
                         <div class="col-md-4">
-                            <label class="form-label">Numero</label>
+                            <label class="form-label">Número</label>
                             <input type="text" class="form-control" asp-for="ClienteForm.NrNumero" id="formNrNumero" maxlength="10" />
                         </div>
 
@@ -264,8 +264,8 @@
                                         <option value="@cidade.IdCidade">@cidade.NmCidade / @cidade.Estado?.SgUF</option>
                                     }
                                 </select>
-                                <button type="button" class="btn btn-outline-primary" data-bs-toggle="modal"
-                                        data-bs-target="#modalCidadeRapido" title="Cadastrar nova cidade">
+                                <button type="button" class="btn btn-outline-primary"
+                                        onclick="abrirModalEmpilhado('modalCidadeRapido')" title="Cadastrar nova cidade">
                                     <i class="bi bi-plus-lg"></i>
                                 </button>
                             </div>
@@ -284,7 +284,7 @@
 
                         <!-- Observacoes -->
                         <div class="col-12">
-                            <label class="form-label">Observacoes</label>
+                            <label class="form-label">Observações</label>
                             <textarea class="form-control" rows="2" asp-for="ClienteForm.DsObservacao" id="formDsObservacao" maxlength="500"></textarea>
                         </div>
                     </div>
@@ -323,8 +323,8 @@
                                     <option value="@estado.IdEstado">@estado.NmEstado / @estado.SgUF</option>
                                 }
                             </select>
-                            <button type="button" class="btn btn-outline-primary" data-bs-toggle="modal"
-                                    data-bs-target="#modalEstadoRapido" title="Cadastrar novo estado">
+                            <button type="button" class="btn btn-outline-primary"
+                                    onclick="abrirModalEmpilhado('modalEstadoRapido')" title="Cadastrar novo estado">
                                 <i class="bi bi-plus-lg"></i>
                             </button>
                         </div>
@@ -361,7 +361,7 @@
                         <input type="text" class="form-control text-uppercase" id="estUF" maxlength="2" placeholder="Ex: PR" />
                     </div>
                     <div class="col-12">
-                        <label class="form-label">Pais *</label>
+                        <label class="form-label">País *</label>
                         <div class="input-group">
                             <select class="form-select" id="estPais">
                                 <option value="">Selecione</option>
@@ -370,8 +370,8 @@
                                     <option value="@pais.IdPais">@pais.NmPais</option>
                                 }
                             </select>
-                            <button type="button" class="btn btn-outline-primary" data-bs-toggle="modal"
-                                    data-bs-target="#modalPaisRapido" title="Cadastrar novo pais">
+                            <button type="button" class="btn btn-outline-primary"
+                                    onclick="abrirModalEmpilhado('modalPaisRapido')" title="Cadastrar novo país">
                                 <i class="bi bi-plus-lg"></i>
                             </button>
                         </div>
@@ -393,14 +393,14 @@
     <div class="modal-dialog">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title"><i class="bi bi-globe-americas me-2"></i>Cadastrar Pais</h5>
+                <h5 class="modal-title"><i class="bi bi-globe-americas me-2"></i>Cadastrar País</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
                 <div id="paisMsg"></div>
                 <div class="row g-3">
                     <div class="col-md-8">
-                        <label class="form-label">Nome do Pais *</label>
+                        <label class="form-label">Nome do País *</label>
                         <input type="text" class="form-control" id="paisNome" maxlength="100" />
                     </div>
                     <div class="col-md-4">
@@ -420,7 +420,7 @@
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
                 <button type="button" class="btn btn-primary" id="btnSalvarPaisRapido" onclick="salvarPaisRapido()">
-                    <i class="bi bi-check-lg me-1"></i>Salvar Pais
+                    <i class="bi bi-check-lg me-1"></i>Salvar País
                 </button>
             </div>
         </div>

@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.EntityFrameworkCore;
 using WebAppERP.Data;
@@ -51,10 +51,31 @@ public class ServicosModel : PageModel
     public async Task<IActionResult> OnPostDeleteAsync(int id)
     {
         var servico = await _db.Servicos.FindAsync(id);
-        if (servico != null)
+        if (servico == null)
+            return RedirectToPage();
+
+        // Filhas: tbOpeAgendamentos.idServico e tbOpeVendaItens.idServico.
+        if (await _db.Agendamentos.AnyAsync(a => a.IdServico == id))
+        {
+            TempData["Erro"] = "Não é possível excluir: existe agendamento com este serviço. Inative-o.";
+            return RedirectToPage();
+        }
+
+        if (await _db.VendaItens.AnyAsync(i => i.IdServico == id))
+        {
+            TempData["Erro"] = "Não é possível excluir: este serviço consta em uma venda. Inative-o.";
+            return RedirectToPage();
+        }
+
+        try
         {
             _db.Servicos.Remove(servico);
             await _db.SaveChangesAsync();
+            TempData["Sucesso"] = "Serviço excluído com sucesso.";
+        }
+        catch (DbUpdateException)
+        {
+            TempData["Erro"] = "Não é possível excluir: existem registros vinculados a este serviço. Inative-o.";
         }
         return RedirectToPage();
     }

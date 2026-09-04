@@ -1,4 +1,4 @@
-using System.ComponentModel.DataAnnotations;
+﻿using System.ComponentModel.DataAnnotations;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.EntityFrameworkCore;
@@ -111,21 +111,21 @@ public class FornecedoresModel : PageModel
 
         // ===== Validacoes amigaveis =====
         if (string.IsNullOrWhiteSpace(FornecedorForm.DsRazaoSocial))
-            return await ComErroAsync("Informe a Razao Social / Nome do fornecedor.");
+            return await ComErroAsync("Informe a Razão Social / Nome do fornecedor.");
 
         if (tipo == "F" && !string.IsNullOrEmpty(FornecedorForm.NrCpf) && !CpfValido(FornecedorForm.NrCpf))
-            return await ComErroAsync("CPF invalido. Verifique os numeros informados.");
+            return await ComErroAsync("CPF inválido. Verifique os números informados.");
 
         if (tipo == "J" && !string.IsNullOrEmpty(FornecedorForm.NrCNPJ) && !CnpjValido(FornecedorForm.NrCNPJ))
-            return await ComErroAsync("CNPJ invalido. Verifique os numeros informados.");
+            return await ComErroAsync("CNPJ inválido. Verifique os números informados.");
 
         // RG obrigatorio (9 digitos) para Pessoa Fisica
         if (tipo == "F")
         {
             if (string.IsNullOrWhiteSpace(FornecedorForm.NrRG))
-                return await ComErroAsync("Informe o RG do fornecedor (Pessoa Fisica).");
+                return await ComErroAsync("Informe o RG do fornecedor (Pessoa Física).");
             if (FornecedorForm.NrRG.Length != 9)
-                return await ComErroAsync("RG invalido. Informe 9 digitos.");
+                return await ComErroAsync("RG inválido. Informe 9 dígitos.");
         }
 
         // Inscricoes para Pessoa Juridica (validadas apenas quando preenchidas)
@@ -133,16 +133,16 @@ public class FornecedoresModel : PageModel
         {
             if (!string.IsNullOrEmpty(FornecedorForm.NrInscEstadual) &&
                 (FornecedorForm.NrInscEstadual.Length < 8 || !FornecedorForm.NrInscEstadual.All(char.IsDigit)))
-                return await ComErroAsync("Inscricao Estadual deve ter de 8 a 13 digitos.");
+                return await ComErroAsync("Inscrição Estadual deve ter de 8 a 13 dígitos.");
 
             if (!string.IsNullOrEmpty(FornecedorForm.NrInscMunicipal) &&
                 FornecedorForm.NrInscMunicipal.Length < 7)
-                return await ComErroAsync("Inscricao Municipal deve ter de 7 a 15 caracteres.");
+                return await ComErroAsync("Inscrição Municipal deve ter de 7 a 15 caracteres.");
         }
 
         if (!string.IsNullOrWhiteSpace(FornecedorForm.DsEmail) &&
             !new EmailAddressAttribute().IsValid(FornecedorForm.DsEmail))
-            return await ComErroAsync("E-mail invalido. Verifique o formato (exemplo: nome@dominio.com).");
+            return await ComErroAsync("E-mail inválido. Verifique o formato (exemplo: nome@dominio.com).");
 
         // Validacao da chave PIX conforme o tipo
         if (!string.IsNullOrWhiteSpace(FornecedorForm.DsChavePix) && !string.IsNullOrWhiteSpace(tpPix))
@@ -157,7 +157,7 @@ public class FornecedoresModel : PageModel
                 _ => true // ALEATORIA / outros
             };
             if (!pixOk)
-                return await ComErroAsync("Chave PIX invalida para o tipo selecionado.");
+                return await ComErroAsync("Chave PIX inválida para o tipo selecionado.");
         }
 
         if (FornecedorForm.IdFornecedor == 0)
@@ -218,10 +218,27 @@ public class FornecedoresModel : PageModel
     public async Task<IActionResult> OnPostDeleteAsync(int id)
     {
         var fornecedor = await _db.Fornecedores.FindAsync(id);
-        if (fornecedor != null)
+        if (fornecedor == null)
+            return RedirectToPage();
+
+        // Filha com DbSet: tbFinContasAPagar.idFornecedor.
+        // tbFisNFe.idFornecedor tambem aponta para ca, mas nao tem DbSet -
+        // quem cobre esse caso e o catch de DbUpdateException abaixo.
+        if (await _db.ContasAPagar.AnyAsync(c => c.IdFornecedor == id))
+        {
+            TempData["Erro"] = "Não é possível excluir: existe conta a pagar para este fornecedor. Inative-o.";
+            return RedirectToPage();
+        }
+
+        try
         {
             _db.Fornecedores.Remove(fornecedor);
             await _db.SaveChangesAsync();
+            TempData["Sucesso"] = "Fornecedor excluído com sucesso.";
+        }
+        catch (DbUpdateException)
+        {
+            TempData["Erro"] = "Não é possível excluir: existem registros vinculados a este fornecedor. Inative-o.";
         }
         return RedirectToPage();
     }
@@ -244,12 +261,12 @@ public class FornecedoresModel : PageModel
 
         var estado = await _db.Estados.FindAsync(dto.IdEstado);
         if (estado is null)
-            return new JsonResult(new { sucesso = false, mensagem = "Estado invalido." });
+            return new JsonResult(new { sucesso = false, mensagem = "Estado inválido." });
 
         var nome = dto.NmCidade.Trim();
         bool existe = await _db.Cidades.AnyAsync(c => c.NmCidade == nome && c.IdEstado == dto.IdEstado);
         if (existe)
-            return new JsonResult(new { sucesso = false, mensagem = "Ja existe uma cidade com esse nome neste estado." });
+            return new JsonResult(new { sucesso = false, mensagem = "Já existe uma cidade com esse nome neste estado." });
 
         var cidade = new GerCidade { NmCidade = nome, IdEstado = dto.IdEstado, DtCriacao = DateTime.Now };
         _db.Cidades.Add(cidade);
@@ -275,16 +292,16 @@ public class FornecedoresModel : PageModel
         if (string.IsNullOrWhiteSpace(dto.SgUF) || dto.SgUF.Trim().Length != 2)
             return new JsonResult(new { sucesso = false, mensagem = "Informe a UF (2 letras)." });
         if (dto.IdPais <= 0)
-            return new JsonResult(new { sucesso = false, mensagem = "Selecione o pais." });
+            return new JsonResult(new { sucesso = false, mensagem = "Selecione o país." });
 
         var pais = await _db.Paises.FindAsync(dto.IdPais);
         if (pais is null)
-            return new JsonResult(new { sucesso = false, mensagem = "Pais invalido." });
+            return new JsonResult(new { sucesso = false, mensagem = "País inválido." });
 
         var uf = dto.SgUF.Trim().ToUpper();
         bool existe = await _db.Estados.AnyAsync(e => e.SgUF == uf && e.IdPais == dto.IdPais);
         if (existe)
-            return new JsonResult(new { sucesso = false, mensagem = "Ja existe um estado com essa UF neste pais." });
+            return new JsonResult(new { sucesso = false, mensagem = "Já existe um estado com essa UF neste país." });
 
         var estado = new GerEstado { SgUF = uf, NmEstado = dto.NmEstado.Trim(), IdPais = dto.IdPais, DtCriacao = DateTime.Now };
         _db.Estados.Add(estado);
@@ -307,14 +324,14 @@ public class FornecedoresModel : PageModel
     public async Task<IActionResult> OnPostPaisRapidoAsync([FromBody] PaisRapidoDto dto)
     {
         if (dto is null || string.IsNullOrWhiteSpace(dto.NmPais))
-            return new JsonResult(new { sucesso = false, mensagem = "Informe o nome do pais." });
+            return new JsonResult(new { sucesso = false, mensagem = "Informe o nome do país." });
         if (string.IsNullOrWhiteSpace(dto.SgPais))
-            return new JsonResult(new { sucesso = false, mensagem = "Informe a sigla do pais." });
+            return new JsonResult(new { sucesso = false, mensagem = "Informe a sigla do país." });
 
         var nome = dto.NmPais.Trim();
         bool existe = await _db.Paises.AnyAsync(p => p.NmPais == nome);
         if (existe)
-            return new JsonResult(new { sucesso = false, mensagem = "Ja existe um pais com esse nome." });
+            return new JsonResult(new { sucesso = false, mensagem = "Já existe um país com esse nome." });
 
         var pais = new GerPais
         {

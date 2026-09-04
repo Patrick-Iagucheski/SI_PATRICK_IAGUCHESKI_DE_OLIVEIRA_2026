@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.EntityFrameworkCore;
 using WebAppERP.Data;
@@ -47,10 +47,25 @@ public class PaisesModel : PageModel
     public async Task<IActionResult> OnPostDeleteAsync(int id)
     {
         var pais = await _db.Paises.FindAsync(id);
-        if (pais != null)
+        if (pais == null)
+            return RedirectToPage();
+
+        // Nao deixa excluir pais que ainda tem estados (FK_tbGerEstados_Pais).
+        if (await _db.Estados.AnyAsync(e => e.IdPais == id))
+        {
+            TempData["Erro"] = "Não é possível excluir: existe estado vinculado a este país.";
+            return RedirectToPage();
+        }
+
+        try
         {
             _db.Paises.Remove(pais);
             await _db.SaveChangesAsync();
+            TempData["Sucesso"] = "País excluído com sucesso.";
+        }
+        catch (DbUpdateException)
+        {
+            TempData["Erro"] = "Não é possível excluir: existem registros vinculados a este país.";
         }
         return RedirectToPage();
     }

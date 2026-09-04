@@ -1,8 +1,8 @@
-@{
+﻿@{
     var curr = ViewContext.RouteData.Values["page"]?.ToString() ?? "";
     string[] gCadastros = { "/Cadastro/Clientes", "/Cadastro/Funcionarios", "/Cadastro/Cargos", "/Cadastro/Servicos", "/Cadastro/Fornecedores" };
     string[] gLocalidades = { "/Cadastro/Paises", "/Cadastro/Estados", "/Cadastro/Cidades" };
-    string[] gEstoque = { "/Cadastro/Produtos" };
+    string[] gEstoque = { "/Cadastro/Produtos", "/Cadastro/Marcas", "/Cadastro/Categorias" };
     string[] gFinanceiro = { "/Cadastro/FormasPagamento", "/Cadastro/CondicoesPagamento", "/Cadastro/ContasAPagar" };
     string[] gOperacional = { "/Cadastro/Agendamentos", "/Cadastro/Vendas", "/Cadastro/Venda" };
     string Active(string page) => curr == page ? "active" : "";
@@ -55,7 +55,7 @@
                         </li>
                         <li class="sidebar-item">
                             <a class="sidebar-link @Active("/Cadastro/Funcionarios")" asp-page="/Cadastro/Funcionarios">
-                                <i class="bi bi-person-badge-fill"></i><span>Funcionarios</span>
+                                <i class="bi bi-person-badge-fill"></i><span>Funcionários</span>
                             </a>
                         </li>
                         <li class="sidebar-item">
@@ -65,7 +65,7 @@
                         </li>
                         <li class="sidebar-item">
                             <a class="sidebar-link @Active("/Cadastro/Servicos")" asp-page="/Cadastro/Servicos">
-                                <i class="bi bi-card-checklist"></i><span>Servicos</span>
+                                <i class="bi bi-card-checklist"></i><span>Serviços</span>
                             </a>
                         </li>
                         <li class="sidebar-item">
@@ -84,7 +84,7 @@
                     <ul class="sidebar-group-items">
                         <li class="sidebar-item">
                             <a class="sidebar-link @Active("/Cadastro/Paises")" asp-page="/Cadastro/Paises">
-                                <i class="bi bi-globe-americas"></i><span>Paises</span>
+                                <i class="bi bi-globe-americas"></i><span>Países</span>
                             </a>
                         </li>
                         <li class="sidebar-item">
@@ -111,6 +111,16 @@
                                 <i class="bi bi-box-seam"></i><span>Produtos</span>
                             </a>
                         </li>
+                        <li class="sidebar-item">
+                            <a class="sidebar-link @Active("/Cadastro/Marcas")" asp-page="/Cadastro/Marcas">
+                                <i class="bi bi-tags-fill"></i><span>Marcas</span>
+                            </a>
+                        </li>
+                        <li class="sidebar-item">
+                            <a class="sidebar-link @Active("/Cadastro/Categorias")" asp-page="/Cadastro/Categorias">
+                                <i class="bi bi-collection-fill"></i><span>Categorias</span>
+                            </a>
+                        </li>
                     </ul>
                 </li>
 
@@ -127,7 +137,7 @@
                         </li>
                         <li class="sidebar-item">
                             <a class="sidebar-link @Active("/Cadastro/CondicoesPagamento")" asp-page="/Cadastro/CondicoesPagamento">
-                                <i class="bi bi-list-check"></i><span>Condicoes de Pagamento</span>
+                                <i class="bi bi-list-check"></i><span>Condições de Pagamento</span>
                             </a>
                         </li>
                         <li class="sidebar-item">
@@ -196,6 +206,23 @@
             </nav>
             <div class="container-fluid p-4">
                 <main role="main">
+                    @* Alertas de TempData centralizados: qualquer pagina que definir
+                       TempData["Erro"] ou TempData["Sucesso"] exibe a mensagem aqui,
+                       sem precisar repetir o bloco em cada view. *@
+                    @if (TempData["Erro"] != null)
+                    {
+                        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                            <i class="bi bi-exclamation-triangle me-1"></i> @TempData["Erro"]
+                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                        </div>
+                    }
+                    @if (TempData["Sucesso"] != null)
+                    {
+                        <div class="alert alert-success alert-dismissible fade show" role="alert">
+                            <i class="bi bi-check-circle me-1"></i> @TempData["Sucesso"]
+                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                        </div>
+                    }
                     @RenderBody()
                 </main>
             </div>
@@ -252,6 +279,16 @@
         document.getElementById('sidebarToggle')?.addEventListener('click', function () {
             document.getElementById('wrapper').classList.toggle('sidebar-collapsed');
         });
+
+        // Abre um modal por cima de outro SEM usar data-bs-toggle. Isso e necessario
+        // porque o handler nativo do data-bs-toggle="modal" do Bootstrap FECHA o modal
+        // que ja estava aberto ("avoid conflict when clicking modal toggler while another
+        // one is open"). Ao abrir via JS, o modal de baixo (ex.: Produto/Funcionario)
+        // permanece aberto e preservado enquanto o cadastro rapido fica por cima.
+        window.abrirModalEmpilhado = function (id) {
+            var el = document.getElementById(id);
+            if (el) bootstrap.Modal.getOrCreateInstance(el).show();
+        };
     </script>
 
     @await RenderSectionAsync("Scripts", required: false)

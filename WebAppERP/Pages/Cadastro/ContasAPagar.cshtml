@@ -1,4 +1,4 @@
-@page
+﻿@page
 @model WebAppERP.Pages.Cadastro.ContasAPagarModel
 @using System.Globalization
 @{
@@ -117,7 +117,7 @@
                     <th>Status</th>
                     <th class="text-center">Ativo</th>
                     <th>Forma</th>
-                    <th class="text-center">Acoes</th>
+                    <th class="text-center">Ações</th>
                 </tr>
             </thead>
             <tbody>
@@ -195,7 +195,7 @@
                     <input type="hidden" asp-for="ContaForm.IdContaPagar" id="formIdConta" />
                     <div class="row g-3">
                         <div class="col-md-2">
-                            <label class="form-label">Codigo</label>
+                            <label class="form-label">Código</label>
                             <input type="text" class="form-control bg-light" id="formCodigoDisplay" placeholder="(novo)" readonly />
                         </div>
                         <div class="col-md-7">
@@ -229,7 +229,7 @@
                         </div>
 
                         <div class="col-md-3">
-                            <label class="form-label">Emissao</label>
+                            <label class="form-label">Emissão</label>
                             <input type="date" class="form-control" asp-for="ContaForm.DtEmissao" id="formDtEmissao" />
                         </div>
                         <div class="col-md-3">
@@ -261,12 +261,12 @@
                             <label class="form-label">Ativo</label>
                             <select class="form-select" asp-for="ContaForm.FlAtivo" id="formFlAtivo">
                                 <option value="true">Sim</option>
-                                <option value="false">Nao</option>
+                                <option value="false">Não</option>
                             </select>
                         </div>
 
                         <div class="col-12">
-                            <label class="form-label">Observacoes</label>
+                            <label class="form-label">Observações</label>
                             <textarea class="form-control" rows="2" asp-for="ContaForm.DsObservacao" id="formDsObservacao" placeholder="Detalhes da conta, negociacao ou baixa"></textarea>
                         </div>
                     </div>

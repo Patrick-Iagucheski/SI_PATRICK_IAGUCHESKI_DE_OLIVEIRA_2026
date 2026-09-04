@@ -1,4 +1,4 @@
-@page
+﻿@page
 @model WebAppERP.Pages.Cadastro.CidadesModel
 @{
     ViewData["Title"] = "Cidades";
@@ -59,8 +59,8 @@
                     <th>Nome</th>
                     <th>Estado</th>
                     <th>UF</th>
-                    <th>Ultima Edicao</th>
-                    <th class="text-center">Acoes</th>
+                    <th>Última Edição</th>
+                    <th class="text-center">Ações</th>
                 </tr>
             </thead>
             <tbody>
@@ -112,7 +112,7 @@
                     <input type="hidden" asp-for="CidadeForm.IdCidade" id="formIdCidade" />
                     <div class="row g-3">
                         <div class="col-md-2">
-                            <label class="form-label">Codigo</label>
+                            <label class="form-label">Código</label>
                             <input type="text" class="form-control bg-light" id="formCodigoDisplay" placeholder="(novo)" readonly />
                         </div>
                         <div class="col-md-10">

@@ -1,4 +1,4 @@
-@page
+﻿@page
 @model WebAppERP.Pages.Cadastro.EstadosModel
 @{
     ViewData["Title"] = "Estados";
@@ -48,9 +48,9 @@
                     <th>ID</th>
                     <th>UF</th>
                     <th>Nome</th>
-                    <th>Pais</th>
-                    <th>Ultima Edicao</th>
-                    <th class="text-center">Acoes</th>
+                    <th>País</th>
+                    <th>Última Edição</th>
+                    <th class="text-center">Ações</th>
                 </tr>
             </thead>
             <tbody>
@@ -102,7 +102,7 @@
                     <input type="hidden" asp-for="EstadoForm.IdEstado" id="formIdEstado" />
                     <div class="row g-3">
                         <div class="col-md-2">
-                            <label class="form-label">Codigo</label>
+                            <label class="form-label">Código</label>
                             <input type="text" class="form-control bg-light" id="formCodigoDisplay" placeholder="(novo)" readonly />
                         </div>
                         <div class="col-md-2">
@@ -114,9 +114,9 @@
                             <input type="text" class="form-control" asp-for="EstadoForm.NmEstado" id="formNmEstado" required />
                         </div>
                         <div class="col-12">
-                            <label class="form-label">Pais *</label>
+                            <label class="form-label">País *</label>
                             <select class="form-select" asp-for="EstadoForm.IdPais" id="formIdPais" required>
-                                <option value="">Selecione o pais</option>
+                                <option value="">Selecione o país</option>
                                 @foreach (var pais in Model.Paises)
                                 {
                                     <option value="@pais.IdPais">@pais.NmPais</option>

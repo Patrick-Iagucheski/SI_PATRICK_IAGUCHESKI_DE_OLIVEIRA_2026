@@ -1,4 +1,4 @@
-using System.Text.Json;
+﻿using System.Text.Json;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.EntityFrameworkCore;
@@ -47,7 +47,7 @@ public class CondicoesPagamentoModel : PageModel
 
         // ===== Validacoes de servidor (defensivas; a tela ja valida) =====
         if (string.IsNullOrWhiteSpace(CondicaoForm.DsCondicao))
-            return await ComErroAsync("Informe a condicao de pagamento.");
+            return await ComErroAsync("Informe a condição de pagamento.");
 
         if (parcelas.Count == 0)
             return await ComErroAsync("Adicione ao menos uma parcela.");
@@ -59,7 +59,7 @@ public class CondicoesPagamentoModel : PageModel
             return await ComErroAsync("O percentual de cada parcela deve estar entre 0 e 100.");
 
         if (parcelas.Any(p => p.NrDiasVencimento < 0))
-            return await ComErroAsync("Os dias para vencimento nao podem ser negativos.");
+            return await ComErroAsync("Os dias para vencimento não podem ser negativos.");
 
         var soma = parcelas.Sum(p => p.VlPercentual);
         if (Math.Abs(soma - 100m) > 0.01m)
@@ -143,11 +143,19 @@ public class CondicoesPagamentoModel : PageModel
     public async Task<IActionResult> OnPostDeleteAsync(int id)
     {
         var c = await _db.CondicoesPagamento.FindAsync(id);
-        if (c != null)
+        if (c == null)
+            return RedirectToPage();
+
+        try
         {
             // Parcelas saem por cascade (configurado no DbContext / FK).
             _db.CondicoesPagamento.Remove(c);
             await _db.SaveChangesAsync();
+            TempData["Sucesso"] = "Condição de pagamento excluída com sucesso.";
+        }
+        catch (DbUpdateException)
+        {
+            TempData["Erro"] = "Não é possível excluir: existem registros vinculados a esta condição de pagamento.";
         }
         return RedirectToPage();
     }
