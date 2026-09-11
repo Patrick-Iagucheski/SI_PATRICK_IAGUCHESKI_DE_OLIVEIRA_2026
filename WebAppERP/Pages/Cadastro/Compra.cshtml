@@ -1,0 +1,1023 @@
+@page
+@model WebAppERP.Pages.Cadastro.CompraModel
+@{
+    ViewData["Title"] = Model.Vm.Edicao
+        ? $"Compra Nº {Model.Vm.Compra.NrNota}"
+        : "Cadastro de Compras";
+
+    var ro = Model.Vm.SomenteLeitura;
+    var statusBadge = Model.Vm.Compra.TpStatus switch
+    {
+        "FINALIZADA" => "badge-concluido",
+        "CANCELADA" => "badge-cancelado",
+        _ => "badge-agendado"
+    };
+
+    var itensJs = Model.Vm.Itens.Select(i => new
+    {
+        tpItem = i.TpItem,
+        idProduto = i.IdProduto,
+        idServico = i.IdServico,
+        codigo = i.TpItem == "PRODUTO" ? i.IdProduto : i.IdServico,
+        descricao = i.TpItem == "PRODUTO" ? (i.Produto != null ? i.Produto.DsProduto : "") : (i.Servico != null ? i.Servico.DsServico : ""),
+        idClassificacaoConta = i.IdClassificacaoConta,
+        sgUnidade = i.SgUnidade,
+        qtItem = i.QtItem,
+        vlUnitario = i.VlUnitario,
+        vlDesconto = i.VlDesconto,
+        vlTotal = i.VlTotal
+    });
+
+    var pagamentosJs = Model.Vm.Pagamentos.Select(p => new
+    {
+        idCondicaoPagamento = p.IdCondicaoPagamento,
+        condicaoNome = p.CondicaoPagamento != null ? p.CondicaoPagamento.DsCondicao : "-",
+        idFormaPagamento = p.IdFormaPagamento,
+        formaNome = p.FormaPagamento != null ? p.FormaPagamento.DsFormaPagamento : "-",
+        vlParcela = p.VlParcela,
+        dtVencimento = p.DtVencimento.ToString("yyyy-MM-dd")
+    });
+
+    var classificacoesJs = Model.Vm.Combos.Classificacoes.Select(c => new { id = c.IdClassificacaoConta, nome = c.DsClassificacaoConta });
+    var formasJs = Model.Vm.Combos.Formas.Select(f => new { id = f.IdFormaPagamento, nome = f.DsFormaPagamento });
+    var condicoesJs = Model.Vm.Combos.Condicoes.Select(c => new { id = c.IdCondicaoPagamento, nome = c.DsCondicao });
+}
+
+<div class="d-flex justify-content-between align-items-start mb-4">
+    <div>
+        <h1 class="page-title">
+            <i class="bi bi-cart-plus me-2"></i>Cadastro de Compras
+            @if (Model.Vm.Edicao)
+            {
+                <span class="badge-status @statusBadge ms-2">@Model.Vm.Compra.TpStatus</span>
+            }
+        </h1>
+        <p class="page-subtitle">Registro de entrada de produtos e serviços adquiridos</p>
+    </div>
+    <a class="btn btn-secondary" asp-page="/Cadastro/Compras">
+        <i class="bi bi-arrow-left me-1"></i> Voltar
+    </a>
+</div>
+
+@if (!string.IsNullOrEmpty(Model.Erro))
+{
+    <div class="alert alert-danger"><i class="bi bi-exclamation-triangle me-2"></i>@Model.Erro</div>
+}
+@if (ro)
+{
+    <div class="alert alert-warning"><i class="bi bi-lock me-2"></i>@Model.Vm.MotivoBloqueio</div>
+}
+
+<form method="post" id="formCompra">
+    <input type="hidden" asp-for="TpStatus" id="TpStatus" />
+    <input type="hidden" asp-for="ItensJson" id="ItensJson" />
+    <input type="hidden" asp-for="PagamentosJson" id="PagamentosJson" />
+    <input type="hidden" asp-for="OrigNrNota" />
+    <input type="hidden" asp-for="OrigNrSerie" />
+    <input type="hidden" asp-for="OrigNrModelo" />
+    <input type="hidden" asp-for="OrigIdFornecedor" />
+
+    <!-- ================= Dados da Nota ================= -->
+    <div class="card mb-3">
+        <div class="card-body">
+            <h6 class="fw-bold mb-3"><i class="bi bi-file-earmark-text me-2"></i>Dados da Nota</h6>
+            <div class="row g-3">
+                <div class="col-md-3">
+                    <label class="form-label">Modelo *</label>
+                    <select class="form-select" asp-for="NrModelo" id="NrModelo" disabled="@(ro || Model.Vm.Edicao)">
+                        <option value="55">NFe - Nota Fiscal Eletrônica</option>
+                        <option value="65">NFCe - Nota Fiscal de Consumidor</option>
+                        <option value="1">NF - Nota Fiscal Modelo 1</option>
+                        <option value="2">NF - Nota Fiscal de Venda a Consumidor</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label">Série *</label>
+                    <input type="number" min="0" class="form-control" asp-for="NrSerie" id="NrSerie" disabled="@(ro || Model.Vm.Edicao)" />
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label">Nº *</label>
+                    <input type="number" min="1" class="form-control" asp-for="NrNota" id="NrNota" disabled="@(ro || Model.Vm.Edicao)" />
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label">ID Fornecedor *</label>
+                    <div class="input-group">
+                        <input type="number" min="1" class="form-control" asp-for="IdFornecedor" id="IdFornecedor" disabled="@(ro || Model.Vm.Edicao)" />
+                        @if (!ro && !Model.Vm.Edicao)
+                        {
+                            <button type="button" class="btn btn-outline-primary" title="Pesquisar fornecedor" onclick="abrirBuscaFornecedor()">
+                                <i class="bi bi-search"></i>
+                            </button>
+                        }
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Fornecedor</label>
+                    <input type="text" class="form-control" id="nomeFornecedor"
+                           value="@(Model.Vm.Compra.Fornecedor?.DsRazaoSocial)" placeholder="Informe o ID ao lado" readonly />
+                </div>
+
+                <div class="col-md-3">
+                    <label class="form-label">Data de Emissão *</label>
+                    <input type="date" class="form-control" asp-for="DtEmissao" id="DtEmissao" disabled="@ro" />
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Data de Chegada</label>
+                    <input type="date" class="form-control" asp-for="DtChegada" id="DtChegada" disabled="@ro" />
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label">ID Transportadora</label>
+                    <div class="input-group">
+                        <input type="number" min="1" class="form-control" asp-for="IdTransportador" id="IdTransportador" disabled="@ro" />
+                        @if (!ro)
+                        {
+                            <button type="button" class="btn btn-outline-primary" title="Pesquisar transportadora" onclick="abrirBuscaTransportador()">
+                                <i class="bi bi-search"></i>
+                            </button>
+                        }
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Transportadora</label>
+                    <input type="text" class="form-control" id="nomeTransportador"
+                           value="@(Model.Vm.Compra.Transportador?.DsRazaoSocial)" placeholder="Opcional" readonly />
+                </div>
+                <div class="col-md-12">
+                    <label class="form-label">Observação</label>
+                    <input type="text" class="form-control" asp-for="DsObservacao" disabled="@ro" />
+                </div>
+            </div>
+        </div>
+    </div>
+
+    @if (!ro)
+    {
+        <!-- ================= Adicionar Produto / Serviço ================= -->
+        <div class="card mb-3">
+            <div class="card-body">
+                <h6 class="fw-bold mb-3"><i class="bi bi-box-seam me-2"></i>Adicionar Produto / Serviço</h6>
+                <div class="row g-2 align-items-end">
+                    <div class="col-md-2">
+                        <label class="form-label">Tipo</label>
+                        <select class="form-select" id="itTipo" onchange="onTipoChange()">
+                            <option value="PRODUTO">Produto</option>
+                            <option value="SERVICO">Serviço</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Produto / Serviço</label>
+                        <div class="input-group">
+                            <input type="number" min="1" class="form-control" id="itCodigo" placeholder="ID" onchange="onCodigoItemChange()" />
+                            <button type="button" class="btn btn-outline-primary" title="Pesquisar" onclick="abrirBuscaItem()">
+                                <i class="bi bi-search"></i>
+                            </button>
+                        </div>
+                        <small class="text-muted" id="itDescricao"></small>
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label">Classificação da Conta</label>
+                        <select class="form-select" id="itClassificacao">
+                            <option value="">Selecione</option>
+                            @foreach (var c in Model.Vm.Combos.Classificacoes)
+                            {
+                                <option value="@c.IdClassificacaoConta">@c.DsClassificacaoConta</option>
+                            }
+                        </select>
+                    </div>
+                    <div class="col-md-1">
+                        <label class="form-label">UND</label>
+                        <select class="form-select" id="itUnidade">
+                            <option value="">-</option>
+                            <option value="UN">UN</option>
+                            <option value="PC">PC</option>
+                            <option value="CX">CX</option>
+                            <option value="KG">KG</option>
+                            <option value="G">G</option>
+                            <option value="L">L</option>
+                            <option value="ML">ML</option>
+                            <option value="M">M</option>
+                        </select>
+                    </div>
+                    <div class="col-md-1">
+                        <label class="form-label">Quantidade</label>
+                        <input type="number" step="0.0001" min="0" class="form-control" id="itQt" value="1" />
+                    </div>
+                    <div class="col-md-1">
+                        <label class="form-label">Preço Unit.</label>
+                        <input type="number" step="0.0001" min="0" class="form-control" id="itVlUnit" value="0" />
+                    </div>
+                    <div class="col-md-1">
+                        <label class="form-label">Desconto</label>
+                        <input type="number" step="0.01" min="0" class="form-control" id="itDesc" value="0" />
+                    </div>
+                    <div class="col-md-1">
+                        <label class="form-label">Total</label>
+                        <input type="text" class="form-control" id="itTotal" readonly />
+                    </div>
+                    <div class="col-md-12 mt-3">
+                        <button type="button" class="btn btn-primary" onclick="adicionarItem()">
+                            <i class="bi bi-plus-lg me-1"></i>Adicionar Produto
+                        </button>
+                        <button type="button" class="btn btn-outline-secondary ms-1" onclick="limparItemForm()">
+                            <i class="bi bi-eraser me-1"></i>Limpar
+                        </button>
+                        <span class="text-muted small ms-2" id="itEditando"></span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+
+    <!-- ================= Lista de Produtos / Serviços ================= -->
+    <div class="table-container mb-3">
+        <div class="table-header">
+            <h5><i class="bi bi-list-ul me-2"></i>Lista de Produtos / Serviços</h5>
+            <span class="text-muted small" id="contadorItens">0 itens</span>
+        </div>
+        <div class="table-responsive">
+            <table class="table" id="tblItens">
+                <thead>
+                    <tr>
+                        <th style="width: 50px;">#</th>
+                        <th>Produto / Serviço</th>
+                        <th>Classificação</th>
+                        <th class="text-center">UND</th>
+                        <th class="text-end">Qtd.</th>
+                        <th class="text-end">Preço Unit.</th>
+                        <th class="text-end">Desconto</th>
+                        <th class="text-end">Total</th>
+                        <th class="text-center">Ações</th>
+                    </tr>
+                </thead>
+                <tbody id="itensBody"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- ================= Custos e Totais ================= -->
+    <div class="card mb-3">
+        <div class="card-body">
+            <h6 class="fw-bold mb-3"><i class="bi bi-bar-chart-line me-2"></i>Custos e Totais</h6>
+            <div class="row g-3 align-items-end">
+                <div class="col-md-2">
+                    <label class="form-label">Frete (R$)</label>
+                    <input type="number" step="0.01" min="0" class="form-control" asp-for="VlFrete" id="VlFrete" disabled="@ro" />
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label">Seguro (R$)</label>
+                    <input type="number" step="0.01" min="0" class="form-control" asp-for="VlSeguro" id="VlSeguro" disabled="@ro" />
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label">Outros Gastos (R$)</label>
+                    <input type="number" step="0.01" min="0" class="form-control" asp-for="VlOutrasDespesas" id="VlOutrasDespesas" disabled="@ro" />
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label">Total dos Produtos</label>
+                    <input type="text" class="form-control" id="lblTotalProdutos" value="R$ 0,00" readonly />
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label">Custo Adicional</label>
+                    <input type="text" class="form-control" id="lblCustoAdicional" value="R$ 0,00" readonly />
+                </div>
+                <div class="col-md-2">
+                    @* kpi-value (1.75rem) nao cabe em col-md-2 sem quebrar o
+                       valor em varias linhas; fs-5 mantem o mesmo card e a
+                       mesma cor de destaque com o valor em uma linha so. *@
+                    <div class="card kpi-card kpi-blue mb-0">
+                        <div class="card-body py-2">
+                            <div class="kpi-label">Total da Compra</div>
+                            <div class="fs-5 fw-bold text-primary mt-1" id="lblTotalCompra">R$ 0,00</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ================= Pagamento ================= -->
+    <div class="card mb-3">
+        <div class="card-body">
+            <h6 class="fw-bold mb-3"><i class="bi bi-credit-card me-2"></i>Pagamento</h6>
+            @if (!ro)
+            {
+                <div class="row g-2 align-items-end">
+                    <div class="col-md-3">
+                        <label class="form-label">Condição de Pagamento</label>
+                        <select class="form-select" asp-for="IdCondicaoPagamento" id="IdCondicaoPagamento">
+                            <option value="">Selecione</option>
+                            @foreach (var c in Model.Vm.Combos.Condicoes)
+                            {
+                                <option value="@c.IdCondicaoPagamento">@c.DsCondicao</option>
+                            }
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Forma de Pagamento</label>
+                        <select class="form-select" id="pgForma">
+                            <option value="">Selecione</option>
+                            @foreach (var f in Model.Vm.Combos.Formas)
+                            {
+                                <option value="@f.IdFormaPagamento">@f.DsFormaPagamento</option>
+                            }
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label">Valor (R$)</label>
+                        <input type="number" step="0.01" min="0" class="form-control" id="pgValor" value="0" />
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label">Vencimento</label>
+                        <input type="date" class="form-control" id="pgVencimento" />
+                    </div>
+                    <div class="col-md-2">
+                        <button type="button" class="btn btn-primary w-100" onclick="adicionarPagamento()">
+                            <i class="bi bi-plus-lg me-1"></i>Adicionar
+                        </button>
+                    </div>
+                    <div class="col-md-12">
+                        <button type="button" class="btn btn-outline-primary btn-sm" onclick="gerarParcelasDaCondicao()">
+                            <i class="bi bi-magic me-1"></i>Gerar parcelas pela condição de pagamento
+                        </button>
+                        <span class="text-muted small ms-2" id="pgEditando"></span>
+                    </div>
+                </div>
+            }
+
+            <div class="table-responsive mt-3">
+                <table class="table" id="tblPagamentos">
+                    <thead>
+                        <tr>
+                            <th style="width: 50px;">#</th>
+                            <th>Condição de Pagamento</th>
+                            <th>Forma de Pagamento</th>
+                            <th class="text-end">Valor</th>
+                            <th>Vencimento</th>
+                            <th class="text-center">Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody id="pagamentosBody"></tbody>
+                    <tfoot>
+                        <tr>
+                            <th colspan="3" class="text-end">Total das Parcelas</th>
+                            <th class="text-end" id="lblTotalParcelas">R$ 0,00</th>
+                            <th colspan="2" id="lblDiferencaParcelas"></th>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    @if (Model.Vm.ContasGeradas.Any())
+    {
+        <!-- ================= Títulos gerados no Contas a Pagar ================= -->
+        <div class="table-container mb-3">
+            <div class="table-header">
+                <h5><i class="bi bi-cash-stack me-2"></i>Contas a Pagar geradas por esta compra</h5>
+                <span class="text-muted small">@Model.Vm.ContasGeradas.Count títulos</span>
+            </div>
+            <div class="table-responsive">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Título</th>
+                            <th>Conta</th>
+                            <th>Vencimento</th>
+                            <th class="text-end">Valor</th>
+                            <th class="text-end">Pago</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var conta in Model.Vm.ContasGeradas)
+                        {
+                            var badgeConta = conta.DsStatus switch
+                            {
+                                "PAGO" => "badge-concluido",
+                                "CANCELADO" => "badge-cancelado",
+                                _ => "badge-agendado"
+                            };
+                            <tr>
+                                <td><strong>#@conta.IdContaPagar</strong></td>
+                                <td>@conta.DsConta</td>
+                                <td>@(conta.DtVencimento?.ToString("dd/MM/yyyy") ?? "-")</td>
+                                <td class="text-end">R$ @conta.VlValor.ToString("N2")</td>
+                                <td class="text-end">R$ @conta.VlPago.ToString("N2")</td>
+                                <td><span class="badge-status @badgeConta">@conta.DsStatus</span></td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    }
+
+    <!-- ================= Ações ================= -->
+    <div class="card">
+        <div class="card-body d-flex justify-content-between align-items-center">
+            <a class="btn btn-secondary" asp-page="/Cadastro/Compras">
+                <i class="bi bi-x-lg me-1"></i>Cancelar
+            </a>
+            @if (!ro)
+            {
+                <div class="d-flex gap-2">
+                    <button type="button" class="btn btn-outline-primary" onclick="salvar('RASCUNHO')">
+                        <i class="bi bi-file-earmark-text me-1"></i>Salvar Rascunho
+                    </button>
+                    <button type="button" class="btn btn-primary" onclick="salvar('FINALIZADA')">
+                        <i class="bi bi-check2-circle me-1"></i>Salvar Compra
+                    </button>
+                </div>
+            }
+        </div>
+    </div>
+</form>
+
+<!-- ================= Modal: pesquisa de fornecedor ================= -->
+<div class="modal fade" id="modalBusca" tabindex="-1">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="buscaTitulo">Pesquisar</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="search-box mb-3">
+                    <i class="bi bi-search search-icon"></i>
+                    <input type="text" class="form-control" id="buscaTermo" placeholder="Digite para pesquisar..." autocomplete="off" />
+                </div>
+                <div class="table-responsive">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th style="width: 90px;">Código</th>
+                                <th>Descrição</th>
+                                <th class="text-center" style="width: 90px;">Selecionar</th>
+                            </tr>
+                        </thead>
+                        <tbody id="buscaBody">
+                            <tr><td colspan="3" class="text-center text-muted py-3">Digite para pesquisar</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        const CLASSIFICACOES = @Json.Serialize(classificacoesJs);
+        const FORMAS = @Json.Serialize(formasJs);
+        const CONDICOES = @Json.Serialize(condicoesJs);
+        const SOMENTE_LEITURA = @Json.Serialize(Model.Vm.SomenteLeitura);
+
+        let ITENS = @Json.Serialize(itensJs);
+        let PAGAMENTOS = @Json.Serialize(pagamentosJs);
+
+        // Indice em edicao (null = incluindo um novo).
+        let itemEditandoIdx = null;
+        let pagamentoEditandoIdx = null;
+
+        // Contexto do modal de pesquisa: 'fornecedor' | 'transportador' | 'item'.
+        let buscaContexto = null;
+        let buscaTimer = null;
+
+        // ---------------- Utilitarios ----------------
+
+        function moeda(n) {
+            return (Number(n) || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        }
+
+        function qtd(n) {
+            return (Number(n) || 0).toLocaleString('pt-BR', { minimumFractionDigits: 3, maximumFractionDigits: 4 });
+        }
+
+        function num(id) {
+            const el = document.getElementById(id);
+            if (!el) return 0;
+            return parseFloat(String(el.value).replace(',', '.')) || 0;
+        }
+
+        function texto(id) {
+            const el = document.getElementById(id);
+            return el ? el.value.trim() : '';
+        }
+
+        function escapar(s) {
+            return String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        }
+
+        function nomeClassificacao(id) {
+            const c = CLASSIFICACOES.find(x => x.id === id);
+            return c ? c.nome : '-';
+        }
+
+        function nomeForma(id) {
+            const f = FORMAS.find(x => x.id === id);
+            return f ? f.nome : '-';
+        }
+
+        function nomeCondicao(id) {
+            const c = CONDICOES.find(x => x.id === id);
+            return c ? c.nome : '-';
+        }
+
+        // ---------------- Pesquisa (fornecedor / transportadora / item) ----------------
+
+        function handlerBusca() {
+            if (buscaContexto === 'fornecedor') return 'BuscarFornecedor';
+            if (buscaContexto === 'transportador') return 'BuscarTransportador';
+            return document.getElementById('itTipo').value === 'PRODUTO' ? 'BuscarProduto' : 'BuscarServico';
+        }
+
+        function abrirModalBusca(contexto, titulo) {
+            buscaContexto = contexto;
+            document.getElementById('buscaTitulo').textContent = titulo;
+            document.getElementById('buscaTermo').value = '';
+            document.getElementById('buscaBody').innerHTML =
+                '<tr><td colspan="3" class="text-center text-muted py-3">Digite para pesquisar</td></tr>';
+            bootstrap.Modal.getOrCreateInstance(document.getElementById('modalBusca')).show();
+            executarBusca();
+        }
+
+        function abrirBuscaFornecedor() { abrirModalBusca('fornecedor', 'Pesquisar Fornecedor'); }
+        function abrirBuscaTransportador() { abrirModalBusca('transportador', 'Pesquisar Transportadora'); }
+        function abrirBuscaItem() {
+            const tipo = document.getElementById('itTipo').value;
+            abrirModalBusca('item', tipo === 'PRODUTO' ? 'Pesquisar Produto' : 'Pesquisar Serviço');
+        }
+
+        async function executarBusca() {
+            const termo = document.getElementById('buscaTermo').value.trim();
+            const url = '?handler=' + handlerBusca() + '&termo=' + encodeURIComponent(termo);
+            const body = document.getElementById('buscaBody');
+
+            try {
+                const resp = await fetch(url);
+                const lista = await resp.json();
+
+                if (!lista.length) {
+                    body.innerHTML = '<tr><td colspan="3" class="text-center text-muted py-3">Nenhum registro encontrado</td></tr>';
+                    return;
+                }
+
+                body.innerHTML = '';
+                lista.forEach(reg => {
+                    const tr = document.createElement('tr');
+                    tr.innerHTML =
+                        '<td><strong>' + reg.id + '</strong></td>' +
+                        '<td>' + escapar(reg.nome) + (reg.fantasia ? ' <span class="text-muted small">(' + escapar(reg.fantasia) + ')</span>' : '') + '</td>' +
+                        '<td class="text-center"><button type="button" class="btn btn-icon btn-outline-primary" title="Selecionar"><i class="bi bi-check-lg"></i></button></td>';
+                    tr.querySelector('button').addEventListener('click', () => selecionarBusca(reg));
+                    body.appendChild(tr);
+                });
+            } catch {
+                body.innerHTML = '<tr><td colspan="3" class="text-center text-danger py-3">Falha ao pesquisar</td></tr>';
+            }
+        }
+
+        function selecionarBusca(reg) {
+            if (buscaContexto === 'fornecedor') {
+                document.getElementById('IdFornecedor').value = reg.id;
+                document.getElementById('nomeFornecedor').value = reg.nome;
+            } else if (buscaContexto === 'transportador') {
+                document.getElementById('IdTransportador').value = reg.id;
+                document.getElementById('nomeTransportador').value = reg.nome;
+            } else {
+                aplicarItemSelecionado(reg);
+            }
+            bootstrap.Modal.getOrCreateInstance(document.getElementById('modalBusca')).hide();
+        }
+
+        // Preenche os campos do item a partir do produto/servico escolhido.
+        function aplicarItemSelecionado(reg) {
+            document.getElementById('itCodigo').value = reg.id;
+            document.getElementById('itDescricao').textContent = reg.nome;
+            if (reg.unidade) document.getElementById('itUnidade').value = reg.unidade;
+            const preco = reg.custo ?? reg.valor;
+            if (preco) document.getElementById('itVlUnit').value = preco;
+            calcItemTotal();
+        }
+
+        // Digitou o ID direto no campo: busca o registro para exibir a descricao.
+        async function onCodigoItemChange() {
+            const id = parseInt(document.getElementById('itCodigo').value) || 0;
+            if (!id) { document.getElementById('itDescricao').textContent = ''; return; }
+
+            const tipo = document.getElementById('itTipo').value;
+            const handler = tipo === 'PRODUTO' ? 'BuscarProduto' : 'BuscarServico';
+
+            try {
+                const resp = await fetch('?handler=' + handler + '&id=' + id);
+                const lista = await resp.json();
+                if (lista.length) aplicarItemSelecionado(lista[0]);
+                else document.getElementById('itDescricao').textContent = 'Não encontrado';
+            } catch {
+                document.getElementById('itDescricao').textContent = '';
+            }
+        }
+
+        // Mesma ideia para fornecedor e transportadora.
+        async function buscarPorId(handler, idInput, nomeInput) {
+            const id = parseInt(document.getElementById(idInput).value) || 0;
+            if (!id) { document.getElementById(nomeInput).value = ''; return; }
+
+            try {
+                const resp = await fetch('?handler=' + handler + '&id=' + id);
+                const lista = await resp.json();
+                document.getElementById(nomeInput).value = lista.length ? lista[0].nome : 'Não encontrado';
+            } catch {
+                document.getElementById(nomeInput).value = '';
+            }
+        }
+
+        // ---------------- Itens ----------------
+
+        function onTipoChange() {
+            document.getElementById('itCodigo').value = '';
+            document.getElementById('itDescricao').textContent = '';
+            document.getElementById('itVlUnit').value = '0';
+            calcItemTotal();
+        }
+
+        function calcItemTotal() {
+            const total = num('itQt') * num('itVlUnit') - num('itDesc');
+            document.getElementById('itTotal').value = (total > 0 ? total : 0).toFixed(2);
+        }
+
+        function adicionarItem() {
+            const tipo = document.getElementById('itTipo').value;
+            const codigo = parseInt(texto('itCodigo')) || 0;
+            const descricao = document.getElementById('itDescricao').textContent;
+
+            if (!codigo || !descricao || descricao === 'Não encontrado') {
+                alert('Selecione um ' + (tipo === 'PRODUTO' ? 'produto' : 'serviço') + ' válido.');
+                return;
+            }
+
+            const qt = num('itQt');
+            if (qt <= 0) { alert('A quantidade deve ser maior que zero.'); return; }
+
+            const vlUnit = num('itVlUnit');
+            const desc = num('itDesc');
+            const bruto = qt * vlUnit;
+
+            if (desc > bruto) {
+                alert('O desconto (R$ ' + moeda(desc) + ') é maior que o valor do item (R$ ' + moeda(bruto) + ').');
+                return;
+            }
+
+            const classificacao = parseInt(document.getElementById('itClassificacao').value) || null;
+
+            const item = {
+                tpItem: tipo,
+                idProduto: tipo === 'PRODUTO' ? codigo : null,
+                idServico: tipo === 'SERVICO' ? codigo : null,
+                codigo: codigo,
+                descricao: descricao,
+                idClassificacaoConta: classificacao,
+                sgUnidade: document.getElementById('itUnidade').value || null,
+                qtItem: qt,
+                vlUnitario: vlUnit,
+                vlDesconto: desc,
+                vlTotal: bruto - desc
+            };
+
+            if (itemEditandoIdx !== null) ITENS[itemEditandoIdx] = item;
+            else ITENS.push(item);
+
+            limparItemForm();
+            renderItens();
+        }
+
+        function limparItemForm() {
+            itemEditandoIdx = null;
+            document.getElementById('itCodigo').value = '';
+            document.getElementById('itDescricao').textContent = '';
+            document.getElementById('itClassificacao').value = '';
+            document.getElementById('itUnidade').value = '';
+            document.getElementById('itQt').value = '1';
+            document.getElementById('itVlUnit').value = '0';
+            document.getElementById('itDesc').value = '0';
+            document.getElementById('itTotal').value = '';
+            document.getElementById('itEditando').textContent = '';
+        }
+
+        function editarItem(idx) {
+            const it = ITENS[idx];
+            itemEditandoIdx = idx;
+
+            document.getElementById('itTipo').value = it.tpItem;
+            document.getElementById('itCodigo').value = it.codigo;
+            document.getElementById('itDescricao').textContent = it.descricao;
+            document.getElementById('itClassificacao').value = it.idClassificacaoConta || '';
+            document.getElementById('itUnidade').value = it.sgUnidade || '';
+            document.getElementById('itQt').value = it.qtItem;
+            document.getElementById('itVlUnit').value = it.vlUnitario;
+            document.getElementById('itDesc').value = it.vlDesconto;
+            document.getElementById('itEditando').textContent = 'Editando o item ' + (idx + 1) + '.';
+
+            calcItemTotal();
+            document.getElementById('itQt').focus();
+        }
+
+        function removerItem(idx) {
+            if (!confirm('Remover este item da compra?')) return;
+            ITENS.splice(idx, 1);
+            limparItemForm();
+            renderItens();
+        }
+
+        function renderItens() {
+            const tb = document.getElementById('itensBody');
+            tb.innerHTML = '';
+
+            if (!ITENS.length) {
+                tb.innerHTML = '<tr><td colspan="9" class="text-center text-muted py-3">Nenhum produto/serviço adicionado</td></tr>';
+            }
+
+            ITENS.forEach((it, idx) => {
+                const badge = it.tpItem === 'PRODUTO' ? 'badge-agendado' : 'badge-confirmado';
+                const acoes = SOMENTE_LEITURA ? '<td></td>' :
+                    '<td class="text-center" style="white-space:nowrap;">' +
+                    '<button type="button" class="btn btn-icon btn-outline-primary" title="Editar" onclick="editarItem(' + idx + ')"><i class="bi bi-pencil"></i></button> ' +
+                    '<button type="button" class="btn btn-icon btn-outline-danger" title="Excluir" onclick="removerItem(' + idx + ')"><i class="bi bi-trash"></i></button></td>';
+
+                const tr = document.createElement('tr');
+                tr.innerHTML =
+                    '<td>' + (idx + 1) + '</td>' +
+                    '<td><strong>' + escapar(it.descricao) + '</strong>' +
+                        '<div class="text-muted small"><span class="badge-status ' + badge + '">' + it.tpItem + '</span> Cód. ' + it.codigo + '</div></td>' +
+                    '<td>' + escapar(nomeClassificacao(it.idClassificacaoConta)) + '</td>' +
+                    '<td class="text-center">' + escapar(it.sgUnidade || '-') + '</td>' +
+                    '<td class="text-end">' + qtd(it.qtItem) + '</td>' +
+                    '<td class="text-end">R$ ' + moeda(it.vlUnitario) + '</td>' +
+                    '<td class="text-end">R$ ' + moeda(it.vlDesconto) + '</td>' +
+                    '<td class="text-end"><strong>R$ ' + moeda(it.vlTotal) + '</strong></td>' +
+                    acoes;
+                tb.appendChild(tr);
+            });
+
+            document.getElementById('contadorItens').textContent =
+                ITENS.length + (ITENS.length === 1 ? ' item' : ' itens');
+
+            calcTotais();
+        }
+
+        // ---------------- Totais ----------------
+
+        function totalProdutos() {
+            return ITENS.reduce((a, b) => a + (Number(b.vlTotal) || 0), 0);
+        }
+
+        function custoAdicional() {
+            return num('VlFrete') + num('VlSeguro') + num('VlOutrasDespesas');
+        }
+
+        function totalCompra() {
+            return totalProdutos() + custoAdicional();
+        }
+
+        function calcTotais() {
+            document.getElementById('lblTotalProdutos').value = 'R$ ' + moeda(totalProdutos());
+            document.getElementById('lblCustoAdicional').value = 'R$ ' + moeda(custoAdicional());
+            document.getElementById('lblTotalCompra').textContent = 'R$ ' + moeda(totalCompra());
+            calcTotalParcelas();
+        }
+
+        function calcTotalParcelas() {
+            const soma = PAGAMENTOS.reduce((a, b) => a + (Number(b.vlParcela) || 0), 0);
+            const diferenca = totalCompra() - soma;
+
+            document.getElementById('lblTotalParcelas').textContent = 'R$ ' + moeda(soma);
+
+            const lbl = document.getElementById('lblDiferencaParcelas');
+            if (!PAGAMENTOS.length) {
+                lbl.innerHTML = '';
+            } else if (Math.abs(diferenca) <= 0.01) {
+                lbl.innerHTML = '<span class="badge-status badge-concluido">Confere com o total</span>';
+            } else {
+                lbl.innerHTML = '<span class="badge-status badge-cancelado">Diferença de R$ ' + moeda(diferenca) + '</span>';
+            }
+        }
+
+        // ---------------- Pagamentos ----------------
+
+        function adicionarPagamento() {
+            const idForma = parseInt(document.getElementById('pgForma').value) || 0;
+            if (!idForma) { alert('Selecione a forma de pagamento.'); return; }
+
+            const valor = num('pgValor');
+            if (valor <= 0) { alert('Informe o valor da parcela.'); return; }
+
+            const venc = texto('pgVencimento');
+            if (!venc) { alert('Informe a data de vencimento.'); return; }
+
+            const idCondicao = parseInt(document.getElementById('IdCondicaoPagamento').value) || null;
+
+            const parcela = {
+                idCondicaoPagamento: idCondicao,
+                condicaoNome: nomeCondicao(idCondicao),
+                idFormaPagamento: idForma,
+                formaNome: nomeForma(idForma),
+                vlParcela: valor,
+                dtVencimento: venc
+            };
+
+            if (pagamentoEditandoIdx !== null) PAGAMENTOS[pagamentoEditandoIdx] = parcela;
+            else PAGAMENTOS.push(parcela);
+
+            limparPagamentoForm();
+            renderPagamentos();
+        }
+
+        function limparPagamentoForm() {
+            pagamentoEditandoIdx = null;
+            document.getElementById('pgForma').value = '';
+            document.getElementById('pgValor').value = '0';
+            document.getElementById('pgVencimento').value = '';
+            document.getElementById('pgEditando').textContent = '';
+        }
+
+        function editarPagamento(idx) {
+            const p = PAGAMENTOS[idx];
+            pagamentoEditandoIdx = idx;
+
+            if (p.idCondicaoPagamento) document.getElementById('IdCondicaoPagamento').value = p.idCondicaoPagamento;
+            document.getElementById('pgForma').value = p.idFormaPagamento;
+            document.getElementById('pgValor').value = p.vlParcela;
+            document.getElementById('pgVencimento').value = p.dtVencimento;
+            document.getElementById('pgEditando').textContent = 'Editando a parcela ' + (idx + 1) + '.';
+
+            document.getElementById('pgValor').focus();
+        }
+
+        function removerPagamento(idx) {
+            if (!confirm('Remover esta parcela?')) return;
+            PAGAMENTOS.splice(idx, 1);
+            limparPagamentoForm();
+            renderPagamentos();
+        }
+
+        function renderPagamentos() {
+            const tb = document.getElementById('pagamentosBody');
+            tb.innerHTML = '';
+
+            if (!PAGAMENTOS.length) {
+                tb.innerHTML = '<tr><td colspan="6" class="text-center text-muted py-3">Nenhuma parcela adicionada</td></tr>';
+            }
+
+            PAGAMENTOS.forEach((p, idx) => {
+                const acoes = SOMENTE_LEITURA ? '<td></td>' :
+                    '<td class="text-center" style="white-space:nowrap;">' +
+                    '<button type="button" class="btn btn-icon btn-outline-primary" title="Editar" onclick="editarPagamento(' + idx + ')"><i class="bi bi-pencil"></i></button> ' +
+                    '<button type="button" class="btn btn-icon btn-outline-danger" title="Excluir" onclick="removerPagamento(' + idx + ')"><i class="bi bi-trash"></i></button></td>';
+
+                const partes = p.dtVencimento.split('-');
+                const vencBr = partes.length === 3 ? partes[2] + '/' + partes[1] + '/' + partes[0] : p.dtVencimento;
+
+                const tr = document.createElement('tr');
+                tr.innerHTML =
+                    '<td>' + (idx + 1) + '</td>' +
+                    '<td>' + escapar(p.condicaoNome || nomeCondicao(p.idCondicaoPagamento)) + '</td>' +
+                    '<td>' + escapar(p.formaNome || nomeForma(p.idFormaPagamento)) + '</td>' +
+                    '<td class="text-end"><strong>R$ ' + moeda(p.vlParcela) + '</strong></td>' +
+                    '<td>' + vencBr + '</td>' +
+                    acoes;
+                tb.appendChild(tr);
+            });
+
+            calcTotalParcelas();
+        }
+
+        // Gera as parcelas a partir da condicao de pagamento cadastrada
+        // (dias de vencimento, percentual e forma de cada parcela).
+        async function gerarParcelasDaCondicao() {
+            const idCondicao = parseInt(document.getElementById('IdCondicaoPagamento').value) || 0;
+            if (!idCondicao) { alert('Selecione a condição de pagamento.'); return; }
+
+            const total = totalCompra();
+            if (total <= 0) { alert('Informe os itens da compra antes de gerar as parcelas.'); return; }
+
+            const base = texto('DtEmissao');
+            if (!base) { alert('Informe a data de emissão.'); return; }
+
+            let modelo;
+            try {
+                const resp = await fetch('?handler=ParcelasCondicao&idCondicao=' + idCondicao);
+                modelo = await resp.json();
+            } catch {
+                alert('Não foi possível carregar as parcelas da condição de pagamento.');
+                return;
+            }
+
+            if (!modelo.length) { alert('Esta condição de pagamento não possui parcelas cadastradas.'); return; }
+            if (PAGAMENTOS.length && !confirm('As parcelas atuais serão substituídas. Continuar?')) return;
+
+            PAGAMENTOS = [];
+            let acumulado = 0;
+
+            modelo.forEach((m, i) => {
+                const venc = new Date(base + 'T00:00:00');
+                venc.setDate(venc.getDate() + m.dias);
+
+                // A ultima parcela absorve a diferenca de arredondamento,
+                // garantindo que a soma feche exatamente com o total.
+                let valor = Math.round(total * (m.percentual / 100) * 100) / 100;
+                if (i === modelo.length - 1) valor = Math.round((total - acumulado) * 100) / 100;
+                acumulado += valor;
+
+                if (valor <= 0) return;
+
+                PAGAMENTOS.push({
+                    idCondicaoPagamento: idCondicao,
+                    condicaoNome: nomeCondicao(idCondicao),
+                    idFormaPagamento: m.idFormaPagamento,
+                    formaNome: nomeForma(m.idFormaPagamento),
+                    vlParcela: valor,
+                    dtVencimento: venc.toISOString().slice(0, 10)
+                });
+            });
+
+            renderPagamentos();
+        }
+
+        // ---------------- Gravacao ----------------
+
+        function salvar(status) {
+            if (!texto('NrModelo')) { alert('Selecione o modelo da nota.'); return; }
+            if (!texto('NrNota')) { alert('Informe o número da nota.'); document.getElementById('NrNota').focus(); return; }
+            if (texto('NrSerie') === '') { alert('Informe a série da nota.'); document.getElementById('NrSerie').focus(); return; }
+            if (!texto('IdFornecedor')) { alert('Informe o fornecedor.'); document.getElementById('IdFornecedor').focus(); return; }
+            if (!texto('DtEmissao')) { alert('Informe a data de emissão.'); document.getElementById('DtEmissao').focus(); return; }
+
+            if (status === 'FINALIZADA') {
+                if (!ITENS.length) { alert('Adicione ao menos um produto/serviço para finalizar a compra.'); return; }
+                if (!PAGAMENTOS.length) { alert('Informe ao menos uma parcela de pagamento para finalizar a compra.'); return; }
+
+                const soma = PAGAMENTOS.reduce((a, b) => a + (Number(b.vlParcela) || 0), 0);
+                if (Math.abs(soma - totalCompra()) > 0.01) {
+                    alert('A soma das parcelas (R$ ' + moeda(soma) + ') é diferente do total da compra (R$ ' + moeda(totalCompra()) + ').');
+                    return;
+                }
+
+                if (!confirm('Finalizar a compra? Serão gerados os títulos no Contas a Pagar e a entrada no estoque.')) return;
+            }
+
+            document.getElementById('TpStatus').value = status;
+
+            document.getElementById('ItensJson').value = JSON.stringify(ITENS.map(i => ({
+                TpItem: i.tpItem,
+                IdProduto: i.idProduto,
+                IdServico: i.idServico,
+                IdClassificacaoConta: i.idClassificacaoConta,
+                SgUnidade: i.sgUnidade,
+                QtItem: i.qtItem,
+                VlUnitario: i.vlUnitario,
+                VlDesconto: i.vlDesconto
+            })));
+
+            document.getElementById('PagamentosJson').value = JSON.stringify(PAGAMENTOS.map(p => ({
+                IdCondicaoPagamento: p.idCondicaoPagamento,
+                IdFormaPagamento: p.idFormaPagamento,
+                VlParcela: p.vlParcela,
+                DtVencimento: p.dtVencimento
+            })));
+
+            // Campos desabilitados nao sao enviados: a chave e reenviada
+            // pelos hidden Orig* e reaplicada aqui antes do submit.
+            ['NrNota', 'NrSerie', 'NrModelo', 'IdFornecedor'].forEach(id => {
+                const el = document.getElementById(id);
+                if (el && el.disabled) el.disabled = false;
+            });
+
+            document.getElementById('formCompra').submit();
+        }
+
+        // ---------------- Inicializacao ----------------
+
+        document.addEventListener('DOMContentLoaded', function () {
+            renderItens();
+            renderPagamentos();
+
+            ['itQt', 'itVlUnit', 'itDesc'].forEach(id =>
+                document.getElementById(id)?.addEventListener('input', calcItemTotal));
+
+            ['VlFrete', 'VlSeguro', 'VlOutrasDespesas'].forEach(id =>
+                document.getElementById(id)?.addEventListener('input', calcTotais));
+
+            document.getElementById('IdFornecedor')?.addEventListener('change', () =>
+                buscarPorId('BuscarFornecedor', 'IdFornecedor', 'nomeFornecedor'));
+
+            document.getElementById('IdTransportador')?.addEventListener('change', () =>
+                buscarPorId('BuscarTransportador', 'IdTransportador', 'nomeTransportador'));
+
+            // Pesquisa com debounce dentro do modal.
+            document.getElementById('buscaTermo')?.addEventListener('input', function () {
+                clearTimeout(buscaTimer);
+                buscaTimer = setTimeout(executarBusca, 300);
+            });
+        });
+    </script>
+}

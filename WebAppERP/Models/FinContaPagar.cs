@@ -63,4 +63,26 @@ public class FinContaPagar
 
     [Column("dtEdicao")]
     public DateTime? DtEdicao { get; set; }
+
+    // ===== Origem: compra que gerou o titulo =====
+    // Preenchido apenas quando o titulo nasce da finalizacao de uma compra.
+    // Titulo lancado manualmente na tela de Contas a Pagar mantem tudo NULL.
+    // Junto com idFornecedor (acima) formam a chave da parcela de origem:
+    // nrNota + nrSerie + nrModelo + idFornecedor + nrParcela.
+
+    [Column("nrNota")]
+    public int? NrNota { get; set; }
+
+    [Column("nrSerie")]
+    public int? NrSerie { get; set; }
+
+    [Column("nrModelo")]
+    public int? NrModelo { get; set; }
+
+    [Column("nrParcela")]
+    public int? NrParcela { get; set; }
+
+    // True quando o titulo foi originado por uma compra.
+    [NotMapped]
+    public bool OriginadoDeCompra => NrNota != null;
 }
