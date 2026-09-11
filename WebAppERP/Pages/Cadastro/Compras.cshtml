@@ -1,0 +1,140 @@
+@page
+@model WebAppERP.Pages.Cadastro.ComprasModel
+@{
+    ViewData["Title"] = "Compras";
+}
+
+<div class="d-flex justify-content-between align-items-start mb-4">
+    <div>
+        <h1 class="page-title">Compras</h1>
+        <p class="page-subtitle">Registro de entrada de produtos e serviços adquiridos</p>
+    </div>
+    <a class="btn btn-primary" asp-page="/Cadastro/Compra">
+        <i class="bi bi-plus-lg me-1"></i> Nova Compra
+    </a>
+</div>
+
+<!-- Filtros -->
+<div class="card mb-3">
+    <div class="card-body py-2">
+        <div class="row g-2 align-items-center">
+            <div class="col-md-4">
+                <div class="search-box">
+                    <i class="bi bi-search search-icon"></i>
+                    <input type="text" class="form-control" placeholder="Buscar por nota ou fornecedor..." id="searchInput" />
+                </div>
+            </div>
+            <div class="col-md-2">
+                <select class="form-select" id="filterStatus">
+                    <option value="">Todos os Status</option>
+                    <option value="RASCUNHO">Rascunho</option>
+                    <option value="FINALIZADA">Finalizada</option>
+                    <option value="CANCELADA">Cancelada</option>
+                </select>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Tabela -->
+<div class="table-container">
+    <div class="table-header">
+        <h5><i class="bi bi-cart-plus me-2"></i>Lista de Compras</h5>
+        <span class="text-muted small">@Model.Compras.Count registros encontrados</span>
+    </div>
+    <div class="table-responsive">
+        <table class="table" id="tblCompras">
+            <thead>
+                <tr>
+                    <th>Nota</th>
+                    <th>Fornecedor</th>
+                    <th>Emissão</th>
+                    <th>Chegada</th>
+                    <th class="text-end">Total</th>
+                    <th>Status</th>
+                    <th class="text-center">Ações</th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (Model.Compras.Any())
+                {
+                    @foreach (var c in Model.Compras)
+                    {
+                        var badge = c.TpStatus switch
+                        {
+                            "FINALIZADA" => "badge-concluido",
+                            "CANCELADA" => "badge-cancelado",
+                            _ => "badge-agendado"
+                        };
+                        <tr data-status="@c.TpStatus">
+                            <td>
+                                <strong>Nº @c.NrNota</strong>
+                                <div class="text-muted small">Modelo @c.NrModelo · Série @c.NrSerie</div>
+                            </td>
+                            <td>@(c.Fornecedor?.DsRazaoSocial ?? "-")</td>
+                            <td>@c.DtEmissao.ToString("dd/MM/yyyy")</td>
+                            <td>@(c.DtChegada?.ToString("dd/MM/yyyy") ?? "-")</td>
+                            <td class="text-end"><strong>R$ @c.VlTotalCompra.ToString("N2")</strong></td>
+                            <td><span class="badge-status @badge">@c.TpStatus</span></td>
+                            <td class="text-center" style="white-space: nowrap;">
+                                <a class="btn btn-icon btn-outline-primary" title="Abrir / Editar"
+                                   asp-page="/Cadastro/Compra"
+                                   asp-route-nrNota="@c.NrNota" asp-route-nrSerie="@c.NrSerie"
+                                   asp-route-nrModelo="@c.NrModelo" asp-route-idFornecedor="@c.IdFornecedor">
+                                    <i class="bi bi-pencil"></i>
+                                </a>
+                                @if (c.TpStatus != "CANCELADA")
+                                {
+                                    <form method="post" asp-page-handler="Cancelar" class="d-inline"
+                                          onsubmit="return confirm('Deseja cancelar esta compra? O estoque sera estornado e os titulos do Contas a Pagar serao cancelados.')">
+                                        <input type="hidden" name="nrNota" value="@c.NrNota" />
+                                        <input type="hidden" name="nrSerie" value="@c.NrSerie" />
+                                        <input type="hidden" name="nrModelo" value="@c.NrModelo" />
+                                        <input type="hidden" name="idFornecedor" value="@c.IdFornecedor" />
+                                        <button type="submit" class="btn btn-icon btn-outline-warning" title="Cancelar compra">
+                                            <i class="bi bi-x-circle"></i>
+                                        </button>
+                                    </form>
+                                }
+                                @if (c.TpStatus != "FINALIZADA")
+                                {
+                                    <form method="post" asp-page-handler="Delete" class="d-inline"
+                                          onsubmit="return confirm('Deseja realmente excluir esta compra?')">
+                                        <input type="hidden" name="nrNota" value="@c.NrNota" />
+                                        <input type="hidden" name="nrSerie" value="@c.NrSerie" />
+                                        <input type="hidden" name="nrModelo" value="@c.NrModelo" />
+                                        <input type="hidden" name="idFornecedor" value="@c.IdFornecedor" />
+                                        <button type="submit" class="btn btn-icon btn-outline-danger" title="Excluir">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                    </form>
+                                }
+                            </td>
+                        </tr>
+                    }
+                }
+                else
+                {
+                    <tr><td colspan="7" class="text-center text-muted py-4">Nenhuma compra registrada</td></tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        function aplicarFiltros() {
+            const texto = document.getElementById('searchInput').value.toLowerCase();
+            const status = document.getElementById('filterStatus').value;
+            document.querySelectorAll('#tblCompras tbody tr').forEach(row => {
+                if (!row.hasAttribute('data-status')) return;
+                const matchTexto = row.textContent.toLowerCase().includes(texto);
+                const matchStatus = !status || row.getAttribute('data-status') === status;
+                row.style.display = (matchTexto && matchStatus) ? '' : 'none';
+            });
+        }
+        document.getElementById('searchInput')?.addEventListener('input', aplicarFiltros);
+        document.getElementById('filterStatus')?.addEventListener('change', aplicarFiltros);
+    </script>
+}

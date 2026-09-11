@@ -28,6 +28,10 @@ public class AppDbContext : DbContext
     public DbSet<FinCondicaoPagamento> CondicoesPagamento => Set<FinCondicaoPagamento>();
     public DbSet<FinCondicaoPagamentoParcela> CondicoesPagamentoParcelas => Set<FinCondicaoPagamentoParcela>();
     public DbSet<OpeVendaItem> VendaItens => Set<OpeVendaItem>();
+    public DbSet<FinClassificacaoConta> ClassificacoesConta => Set<FinClassificacaoConta>();
+    public DbSet<OpeCompra> Compras => Set<OpeCompra>();
+    public DbSet<OpeCompraItem> CompraItens => Set<OpeCompraItem>();
+    public DbSet<OpeCompraPagamento> CompraPagamentos => Set<OpeCompraPagamento>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -38,6 +42,21 @@ public class AppDbContext : DbContext
             .HasMany(c => c.Parcelas)
             .WithOne(p => p.Condicao!)
             .HasForeignKey(p => p.IdCondicaoPagamento)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        // A compra e identificada pela chave composta Numero + Serie + Modelo +
+        // Fornecedor. Itens e parcelas referenciam essa chave COMPLETA (nao so o
+        // numero da nota) e seguem o ciclo de vida da compra.
+        modelBuilder.Entity<OpeCompra>()
+            .HasMany(c => c.Itens)
+            .WithOne(i => i.Compra!)
+            .HasForeignKey(i => new { i.NrNota, i.NrSerie, i.NrModelo, i.IdFornecedor })
+            .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<OpeCompra>()
+            .HasMany(c => c.Pagamentos)
+            .WithOne(p => p.Compra!)
+            .HasForeignKey(p => new { p.NrNota, p.NrSerie, p.NrModelo, p.IdFornecedor })
             .OnDelete(DeleteBehavior.Cascade);
     }
 }
