@@ -1,0 +1,208 @@
+@model WebAppERP.ViewModels.CampoCidadeViewModel
+@inject Microsoft.AspNetCore.Antiforgery.IAntiforgery Antiforgery
+@*
+    Componente unico de cidade (ViewComponents/CampoCidadeViewComponent).
+    Uso na tela:
+        @await Component.InvokeAsync("CampoCidade", new { nome = "ClienteForm.IdCidade", id = "formIdCidade", idCidade = Model.ClienteForm.IdCidade })
+    JS da tela: definirCidade(id, idCidade, nome?) e limparCidade(id).
+*@
+
+<!-- Campo: droplist que filtra enquanto digita (cidade so vale depois de escolhida) -->
+<div class="autocomplete">
+    <div class="input-group">
+        <input type="hidden" name="@Model.Nome" id="@Model.Id" value="@Model.IdCidade" />
+        <input type="text" class="form-control" id="@(Model.Id)Nome" value="@Model.NomeCidade"
+               placeholder="Digite para pesquisar a cidade" autocomplete="off"
+               data-droplist="cidade" data-alvo="@Model.Id" />
+        <button type="button" class="btn btn-outline-secondary" title="Limpar cidade" onclick="limparCidade('@Model.Id')">
+            <i class="bi bi-x-lg"></i>
+        </button>
+        <button type="button" class="btn btn-outline-primary" title="Cadastrar nova cidade" onclick="abrirCadastroCidade('@Model.Id')">
+            <i class="bi bi-plus-lg"></i>
+        </button>
+    </div>
+    <div class="list-group autocomplete-lista d-none" id="@(Model.Id)NomeLista"></div>
+</div>
+
+@if (Model.IncluirModais)
+{
+    <!-- Cadastro rapido de cidade / estado / pais. O script move este bloco para
+         o fim do <body>: modal dentro de outro modal nao abre direito no Bootstrap. -->
+    @* Token em data-token, e nao @Html.AntiForgeryToken(): dentro de um <form>
+       o helper reaproveita o token do proprio form, e este bloco e movido
+       para o <body> (levaria o token do form junto). *@
+    <div id="localidadeModais" data-url-localidades="@Url.Page("/Cadastro/Localidades")"
+         data-token="@Antiforgery.GetAndStoreTokens(Context).RequestToken">
+
+        <style>
+            /* Lista suspensa dos campos cidade / estado / pais */
+            .autocomplete { position: relative; }
+            .autocomplete-lista {
+                position: absolute;
+                top: 100%;
+                left: 0;
+                right: 0;
+                z-index: 1080;
+                max-height: 240px;
+                overflow-y: auto;
+                box-shadow: 0 .5rem 1rem rgba(0, 0, 0, .15);
+            }
+            .autocomplete-lista .list-group-item { cursor: pointer; }
+
+            /* Resultados da busca no topo dos cadastros rapidos */
+            .busca-cadastro-lista { max-height: 220px; overflow-y: auto; }
+        </style>
+
+        <!-- Modal de Cadastro Rapido de Cidade -->
+        <div class="modal fade" id="modalCidadeRapido" tabindex="-1">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title"><i class="bi bi-building me-2"></i>Cadastrar Cidade</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div id="cidMsg"></div>
+                        <!-- Busca: confere se a cidade ja existe antes de cadastrar -->
+                        <label class="form-label small text-muted" for="cidBusca">Pesquisar cidade já cadastrada</label>
+                        <div class="search-box mb-2" style="max-width: none;">
+                            <i class="bi bi-search search-icon"></i>
+                            <input type="text" class="form-control" id="cidBusca" placeholder="Digite o nome da cidade" autocomplete="off" />
+                        </div>
+                        <div class="list-group mb-3 d-none busca-cadastro-lista" id="cidBuscaLista"></div>
+                        <div class="row g-3">
+                            <div class="col-12">
+                                <label class="form-label">Nome da Cidade *</label>
+                                <input type="text" class="form-control" id="cidNome" maxlength="150" />
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label">Estado *</label>
+                                <div class="autocomplete">
+                                    <div class="input-group">
+                                        <input type="hidden" id="cidEstado" />
+                                        <input type="text" class="form-control" id="cidEstadoNome"
+                                               placeholder="Digite para pesquisar o estado" autocomplete="off"
+                                               data-droplist="estado" data-alvo="cidEstado" />
+                                        <button type="button" class="btn btn-outline-primary"
+                                                onclick="abrirModalEmpilhado('modalEstadoRapido')" title="Cadastrar novo estado">
+                                            <i class="bi bi-plus-lg"></i>
+                                        </button>
+                                    </div>
+                                    <div class="list-group autocomplete-lista d-none" id="cidEstadoNomeLista"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="button" class="btn btn-primary" id="btnSalvarCidadeRapido" onclick="salvarCidadeRapido()">
+                            <i class="bi bi-check-lg me-1"></i>Salvar Cidade
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modal de Cadastro Rapido de Estado -->
+        <div class="modal fade" id="modalEstadoRapido" tabindex="-1">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title"><i class="bi bi-map me-2"></i>Cadastrar Estado</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div id="estMsg"></div>
+                        <!-- Busca: confere se o estado ja existe antes de cadastrar -->
+                        <label class="form-label small text-muted" for="estBusca">Pesquisar estado já cadastrado</label>
+                        <div class="search-box mb-2" style="max-width: none;">
+                            <i class="bi bi-search search-icon"></i>
+                            <input type="text" class="form-control" id="estBusca" placeholder="Digite o nome ou a UF do estado" autocomplete="off" />
+                        </div>
+                        <div class="list-group mb-3 d-none busca-cadastro-lista" id="estBuscaLista"></div>
+                        <div class="row g-3">
+                            <div class="col-md-8">
+                                <label class="form-label">Nome do Estado *</label>
+                                <input type="text" class="form-control" id="estNome" maxlength="100" />
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">UF *</label>
+                                <input type="text" class="form-control text-uppercase" id="estUF" maxlength="2" placeholder="Ex: PR" />
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label">País *</label>
+                                <div class="autocomplete">
+                                    <div class="input-group">
+                                        <input type="hidden" id="estPais" />
+                                        <input type="text" class="form-control" id="estPaisNome"
+                                               placeholder="Digite para pesquisar o país" autocomplete="off"
+                                               data-droplist="pais" data-alvo="estPais" />
+                                        <button type="button" class="btn btn-outline-primary"
+                                                onclick="abrirModalEmpilhado('modalPaisRapido')" title="Cadastrar novo país">
+                                            <i class="bi bi-plus-lg"></i>
+                                        </button>
+                                    </div>
+                                    <div class="list-group autocomplete-lista d-none" id="estPaisNomeLista"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="button" class="btn btn-primary" id="btnSalvarEstadoRapido" onclick="salvarEstadoRapido()">
+                            <i class="bi bi-check-lg me-1"></i>Salvar Estado
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modal de Cadastro Rapido de Pais -->
+        <div class="modal fade" id="modalPaisRapido" tabindex="-1">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title"><i class="bi bi-globe-americas me-2"></i>Cadastrar País</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div id="paisMsg"></div>
+                        <!-- Busca: confere se o pais ja existe antes de cadastrar -->
+                        <label class="form-label small text-muted" for="paisBusca">Pesquisar país já cadastrado</label>
+                        <div class="search-box mb-2" style="max-width: none;">
+                            <i class="bi bi-search search-icon"></i>
+                            <input type="text" class="form-control" id="paisBusca" placeholder="Digite o nome ou a sigla do país" autocomplete="off" />
+                        </div>
+                        <div class="list-group mb-3 d-none busca-cadastro-lista" id="paisBuscaLista"></div>
+                        <div class="row g-3">
+                            <div class="col-md-8">
+                                <label class="form-label">Nome do País *</label>
+                                <input type="text" class="form-control" id="paisNome" maxlength="100" />
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">Sigla *</label>
+                                <input type="text" class="form-control text-uppercase" id="paisSigla" maxlength="5" placeholder="Ex: BR" />
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">DDI</label>
+                                <input type="text" class="form-control" id="paisDDI" maxlength="5" placeholder="Ex: 55" />
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Moeda</label>
+                                <input type="text" class="form-control" id="paisMoeda" maxlength="50" placeholder="Ex: Real" />
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="button" class="btn btn-primary" id="btnSalvarPaisRapido" onclick="salvarPaisRapido()">
+                            <i class="bi bi-check-lg me-1"></i>Salvar País
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="~/js/cadastro-localidade.js" asp-append-version="true"></script>
+}

@@ -14,10 +14,9 @@ public class FornecedoresModel : PageModel
     public FornecedoresModel(AppDbContext db) => _db = db;
 
     public List<GerFornecedor> Fornecedores { get; set; } = [];
-    public List<GerCidade> Cidades { get; set; } = [];
-    public List<GerEstado> Estados { get; set; } = [];
-    public List<GerPais> Paises { get; set; } = [];
 
+    // Cidades, estados e paises do modal sao carregados pelo proprio
+    // componente (ViewComponents/CadastroFornecedorViewComponent).
     [BindProperty]
     public GerFornecedor FornecedorForm { get; set; } = new();
 
@@ -30,10 +29,6 @@ public class FornecedoresModel : PageModel
             .Where(f => f.FlAtivo)
             .OrderBy(f => f.DsRazaoSocial)
             .ToListAsync();
-
-        Cidades = await _db.Cidades.Include(c => c.Estado).OrderBy(c => c.NmCidade).ToListAsync();
-        Estados = await _db.Estados.OrderBy(e => e.NmEstado).ToListAsync();
-        Paises = await _db.Paises.OrderBy(p => p.NmPais).ToListAsync();
     }
 
     private static string? SomenteNumeros(string? valor) =>
@@ -43,6 +38,35 @@ public class FornecedoresModel : PageModel
         string.IsNullOrEmpty(valor) ? valor : (valor.Length > max ? valor[..max] : valor);
 
     public async Task<IActionResult> OnPostAsync()
+    {
+        var erro = await NormalizarEValidarAsync();
+        if (erro != null) return await ComErroAsync(erro);
+
+        await GravarAsync();
+        return RedirectToPage();
+    }
+
+    // Cadastro pelo componente em modo AJAX (ex.: botao + da pesquisa de
+    // fornecedor na Compra). Mesmas regras do OnPostAsync, mas responde JSON
+    // para a tela de origem nao ser recarregada.
+    public async Task<IActionResult> OnPostSalvarAjaxAsync()
+    {
+        var erro = await NormalizarEValidarAsync();
+        if (erro != null) return new JsonResult(new { sucesso = false, mensagem = erro });
+
+        await GravarAsync();
+        return new JsonResult(new
+        {
+            sucesso = true,
+            id = FornecedorForm.IdFornecedor,
+            razaoSocial = FornecedorForm.DsRazaoSocial,
+            nomeFantasia = FornecedorForm.DsNomeFantasia
+        });
+    }
+
+    // Limpa mascaras, descarta campos que nao pertencem ao tipo de pessoa e
+    // valida o FornecedorForm. Retorna a mensagem do primeiro erro, ou null.
+    private async Task<string?> NormalizarEValidarAsync()
     {
         // Normaliza o tipo de pessoa (F/J/E/O)
         var tipo = (FornecedorForm.TpPessoa ?? "J").Trim().ToUpper();
@@ -111,21 +135,21 @@ public class FornecedoresModel : PageModel
 
         // ===== Validacoes amigaveis =====
         if (string.IsNullOrWhiteSpace(FornecedorForm.DsRazaoSocial))
-            return await ComErroAsync("Informe a Razão Social / Nome do fornecedor.");
+            return "Informe a Razão Social / Nome do fornecedor.";
 
         if (tipo == "F" && !string.IsNullOrEmpty(FornecedorForm.NrCpf) && !CpfValido(FornecedorForm.NrCpf))
-            return await ComErroAsync("CPF inválido. Verifique os números informados.");
+            return "CPF inválido. Verifique os números informados.";
 
         if (tipo == "J" && !string.IsNullOrEmpty(FornecedorForm.NrCNPJ) && !CnpjValido(FornecedorForm.NrCNPJ))
-            return await ComErroAsync("CNPJ inválido. Verifique os números informados.");
+            return "CNPJ inválido. Verifique os números informados.";
 
         // RG obrigatorio (9 digitos) para Pessoa Fisica
         if (tipo == "F")
         {
             if (string.IsNullOrWhiteSpace(FornecedorForm.NrRG))
-                return await ComErroAsync("Informe o RG do fornecedor (Pessoa Física).");
+                return "Informe o RG do fornecedor (Pessoa Física).";
             if (FornecedorForm.NrRG.Length != 9)
-                return await ComErroAsync("RG inválido. Informe 9 dígitos.");
+                return "RG inválido. Informe 9 dígitos.";
         }
 
         // Inscricoes para Pessoa Juridica (validadas apenas quando preenchidas)
@@ -133,16 +157,16 @@ public class FornecedoresModel : PageModel
         {
             if (!string.IsNullOrEmpty(FornecedorForm.NrInscEstadual) &&
                 (FornecedorForm.NrInscEstadual.Length < 8 || !FornecedorForm.NrInscEstadual.All(char.IsDigit)))
-                return await ComErroAsync("Inscrição Estadual deve ter de 8 a 13 dígitos.");
+                return "Inscrição Estadual deve ter de 8 a 13 dígitos.";
 
             if (!string.IsNullOrEmpty(FornecedorForm.NrInscMunicipal) &&
                 FornecedorForm.NrInscMunicipal.Length < 7)
-                return await ComErroAsync("Inscrição Municipal deve ter de 7 a 15 caracteres.");
+                return "Inscrição Municipal deve ter de 7 a 15 caracteres.";
         }
 
         if (!string.IsNullOrWhiteSpace(FornecedorForm.DsEmail) &&
             !new EmailAddressAttribute().IsValid(FornecedorForm.DsEmail))
-            return await ComErroAsync("E-mail inválido. Verifique o formato (exemplo: nome@dominio.com).");
+            return "E-mail inválido. Verifique o formato (exemplo: nome@dominio.com).";
 
         // Validacao da chave PIX conforme o tipo
         if (!string.IsNullOrWhiteSpace(FornecedorForm.DsChavePix) && !string.IsNullOrWhiteSpace(tpPix))
@@ -157,9 +181,39 @@ public class FornecedoresModel : PageModel
                 _ => true // ALEATORIA / outros
             };
             if (!pixOk)
-                return await ComErroAsync("Chave PIX inválida para o tipo selecionado.");
+                return "Chave PIX inválida para o tipo selecionado.";
         }
 
+        // Condicao de pagamento vem do dropdown; so aceita uma ja cadastrada e ativa.
+        if (FornecedorForm.IdCondicaoPagamento is int idCondicao
+            && !await _db.CondicoesPagamento.AnyAsync(c => c.IdCondicaoPagamento == idCondicao && c.FlAtivo))
+            return "Condição de pagamento inválida.";
+
+        // Mesmo CPF/CNPJ/documento ja cadastrado em outro fornecedor.
+        var documento = tipo switch
+        {
+            "F" => FornecedorForm.NrCpf,
+            "J" => FornecedorForm.NrCNPJ,
+            _ => FornecedorForm.NrDocumento
+        };
+        if (!string.IsNullOrEmpty(documento))
+        {
+            var idAtual = FornecedorForm.IdFornecedor;
+            var duplicado = await _db.Fornecedores
+                .Where(f => f.IdFornecedor != idAtual
+                         && (f.NrCpf == documento || f.NrCNPJ == documento || f.NrDocumento == documento))
+                .Select(f => f.DsRazaoSocial)
+                .FirstOrDefaultAsync();
+            if (duplicado != null)
+                return $"Já existe um fornecedor cadastrado com este documento: {duplicado}.";
+        }
+
+        return null;
+    }
+
+    // Inclui ou atualiza o fornecedor ja normalizado e validado.
+    private async Task GravarAsync()
+    {
         if (FornecedorForm.IdFornecedor == 0)
         {
             FornecedorForm.DtCriacao = DateTime.Now;
@@ -190,6 +244,7 @@ public class FornecedoresModel : PageModel
                 e.DsComplemento = FornecedorForm.DsComplemento;
                 e.DsBairro = FornecedorForm.DsBairro;
                 e.IdCidade = FornecedorForm.IdCidade;
+                e.IdCondicaoPagamento = FornecedorForm.IdCondicaoPagamento;
                 e.NrTelefoneFixo = FornecedorForm.NrTelefoneFixo;
                 e.NrCelular = FornecedorForm.NrCelular;
                 e.NrWhatsApp = FornecedorForm.NrWhatsApp;
@@ -205,7 +260,6 @@ public class FornecedoresModel : PageModel
         }
 
         await _db.SaveChangesAsync();
-        return RedirectToPage();
     }
 
     private async Task<IActionResult> ComErroAsync(string mensagem)
@@ -241,109 +295,6 @@ public class FornecedoresModel : PageModel
             TempData["Erro"] = "Não é possível excluir: existem registros vinculados a este fornecedor. Inative-o.";
         }
         return RedirectToPage();
-    }
-
-    // ============================================================
-    // Cadastro rapido de Cidade via AJAX
-    // ============================================================
-    public class CidadeRapidoDto
-    {
-        public string NmCidade { get; set; } = string.Empty;
-        public int IdEstado { get; set; }
-    }
-
-    public async Task<IActionResult> OnPostCidadeRapidoAsync([FromBody] CidadeRapidoDto dto)
-    {
-        if (dto is null || string.IsNullOrWhiteSpace(dto.NmCidade))
-            return new JsonResult(new { sucesso = false, mensagem = "Informe o nome da cidade." });
-        if (dto.IdEstado <= 0)
-            return new JsonResult(new { sucesso = false, mensagem = "Selecione o estado." });
-
-        var estado = await _db.Estados.FindAsync(dto.IdEstado);
-        if (estado is null)
-            return new JsonResult(new { sucesso = false, mensagem = "Estado inválido." });
-
-        var nome = dto.NmCidade.Trim();
-        bool existe = await _db.Cidades.AnyAsync(c => c.NmCidade == nome && c.IdEstado == dto.IdEstado);
-        if (existe)
-            return new JsonResult(new { sucesso = false, mensagem = "Já existe uma cidade com esse nome neste estado." });
-
-        var cidade = new GerCidade { NmCidade = nome, IdEstado = dto.IdEstado, DtCriacao = DateTime.Now };
-        _db.Cidades.Add(cidade);
-        await _db.SaveChangesAsync();
-
-        return new JsonResult(new { sucesso = true, id = cidade.IdCidade, nome = cidade.NmCidade, uf = estado.SgUF });
-    }
-
-    // ============================================================
-    // Cadastro rapido de Estado via AJAX
-    // ============================================================
-    public class EstadoRapidoDto
-    {
-        public string SgUF { get; set; } = string.Empty;
-        public string NmEstado { get; set; } = string.Empty;
-        public int IdPais { get; set; }
-    }
-
-    public async Task<IActionResult> OnPostEstadoRapidoAsync([FromBody] EstadoRapidoDto dto)
-    {
-        if (dto is null || string.IsNullOrWhiteSpace(dto.NmEstado))
-            return new JsonResult(new { sucesso = false, mensagem = "Informe o nome do estado." });
-        if (string.IsNullOrWhiteSpace(dto.SgUF) || dto.SgUF.Trim().Length != 2)
-            return new JsonResult(new { sucesso = false, mensagem = "Informe a UF (2 letras)." });
-        if (dto.IdPais <= 0)
-            return new JsonResult(new { sucesso = false, mensagem = "Selecione o país." });
-
-        var pais = await _db.Paises.FindAsync(dto.IdPais);
-        if (pais is null)
-            return new JsonResult(new { sucesso = false, mensagem = "País inválido." });
-
-        var uf = dto.SgUF.Trim().ToUpper();
-        bool existe = await _db.Estados.AnyAsync(e => e.SgUF == uf && e.IdPais == dto.IdPais);
-        if (existe)
-            return new JsonResult(new { sucesso = false, mensagem = "Já existe um estado com essa UF neste país." });
-
-        var estado = new GerEstado { SgUF = uf, NmEstado = dto.NmEstado.Trim(), IdPais = dto.IdPais, DtCriacao = DateTime.Now };
-        _db.Estados.Add(estado);
-        await _db.SaveChangesAsync();
-
-        return new JsonResult(new { sucesso = true, id = estado.IdEstado, nome = estado.NmEstado, uf = estado.SgUF });
-    }
-
-    // ============================================================
-    // Cadastro rapido de Pais via AJAX
-    // ============================================================
-    public class PaisRapidoDto
-    {
-        public string NmPais { get; set; } = string.Empty;
-        public string SgPais { get; set; } = string.Empty;
-        public string? NrDDI { get; set; }
-        public string? DsMoeda { get; set; }
-    }
-
-    public async Task<IActionResult> OnPostPaisRapidoAsync([FromBody] PaisRapidoDto dto)
-    {
-        if (dto is null || string.IsNullOrWhiteSpace(dto.NmPais))
-            return new JsonResult(new { sucesso = false, mensagem = "Informe o nome do país." });
-        if (string.IsNullOrWhiteSpace(dto.SgPais))
-            return new JsonResult(new { sucesso = false, mensagem = "Informe a sigla do país." });
-
-        var nome = dto.NmPais.Trim();
-        bool existe = await _db.Paises.AnyAsync(p => p.NmPais == nome);
-        if (existe)
-            return new JsonResult(new { sucesso = false, mensagem = "Já existe um país com esse nome." });
-
-        var pais = new GerPais
-        {
-            NmPais = nome,
-            SgPais = dto.SgPais.Trim().ToUpper(),
-            NrDDI = string.IsNullOrWhiteSpace(dto.NrDDI) ? null : SomenteNumeros(dto.NrDDI),
-            DsMoeda = string.IsNullOrWhiteSpace(dto.DsMoeda) ? null : dto.DsMoeda.Trim()
-        };
-        _db.Paises.Add(pais);
-        await _db.SaveChangesAsync();
-
-        return new JsonResult(new { sucesso = true, id = pais.IdPais, nome = pais.NmPais });
     }
 
     // ============================================================
@@ -415,6 +366,7 @@ public class FornecedoresModel : PageModel
                 complemento = f.DsComplemento,
                 bairro = f.DsBairro,
                 idCidade = f.IdCidade,
+                idCondicaoPagamento = f.IdCondicaoPagamento,
                 cidadeNome = f.Cidade != null ? f.Cidade.NmCidade + "/" + (f.Cidade.Estado != null ? f.Cidade.Estado.SgUF : "") : null,
                 telefoneFixo = f.NrTelefoneFixo,
                 celular = f.NrCelular,

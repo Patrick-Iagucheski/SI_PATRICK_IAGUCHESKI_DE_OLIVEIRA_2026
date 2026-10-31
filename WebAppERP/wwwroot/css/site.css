@@ -15,16 +15,12 @@
     --card-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
 }
 
+/* Base das fontes (todo o resto e em rem): 16px deixa as telas legiveis
+   em notebooks 1366x768 sem estourar os formularios */
 html {
-    font-size: 14px;
+    font-size: 16px;
     position: relative;
     min-height: 100%;
-}
-
-@media (min-width: 768px) {
-    html {
-        font-size: 14px;
-    }
 }
 
 body {
@@ -135,7 +131,7 @@ body {
     background: transparent;
     border: none;
     color: #64748b;
-    font-size: 0.7rem;
+    font-size: 0.75rem;
     text-transform: uppercase;
     letter-spacing: 1.2px;
     font-weight: 600;
@@ -223,7 +219,7 @@ body {
 }
 
 .sidebar-heading {
-    font-size: 0.7rem;
+    font-size: 0.75rem;
     text-transform: uppercase;
     letter-spacing: 1.5px;
     color: #64748b;
@@ -375,16 +371,23 @@ body {
     font-weight: 600;
     color: #475569;
     text-transform: uppercase;
-    font-size: 0.75rem;
+    font-size: 0.8rem;
     letter-spacing: 0.5px;
-    padding: 0.75rem 1rem;
+    padding: 0.75rem;
     white-space: nowrap;
 }
 
 .table tbody td {
-    padding: 0.75rem 1rem;
+    padding: 0.75rem;
     vertical-align: middle;
     border-bottom: 1px solid #f1f5f9;
+}
+
+/* Valores (colunas alinhadas a direita) nao quebram no "R$ " e os botoes
+   de acoes (editar/excluir) ficam sempre lado a lado */
+.table tbody td.text-end,
+.table tbody td:has(.btn-icon) {
+    white-space: nowrap;
 }
 
 .table tbody tr:hover {
@@ -396,6 +399,7 @@ body {
    ============================================ */
 
 .badge-status {
+    white-space: nowrap;
     padding: 0.35rem 0.65rem;
     border-radius: 50rem;
     font-size: 0.75rem;
@@ -464,7 +468,7 @@ body {
 
 .form-label {
     font-weight: 600;
-    font-size: 0.8rem;
+    font-size: 0.85rem;
     color: #475569;
     margin-bottom: 0.3rem;
 }
@@ -495,6 +499,19 @@ body {
 
 .search-box .form-control {
     padding-left: 2.25rem;
+}
+
+/* Lista de resultados dos modais de pesquisa: altura limitada com scroll
+   interno e cabecalho fixo (ex.: Pesquisar Produto da Compra). */
+.busca-resultados {
+    max-height: 360px;
+    overflow-y: auto;
+}
+
+.busca-resultados thead th {
+    position: sticky;
+    top: 0;
+    z-index: 1;
 }
 
 .search-box .search-icon {
@@ -588,4 +605,243 @@ body {
 
 .btn:focus, .btn:active:focus, .btn-link.nav-link:focus, .form-control:focus, .form-check-input:focus {
     box-shadow: 0 0 0 0.1rem white, 0 0 0 0.25rem #258cfb;
+}
+
+/* ============================================
+   Abas internas (shell + iframes)
+   ============================================ */
+
+/* Fora do shell (sem JS) a barra e os paineis nao aparecem */
+.abas-barra,
+.abas-conteudo {
+    display: none;
+}
+
+/* Janela principal: o conteudo vem dos iframes, nao da pagina carregada */
+.com-abas #conteudoPagina {
+    display: none;
+}
+
+.com-abas #page-content-wrapper {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    min-height: 0;
+}
+
+.com-abas .topbar {
+    flex-shrink: 0;
+}
+
+.com-abas .abas-barra {
+    display: flex;
+    flex-shrink: 0;
+    align-items: stretch;
+    background: #f8fafc;
+    border-bottom: 1px solid #e2e8f0;
+    overflow-x: auto;
+    overflow-y: hidden;
+    scrollbar-width: thin;
+}
+
+.abas-barra::-webkit-scrollbar { height: 4px; }
+.abas-barra::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 2px; }
+
+.aba {
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
+    max-width: 220px;
+    padding: 0.5rem 0.6rem 0.5rem 0.9rem;
+    border-right: 1px solid #e2e8f0;
+    color: #64748b;
+    font-size: 0.82rem;
+    white-space: nowrap;
+    cursor: pointer;
+    user-select: none;
+    transition: background 0.15s ease, color 0.15s ease;
+}
+
+.aba:hover {
+    background: #eef2f7;
+    color: #1e293b;
+}
+
+.aba:focus-visible {
+    outline: 2px solid var(--sidebar-active);
+    outline-offset: -2px;
+}
+
+.aba.ativa {
+    background: #fff;
+    color: #1e293b;
+    font-weight: 600;
+    box-shadow: inset 0 2px 0 var(--sidebar-active);
+}
+
+.aba.ativa > i {
+    color: var(--sidebar-active);
+}
+
+.aba-titulo {
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.aba-fechar {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 18px;
+    height: 18px;
+    padding: 0;
+    border: none;
+    border-radius: 0.25rem;
+    background: transparent;
+    color: #94a3b8;
+    font-size: 0.9rem;
+    line-height: 1;
+}
+
+.aba-fechar:hover {
+    background: #fee2e2;
+    color: #dc2626;
+}
+
+/* Aba fixa (Principal) nao tem o X: compensa o espaco a direita */
+.aba-fixa {
+    padding-right: 0.9rem;
+}
+
+.com-abas .abas-conteudo {
+    display: block;
+    position: relative;
+    flex: 1 1 auto;
+    min-height: 0;
+}
+
+/* Paineis empilhados: so a visibilidade muda ao trocar de aba, assim o
+   iframe nao muda de tamanho e mantem rolagem, campos e modais abertos. */
+.aba-painel {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    border: 0;
+    visibility: hidden;
+}
+
+.aba-painel.ativa {
+    visibility: visible;
+}
+
+/* Pagina dentro de uma aba: sem menu lateral e sem barra do topo */
+.em-aba .sidebar,
+.em-aba .topbar {
+    display: none;
+}
+
+.em-aba #page-content-wrapper {
+    margin-left: 0;
+    min-height: 0;
+}
+
+/* ============================================
+   Tela Principal (Menu de acesso rapido e atividades)
+   ============================================ */
+
+.painel-abas .nav-link {
+    color: #64748b;
+    font-size: 0.9rem;
+    font-weight: 500;
+    padding: 0.45rem 1rem;
+}
+
+.painel-abas .nav-link.active {
+    color: #1e293b;
+    font-weight: 600;
+}
+
+/* Lista em duas colunas, preenchida linha a linha, com rolagem propria */
+.acesso-lista {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    column-gap: 2rem;
+    align-content: start;
+    height: 290px;
+    overflow-y: auto;
+    padding-right: 0.25rem;
+}
+
+.acesso-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    padding: 0.5rem 0.35rem;
+    border-bottom: 1px solid #f1f5f9;
+    color: #334155;
+    text-decoration: none;
+    font-size: 0.9rem;
+    border-radius: 0.25rem;
+}
+
+.acesso-item:hover {
+    background: #f8fafc;
+    color: var(--sidebar-active);
+}
+
+.acesso-item > i {
+    color: #94a3b8;
+    font-size: 0.8rem;
+}
+
+.atividades-lista {
+    height: 354px;
+    overflow-y: auto;
+}
+
+.atividade-item {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.65rem 1rem;
+    border-bottom: 1px solid #f1f5f9;
+    color: #334155;
+    text-decoration: none;
+    font-size: 0.9rem;
+}
+
+.atividade-item:hover {
+    background: #f8fafc;
+    color: #1e293b;
+}
+
+.atividade-icone {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+}
+
+@media (max-width: 576px) {
+    .acesso-lista {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* ============================================
+   Configuracoes: previa do topo do menu lateral
+   ============================================ */
+.cfg-preview {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 1.25rem 1.5rem;
+    background: var(--sidebar-bg);
+    border-radius: 0.5rem;
+    max-width: var(--sidebar-width);
 }

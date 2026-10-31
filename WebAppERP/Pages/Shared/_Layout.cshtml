@@ -9,13 +9,25 @@
     string[] gCompras = { "/Cadastro/Compras", "/Cadastro/Compra" };
     string Active(string page) => curr == page ? "active" : "";
     string Open(string[] grupo) => grupo.Contains(curr) ? "" : "collapsed";
+
+    // Nome e logo da empresa vem do banco (tela Configuracoes)
+    var empresa = await EmpresaSvc.ObterAsync();
 }
+@inject WebAppERP.Infrastructure.EmpresaService EmpresaSvc
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="pt-BR" data-empresa="@empresa.Nome">
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>@ViewData["Title"] - R10 Barber Shop</title>
+    <title>@ViewData["Title"] - @empresa.Nome</title>
+    @* Icone da guia do navegador = logo da empresa (Configuracoes) *@
+    <link rel="icon" id="iconeEmpresa" href="@Url.Content("~" + empresa.Logo)" />
+    <script>
+        // Abas internas: dentro de uma aba (iframe) a pagina esconde menu e topo;
+        // na janela principal o layout vira o "shell" com a barra de abas.
+        // Roda no head para aplicar a classe antes do primeiro desenho da tela.
+        document.documentElement.classList.add(window.self !== window.top ? 'em-aba' : 'com-abas');
+    </script>
     <script type="importmap"></script>
     <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" />
@@ -27,8 +39,8 @@
         <!-- Sidebar -->
         <nav id="sidebar" class="sidebar">
             <div class="sidebar-header">
-                <img src="~/images/logo.png" alt="R10 Barber Shop" class="sidebar-logo" />
-                <span class="sidebar-brand">R10 Barber Shop</span>
+                <img src="@Url.Content("~" + empresa.Logo)" alt="@empresa.Nome" class="sidebar-logo" />
+                <span class="sidebar-brand">@empresa.Nome</span>
             </div>
 
             <div class="sidebar-search">
@@ -38,9 +50,9 @@
 
             <ul class="sidebar-nav" id="sidebarNav">
                 <li class="sidebar-item">
-                    <a class="sidebar-link @Active("/Index")" asp-page="/Index">
-                        <i class="bi bi-grid-1x2-fill"></i>
-                        <span>Dashboard</span>
+                    <a class="sidebar-link @Active("/Index")" asp-page="/Index" data-aba-principal>
+                        <i class="bi bi-house-door-fill"></i>
+                        <span>Principal</span>
                     </a>
                 </li>
 
@@ -197,7 +209,7 @@
                     <button class="btn btn-link" id="sidebarToggle">
                         <i class="bi bi-list fs-4"></i>
                     </button>
-                    <span class="navbar-text fw-semibold text-muted">
+                    <span class="navbar-text fw-semibold text-muted" id="topbarTitulo">
                         @ViewData["Title"]
                     </span>
                     <div class="d-flex align-items-center gap-3">
@@ -208,7 +220,12 @@
                                 <i class="bi bi-person-circle me-1"></i> Admin
                             </a>
                             <ul class="dropdown-menu dropdown-menu-end">
-                                <li><a class="dropdown-item" href="#"><i class="bi bi-gear me-2"></i>Configuracoes</a></li>
+                                <li>
+                                    <a class="dropdown-item" asp-page="/Configuracoes" data-abrir-aba
+                                       data-aba-titulo="Configurações" data-aba-icone="bi bi-gear">
+                                        <i class="bi bi-gear me-2"></i>Configurações
+                                    </a>
+                                </li>
                                 <li><hr class="dropdown-divider" /></li>
                                 <li><a class="dropdown-item" href="#"><i class="bi bi-box-arrow-right me-2"></i>Sair</a></li>
                             </ul>
@@ -216,7 +233,11 @@
                     </div>
                 </div>
             </nav>
-            <div class="container-fluid p-4">
+            @* Barra de abas e paineis (iframes): montados pelo site.js so na janela principal.
+               Nela o #conteudoPagina fica oculto (o CSS esconde) e a tela aparece no iframe. *@
+            <div class="abas-barra" id="abasBarra" role="tablist"></div>
+            <div class="abas-conteudo" id="abasConteudo"></div>
+            <div class="container-fluid p-4" id="conteudoPagina">
                 <main role="main">
                     @* Alertas de TempData centralizados: qualquer pagina que definir
                        TempData["Erro"] ou TempData["Sucesso"] exibe a mensagem aqui,

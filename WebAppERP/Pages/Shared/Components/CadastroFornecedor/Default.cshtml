@@ -1,0 +1,230 @@
+@model WebAppERP.ViewModels.CadastroFornecedorViewModel
+@*
+    Componente de cadastro de fornecedor (ViewComponents/CadastroFornecedorViewComponent).
+    Precisa de wwwroot/js/cadastro-fornecedor.js na pagina que o usa.
+    data-modo="ajax" faz o Salvar gravar por fetch e disparar o evento
+    'fornecedor:salvo' (detail: id, razaoSocial, nomeFantasia).
+    A cidade usa o componente unico CampoCidade (droplist + cadastro rapido de
+    cidade/estado/pais), o mesmo das telas de Clientes e Funcionarios.
+*@
+
+<!-- Modal Novo/Editar Fornecedor -->
+<div class="modal fade" id="modalFornecedor" tabindex="-1"
+     data-modo="@Model.Modo" data-url-fornecedores="@Url.Page("/Cadastro/Fornecedores")">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <form method="post" asp-page="/Cadastro/Fornecedores">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="modalTitle"><i class="bi bi-truck me-2"></i>Novo Fornecedor</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div id="fornMsg"></div>
+                    <input type="hidden" asp-for="FornecedorForm.IdFornecedor" id="formId" />
+
+                    <!-- ===== Dados Cadastrais ===== -->
+                    <h6 class="text-primary border-bottom pb-1 mb-3"><i class="bi bi-card-list me-1"></i>Dados Cadastrais</h6>
+                    <div class="row g-3">
+                        <div class="col-md-2">
+                            <label class="form-label">Código</label>
+                            <input type="text" class="form-control bg-light" id="formCodigoDisplay" placeholder="(novo)" readonly />
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Tipo de Pessoa *</label>
+                            <select class="form-select" asp-for="FornecedorForm.TpPessoa" id="formTpPessoa" onchange="toggleTipoPessoa()">
+                                <option value="J">Pessoa Jurídica</option>
+                                <option value="F">Pessoa Física</option>
+                                <option value="E">Estrangeiro</option>
+                                <option value="O">Outro</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label" id="lblRazao">Razão Social *</label>
+                            <input type="text" class="form-control" asp-for="FornecedorForm.DsRazaoSocial" id="formDsRazaoSocial" maxlength="200" required />
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label">Nome Fantasia</label>
+                            <input type="text" class="form-control" asp-for="FornecedorForm.DsNomeFantasia" id="formDsNomeFantasia" maxlength="150" />
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Contato Principal</label>
+                            <input type="text" class="form-control" asp-for="FornecedorForm.DsContatoPrincipal" id="formDsContatoPrincipal" maxlength="120" />
+                        </div>
+
+                        <div class="col-md-3 doc-wrap" id="wrapCnpj">
+                            <label class="form-label">CNPJ</label>
+                            <input type="text" class="form-control" asp-for="FornecedorForm.NrCNPJ" id="formNrCNPJ" maxlength="18" placeholder="00.000.000/0000-00" />
+                        </div>
+                        <div class="col-md-3 doc-wrap d-none" id="wrapCpf">
+                            <label class="form-label">CPF</label>
+                            <input type="text" class="form-control" asp-for="FornecedorForm.NrCpf" id="formNrCpf" maxlength="14" placeholder="000.000.000-00" />
+                        </div>
+                        <div class="col-md-3 doc-wrap d-none" id="wrapDoc">
+                            <label class="form-label" id="lblDoc">Documento</label>
+                            <input type="text" class="form-control" asp-for="FornecedorForm.NrDocumento" id="formNrDocumento" maxlength="30" placeholder="Documento" />
+                        </div>
+                        <!-- Slot A: Inscricao Estadual (PJ / Estrangeiro / Outro) ou RG (Pessoa Fisica) -->
+                        <div class="col-md-3 doc-wrap" id="wrapInscEstadual">
+                            <label class="form-label">Inscrição Estadual</label>
+                            <input type="text" class="form-control" asp-for="FornecedorForm.NrInscEstadual" id="formNrInscEstadual" maxlength="13" placeholder="8 a 13 dígitos" />
+                        </div>
+                        <div class="col-md-3 doc-wrap d-none" id="wrapRG">
+                            <label class="form-label">RG *</label>
+                            <input type="text" class="form-control" asp-for="FornecedorForm.NrRG" id="formNrRG" maxlength="12" placeholder="00.000.000-0" />
+                        </div>
+
+                        <!-- Slot B: Inscricao Municipal (PJ) ou Data de Nascimento (Pessoa Fisica / Estrangeiro / Outro) -->
+                        <div class="col-md-3 doc-wrap" id="wrapInscMunicipal">
+                            <label class="form-label">Inscrição Municipal</label>
+                            <input type="text" class="form-control" asp-for="FornecedorForm.NrInscMunicipal" id="formNrInscMunicipal" maxlength="15" placeholder="7 a 15 caracteres" />
+                        </div>
+                        <div class="col-md-3 doc-wrap d-none" id="wrapDataNasc">
+                            <label class="form-label">Data de Nascimento</label>
+                            <input type="date" class="form-control" asp-for="FornecedorForm.DtNascimento" id="formDtNascimento" />
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Status</label>
+                            <select class="form-select" asp-for="FornecedorForm.FlAtivo" id="formFlAtivo">
+                                <option value="true">Ativo</option>
+                                <option value="false">Inativo</option>
+                            </select>
+                        </div>
+                        <!-- Condicao de pagamento padrao (so as ja cadastradas e ativas) -->
+                        <div class="col-md-6">
+                            <label class="form-label">Condição de Pagamento</label>
+                            <div class="input-group">
+                                <select class="form-select" asp-for="FornecedorForm.IdCondicaoPagamento" id="formIdCondicaoPagamento">
+                                    <option value="">Selecione</option>
+                                    @foreach (var condicao in Model.Condicoes)
+                                    {
+                                        <option value="@condicao.IdCondicaoPagamento">@condicao.DsCondicao</option>
+                                    }
+                                </select>
+                                <!-- Abre o componente compartilhado de condicao de pagamento -->
+                                <button type="button" class="btn btn-outline-primary" title="Cadastrar nova condição de pagamento"
+                                        onclick="limparFormCondicao(); abrirModalEmpilhado('modalCondicao')">
+                                    <i class="bi bi-plus-lg"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label">Observações</label>
+                            <textarea class="form-control" rows="2" asp-for="FornecedorForm.DsObservacao" id="formDsObservacao" maxlength="500"></textarea>
+                        </div>
+                    </div>
+
+                    <!-- ===== Endereco ===== -->
+                    <h6 class="text-primary border-bottom pb-1 mb-3 mt-4"><i class="bi bi-geo-alt me-1"></i>Endereço</h6>
+                    <div class="row g-3">
+                        <div class="col-md-3">
+                            <label class="form-label">CEP</label>
+                            <input type="text" class="form-control" asp-for="FornecedorForm.NrCEP" id="formNrCEP" maxlength="9" placeholder="00000-000" />
+                        </div>
+                        <div class="col-md-7">
+                            <label class="form-label">Logradouro</label>
+                            <input type="text" class="form-control" asp-for="FornecedorForm.DsEndereco" id="formDsEndereco" maxlength="200" />
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label">Número</label>
+                            <input type="text" class="form-control" asp-for="FornecedorForm.NrNumero" id="formNrNumero" maxlength="10" />
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Complemento</label>
+                            <input type="text" class="form-control" asp-for="FornecedorForm.DsComplemento" id="formDsComplemento" maxlength="100" />
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Bairro</label>
+                            <input type="text" class="form-control" asp-for="FornecedorForm.DsBairro" id="formDsBairro" maxlength="100" />
+                        </div>
+                        <div class="col-md-5">
+                            <label class="form-label">Cidade</label>
+                            @await Component.InvokeAsync("CampoCidade", new { nome = "FornecedorForm.IdCidade", id = "formIdCidade", idCidade = Model.FornecedorForm.IdCidade })
+                        </div>
+                    </div>
+
+                    <!-- ===== Contato ===== -->
+                    <h6 class="text-primary border-bottom pb-1 mb-3 mt-4"><i class="bi bi-telephone me-1"></i>Contato</h6>
+                    <div class="row g-3">
+                        <div class="col-md-3">
+                            <label class="form-label">Telefone Fixo</label>
+                            <input type="text" class="form-control" asp-for="FornecedorForm.NrTelefoneFixo" id="formNrTelefoneFixo" maxlength="15" placeholder="(00) 0000-0000" />
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Celular</label>
+                            <input type="text" class="form-control" asp-for="FornecedorForm.NrCelular" id="formNrCelular" maxlength="15" placeholder="(00) 00000-0000" />
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">WhatsApp</label>
+                            <input type="text" class="form-control" asp-for="FornecedorForm.NrWhatsApp" id="formNrWhatsApp" maxlength="15" placeholder="(00) 00000-0000" />
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">E-mail Principal</label>
+                            <input type="email" class="form-control" asp-for="FornecedorForm.DsEmail" id="formDsEmail" maxlength="150" />
+                        </div>
+                    </div>
+
+                    <!-- ===== Dados Bancarios ===== -->
+                    <h6 class="text-primary border-bottom pb-1 mb-3 mt-4"><i class="bi bi-bank me-1"></i>Dados Bancarios</h6>
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <label class="form-label">Banco</label>
+                            <input type="text" class="form-control" asp-for="FornecedorForm.DsBanco" id="formDsBanco" maxlength="60" />
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label">Agencia</label>
+                            <input type="text" class="form-control" asp-for="FornecedorForm.NrAgencia" id="formNrAgencia" maxlength="10" />
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Tipo de Conta</label>
+                            <select class="form-select" asp-for="FornecedorForm.TpConta" id="formTpConta">
+                                <option value="">Selecione</option>
+                                <option value="CC">Conta Corrente</option>
+                                <option value="CP">Conta Poupanca</option>
+                                <option value="CS">Conta Salário</option>
+                                <option value="CE">Conta Empresarial</option>
+                            </select>
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label">Conta</label>
+                            <input type="text" class="form-control" asp-for="FornecedorForm.NrConta" id="formNrConta" maxlength="20" />
+                        </div>
+                        <div class="col-md-1">
+                            <label class="form-label">Digito</label>
+                            <input type="text" class="form-control" asp-for="FornecedorForm.NrDigitoConta" id="formNrDigitoConta" maxlength="2" />
+                        </div>
+                    </div>
+
+                    <!-- ===== PIX ===== -->
+                    <h6 class="text-primary border-bottom pb-1 mb-3 mt-4"><i class="bi bi-qr-code me-1"></i>PIX</h6>
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <label class="form-label">Tipo de Chave PIX</label>
+                            <select class="form-select" asp-for="FornecedorForm.TpChavePix" id="formTpChavePix" onchange="aplicarMascaraPix()">
+                                <option value="">Selecione</option>
+                                <option value="CPF">CPF</option>
+                                <option value="CNPJ">CNPJ</option>
+                                <option value="EMAIL">E-mail</option>
+                                <option value="CELULAR">Celular</option>
+                                <option value="ALEATORIA">Chave Aleatoria</option>
+                            </select>
+                        </div>
+                        <div class="col-md-8">
+                            <label class="form-label">Chave PIX</label>
+                            <input type="text" class="form-control" asp-for="FornecedorForm.DsChavePix" id="formDsChavePix" maxlength="100" />
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary"><i class="bi bi-check-lg me-1"></i>Salvar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@* Cadastro de condicao de pagamento (componente compartilhado com a tela de
+   Condicoes de Pagamento), aberto pelo + do campo Condicao de Pagamento.
+   Fica fora do modal do fornecedor: modal dentro de modal nao abre direito. *@
+@await Component.InvokeAsync("CadastroCondicaoPagamento", new { modo = "ajax" })

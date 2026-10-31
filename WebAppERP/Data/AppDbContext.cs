@@ -8,6 +8,7 @@ public class AppDbContext : DbContext
     public AppDbContext(DbContextOptions<AppDbContext> options) : base(options) { }
 
     public DbSet<GerUsuario> Usuarios => Set<GerUsuario>();
+    public DbSet<GerEmpresa> Empresa => Set<GerEmpresa>();
     public DbSet<GerPais> Paises => Set<GerPais>();
     public DbSet<GerEstado> Estados => Set<GerEstado>();
     public DbSet<GerCidade> Cidades => Set<GerCidade>();

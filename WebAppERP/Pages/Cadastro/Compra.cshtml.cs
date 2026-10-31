@@ -26,6 +26,14 @@ public class CompraModel : PageModel
     public CompraEditorViewModel Vm { get; set; } = new();
     public string? Erro { get; set; }
 
+    // Chave ja validada: na edicao sempre; numa inclusao, depois que a tela
+    // confirmou que a chave esta livre. Enquanto for false, so a chave e editavel.
+    public bool ChaveValidada { get; set; }
+
+    // Condicao de pagamento do cadastro do fornecedor: quando existe, a tela
+    // trava o campo Condicao de Pagamento com ela.
+    public int? CondicaoFornecedor { get; set; }
+
     // ===== Cabecalho: chave composta =====
     [BindProperty] public int NrNota { get; set; }
     [BindProperty] public int NrSerie { get; set; }
@@ -92,6 +100,7 @@ public class CompraModel : PageModel
         Vm.Pagamentos = compra.Pagamentos.OrderBy(p => p.NrParcela).ToList();
         Vm.ContasGeradas = await _repo.ObterContasGeradasAsync(chave);
         Vm.Edicao = true;
+        ChaveValidada = true;
 
         // Preenche o cabecalho para os asp-for exibirem os valores atuais.
         NrNota = OrigNrNota = compra.NrNota;
@@ -102,6 +111,7 @@ public class CompraModel : PageModel
         DtChegada = compra.DtChegada;
         IdTransportador = compra.IdTransportador;
         IdCondicaoPagamento = compra.IdCondicaoPagamento;
+        CondicaoFornecedor = await CondicaoDoFornecedorAsync(compra.IdFornecedor);
         VlFrete = compra.VlFrete;
         VlSeguro = compra.VlSeguro;
         VlOutrasDespesas = compra.VlOutrasDespesas;
@@ -115,37 +125,36 @@ public class CompraModel : PageModel
     // Gravacao (Salvar Rascunho / Salvar Compra)
     // ============================================================
 
+    // Dados da tela (campos do form + itens e parcelas em JSON) para o repositorio.
+    private CompraInputDto MontarInput() => new()
+    {
+        NrNota = NrNota,
+        NrSerie = NrSerie,
+        NrModelo = NrModelo,
+        IdFornecedor = IdFornecedor,
+        ChaveOriginal = new CompraChaveDto
+        {
+            NrNota = OrigNrNota,
+            NrSerie = OrigNrSerie,
+            NrModelo = OrigNrModelo,
+            IdFornecedor = OrigIdFornecedor
+        },
+        DtEmissao = DtEmissao,
+        DtChegada = DtChegada,
+        IdTransportador = IdTransportador,
+        IdCondicaoPagamento = IdCondicaoPagamento,
+        VlFrete = VlFrete,
+        VlSeguro = VlSeguro,
+        VlOutrasDespesas = VlOutrasDespesas,
+        TpStatus = TpStatus,
+        DsObservacao = DsObservacao,
+        Itens = JsonSerializer.Deserialize<List<CompraItemDto>>(ItensJson ?? "[]", JsonOpts) ?? [],
+        Pagamentos = JsonSerializer.Deserialize<List<CompraPagamentoDto>>(PagamentosJson ?? "[]", JsonOpts) ?? []
+    };
+
     public async Task<IActionResult> OnPostAsync()
     {
-        var itens = JsonSerializer.Deserialize<List<CompraItemDto>>(ItensJson ?? "[]", JsonOpts) ?? [];
-        var pagamentos = JsonSerializer.Deserialize<List<CompraPagamentoDto>>(PagamentosJson ?? "[]", JsonOpts) ?? [];
-
-        var input = new CompraInputDto
-        {
-            NrNota = NrNota,
-            NrSerie = NrSerie,
-            NrModelo = NrModelo,
-            IdFornecedor = IdFornecedor,
-            ChaveOriginal = new CompraChaveDto
-            {
-                NrNota = OrigNrNota,
-                NrSerie = OrigNrSerie,
-                NrModelo = OrigNrModelo,
-                IdFornecedor = OrigIdFornecedor
-            },
-            DtEmissao = DtEmissao,
-            DtChegada = DtChegada,
-            IdTransportador = IdTransportador,
-            IdCondicaoPagamento = IdCondicaoPagamento,
-            VlFrete = VlFrete,
-            VlSeguro = VlSeguro,
-            VlOutrasDespesas = VlOutrasDespesas,
-            TpStatus = TpStatus,
-            DsObservacao = DsObservacao,
-            Itens = itens,
-            Pagamentos = pagamentos
-        };
-
+        var input = MontarInput();
         var (ok, erro, chave) = await _repo.SalvarAsync(input);
 
         if (ok)
@@ -167,6 +176,10 @@ public class CompraModel : PageModel
         Erro = erro;
         Vm.Combos = await _repo.ObterCombosAsync();
         Vm.Edicao = OrigNrNota > 0;
+
+        // Numa inclusao, a chave so volta travada se ainda estiver livre.
+        ChaveValidada = Vm.Edicao || (await _repo.ValidarChaveNovaAsync(input.Chave())).ok;
+        if (ChaveValidada) CondicaoFornecedor = await CondicaoDoFornecedorAsync(IdFornecedor);
         Vm.Compra = new OpeCompra
         {
             NrNota = NrNota,
@@ -181,16 +194,74 @@ public class CompraModel : PageModel
             VlSeguro = VlSeguro,
             VlOutrasDespesas = VlOutrasDespesas,
             TpStatus = TpStatus,
-            DsObservacao = DsObservacao
+            DsObservacao = DsObservacao,
+            Fornecedor = await _db.Fornecedores.FindAsync(IdFornecedor),
+            Transportador = IdTransportador is > 0 ? await _db.Transportadores.FindAsync(IdTransportador) : null
         };
 
         return Page();
     }
 
     // ============================================================
+    // Rascunho gravado desde a validacao da chave
+    // ============================================================
+
+    // Valida a chave de uma compra nova e ja grava o rascunho (so o cabecalho,
+    // com a emissao de hoje e a condicao do fornecedor). Dali em diante a compra
+    // existe no banco e a tela salva sozinha (OnPostAutoSalvar): queda de energia
+    // ou sair da tela nao perdem o que foi lancado.
+    public async Task<IActionResult> OnPostIniciarRascunhoAsync()
+    {
+        var chave = new CompraChaveDto { NrNota = NrNota, NrSerie = NrSerie, NrModelo = NrModelo, IdFornecedor = IdFornecedor };
+        var (ok, erro, nomeFornecedor) = await _repo.ValidarChaveNovaAsync(chave);
+        if (!ok) return new JsonResult(new { ok, erro, fornecedor = nomeFornecedor });
+
+        var (salvo, erroSalvar, _) = await _repo.SalvarAsync(new CompraInputDto
+        {
+            NrNota = NrNota,
+            NrSerie = NrSerie,
+            NrModelo = NrModelo,
+            IdFornecedor = IdFornecedor,
+            DtEmissao = DateOnly.FromDateTime(DateTime.Today),
+            IdCondicaoPagamento = await CondicaoDoFornecedorAsync(IdFornecedor),
+            TpStatus = "RASCUNHO"
+        });
+        if (!salvo) return new JsonResult(new { ok = false, erro = erroSalvar, fornecedor = nomeFornecedor });
+
+        return new JsonResult(new
+        {
+            ok = true,
+            fornecedor = nomeFornecedor,
+            url = Url.Page("Compra", new { nrNota = NrNota, nrSerie = NrSerie, nrModelo = NrModelo, idFornecedor = IdFornecedor })
+        });
+    }
+
+    // Salvamento automatico chamado pela tela a cada alteracao. So vale para
+    // compra que continua em rascunho: finalizada so muda pelo botao Salvar,
+    // porque regrava estoque e titulos.
+    public async Task<IActionResult> OnPostAutoSalvarAsync()
+    {
+        var status = await _db.Compras
+            .Where(c => c.NrNota == OrigNrNota && c.NrSerie == OrigNrSerie
+                     && c.NrModelo == OrigNrModelo && c.IdFornecedor == OrigIdFornecedor)
+            .Select(c => c.TpStatus)
+            .FirstOrDefaultAsync();
+        if (status != "RASCUNHO")
+            return new JsonResult(new { ok = false, erro = "Só compras em rascunho são salvas automaticamente." });
+
+        TpStatus = "RASCUNHO";
+        var (ok, erro, _) = await _repo.SalvarAsync(MontarInput());
+        return new JsonResult(new { ok, erro, hora = DateTime.Now.ToString("HH:mm:ss") });
+    }
+
+    // ============================================================
     // Consultas AJAX usadas pelos campos de pesquisa da tela
     // (mesmo padrao de OnGetBuscarContasAsync em ContasAPagar)
     // ============================================================
+
+    private Task<int?> CondicaoDoFornecedorAsync(int idFornecedor) =>
+        _db.Fornecedores.Where(f => f.IdFornecedor == idFornecedor)
+            .Select(f => f.IdCondicaoPagamento).FirstOrDefaultAsync();
 
     public async Task<IActionResult> OnGetBuscarFornecedorAsync(int? id, string? termo)
     {

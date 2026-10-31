@@ -18,9 +18,9 @@ public class ProdutosModel : PageModel
     }
 
     public List<EstProduto> Produtos { get; set; } = [];
-    public List<EstMarca> Marcas { get; set; } = [];
-    public List<EstCategoria> Categorias { get; set; } = [];
 
+    // Marcas e categorias do modal sao carregadas pelo proprio componente
+    // (ViewComponents/CadastroProdutoViewComponent).
     [BindProperty]
     public EstProduto ProdutoForm { get; set; } = new();
 
@@ -40,10 +40,6 @@ public class ProdutosModel : PageModel
             .Where(p => p.FlAtivo)
             .OrderBy(p => p.DsProduto)
             .ToListAsync();
-
-        // Apenas marcas e categorias ativas nos dropdowns.
-        Marcas = await _db.Marcas.Where(m => m.FlAtivo).OrderBy(m => m.NmMarca).ToListAsync();
-        Categorias = await _db.Categorias.Where(c => c.FlAtivo).OrderBy(c => c.NmCategoria).ToListAsync();
     }
 
     private static string? Truncar(string? valor, int max) =>
@@ -51,25 +47,55 @@ public class ProdutosModel : PageModel
 
     public async Task<IActionResult> OnPostAsync()
     {
+        var novo = ProdutoForm.IdProduto == 0;
+        var erro = await ValidarEGravarAsync();
+        if (erro != null) return ComErro(erro);
+
+        TempData["Sucesso"] = novo ? "Produto cadastrado com sucesso." : "Produto atualizado com sucesso.";
+        return RedirectToPage();
+    }
+
+    // Cadastro pelo componente em modo AJAX (ex.: botao + da pesquisa de
+    // produto na Compra). Mesmas regras do OnPostAsync, mas responde JSON
+    // para a tela de origem nao ser recarregada.
+    public async Task<IActionResult> OnPostSalvarAjaxAsync()
+    {
+        var erro = await ValidarEGravarAsync();
+        if (erro != null) return new JsonResult(new { sucesso = false, mensagem = erro });
+
+        return new JsonResult(new
+        {
+            sucesso = true,
+            id = ProdutoForm.IdProduto,
+            nome = ProdutoForm.DsProduto,
+            unidade = ProdutoForm.SgUnidade,
+            custo = ProdutoForm.VlCusto
+        });
+    }
+
+    // Valida o ProdutoForm, salva a imagem enviada e inclui/atualiza o
+    // produto. Retorna a mensagem do primeiro erro, ou null se gravou.
+    private async Task<string?> ValidarEGravarAsync()
+    {
         // ===== Validacoes amigaveis =====
         if (string.IsNullOrWhiteSpace(ProdutoForm.DsProduto))
-            return ComErro("Informe o nome do produto.");
+            return "Informe o nome do produto.";
 
         if (ProdutoForm.PcComissao is < 0 or > 999.99m)
-            return ComErro("Percentual de comissão inválido.");
+            return "Percentual de comissão inválido.";
 
         if (NegativoInvalido(ProdutoForm.VlCusto) || NegativoInvalido(ProdutoForm.VlVendaMinimo) ||
             NegativoInvalido(ProdutoForm.VlVenda) || NegativoInvalido(ProdutoForm.VlDesconto) ||
             NegativoInvalido(ProdutoForm.QtSaldo))
-            return ComErro("Valores monetários e estoque não podem ser negativos.");
+            return "Valores monetários e estoque não podem ser negativos.";
 
         // Marca vem do dropdown (idMarca). Valida se a marca informada existe.
         if (ProdutoForm.IdMarca.HasValue && !await _db.Marcas.AnyAsync(m => m.IdMarca == ProdutoForm.IdMarca.Value))
-            return ComErro("Marca inválida.");
+            return "Marca inválida.";
 
         // Categoria vem do dropdown (idCategoria). Valida se a categoria existe.
         if (ProdutoForm.IdCategoria.HasValue && !await _db.Categorias.AnyAsync(c => c.IdCategoria == ProdutoForm.IdCategoria.Value))
-            return ComErro("Categoria inválida.");
+            return "Categoria inválida.";
 
         // ===== Truncamento defensivo (evita erro de banco) =====
         ProdutoForm.DsProduto = Truncar(ProdutoForm.DsProduto, 300) ?? string.Empty;
@@ -82,9 +108,9 @@ public class ProdutosModel : PageModel
         {
             var ext = Path.GetExtension(ImagemUpload.FileName).ToLowerInvariant();
             if (!ExtensoesPermitidas.Contains(ext))
-                return ComErro("Formato de imagem inválido. Use JPG, PNG, WEBP ou GIF.");
+                return "Formato de imagem inválido. Use JPG, PNG, WEBP ou GIF.";
             if (ImagemUpload.Length > TamanhoMaxImagem)
-                return ComErro("A imagem deve ter no máximo 5 MB.");
+                return "A imagem deve ter no máximo 5 MB.";
 
             var pasta = Path.Combine(_env.WebRootPath, "uploads");
             Directory.CreateDirectory(pasta);
@@ -100,7 +126,6 @@ public class ProdutosModel : PageModel
         {
             if (novaImagem != null) ProdutoForm.DsImagem = novaImagem;
             _db.Produtos.Add(ProdutoForm);
-            TempData["Sucesso"] = "Produto cadastrado com sucesso.";
         }
         else
         {
@@ -132,12 +157,11 @@ public class ProdutosModel : PageModel
                     existing.DsImagem = null;
                 }
                 // Sem novo upload e sem remocao: mantem a imagem atual (existing.DsImagem).
-                TempData["Sucesso"] = "Produto atualizado com sucesso.";
             }
         }
 
         await _db.SaveChangesAsync();
-        return RedirectToPage();
+        return null;
     }
 
     private static bool NegativoInvalido(decimal? v) => v.HasValue && v.Value < 0;
@@ -223,6 +247,41 @@ public class ProdutosModel : PageModel
         await _db.SaveChangesAsync();
 
         return new JsonResult(new { sucesso = true, id = marca.IdMarca, nome = marca.NmMarca });
+    }
+
+    // ============================================================
+    // Cadastro rapido de Categoria via AJAX (mesmo padrao da Marca)
+    // ============================================================
+    public class CategoriaRapidoDto
+    {
+        public string NmCategoria { get; set; } = string.Empty;
+    }
+
+    public async Task<IActionResult> OnPostCategoriaRapidoAsync([FromBody] CategoriaRapidoDto dto)
+    {
+        if (dto is null || string.IsNullOrWhiteSpace(dto.NmCategoria))
+            return new JsonResult(new { sucesso = false, mensagem = "Informe o nome da categoria." });
+
+        var nome = dto.NmCategoria.Trim();
+        if (nome.Length > 100)
+            return new JsonResult(new { sucesso = false, mensagem = "O nome da categoria deve ter no máximo 100 caracteres." });
+
+        // Nome unico (respeita a constraint UQ_tbEstCategorias_nmCategoria)
+        bool existe = await _db.Categorias.AnyAsync(c => c.NmCategoria == nome);
+        if (existe)
+            return new JsonResult(new { sucesso = false, mensagem = "Já existe uma categoria com esse nome." });
+
+        var categoria = new EstCategoria
+        {
+            NmCategoria = nome,
+            FlAtivo = true,
+            DtCriacao = DateTime.Now
+        };
+
+        _db.Categorias.Add(categoria);
+        await _db.SaveChangesAsync();
+
+        return new JsonResult(new { sucesso = true, id = categoria.IdCategoria, nome = categoria.NmCategoria });
     }
 
     // ============================================================

@@ -1,8 +1,101 @@
 ﻿@page
 @model IndexModel
 @{
-    ViewData["Title"] = "Dashboard";
+    ViewData["Title"] = "Principal";
 }
+@functions {
+    // Momento da atividade de forma curta: "agora", "ha 5 min", "hoje 14:20"...
+    static string QuandoFoi(DateTime d)
+    {
+        var dif = DateTime.Now - d;
+        if (dif.TotalMinutes < 1) return "agora";
+        if (dif.TotalMinutes < 60) return $"há {(int)dif.TotalMinutes} min";
+        if (d.Date == DateTime.Today) return $"hoje {d:HH:mm}";
+        if (d.Date == DateTime.Today.AddDays(-1)) return $"ontem {d:HH:mm}";
+        return d.ToString("dd/MM/yyyy HH:mm");
+    }
+}
+
+<!-- Menu de acesso rapido e atividades no sistema -->
+<div class="row g-3 mb-4">
+    <div class="col-lg-7">
+        <div class="card h-100">
+            <div class="card-header bg-white border-0 pt-3 pb-0">
+                <ul class="nav nav-tabs painel-abas" role="tablist">
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link active" type="button" role="tab" data-bs-toggle="tab" data-bs-target="#painelMenu">
+                            <i class="bi bi-grid-3x3-gap me-1"></i>Menu
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" type="button" role="tab" data-bs-toggle="tab" data-bs-target="#painelLinks">
+                            <i class="bi bi-link-45deg me-1"></i>Links Úteis
+                        </button>
+                    </li>
+                </ul>
+            </div>
+            <div class="card-body tab-content">
+                <div class="tab-pane fade show active" id="painelMenu" role="tabpanel">
+                    <div class="input-group mb-2">
+                        <span class="input-group-text bg-white"><i class="bi bi-search"></i></span>
+                        <input type="text" class="form-control" id="buscaAcesso" placeholder="Buscar funcionalidade..." autocomplete="off" />
+                    </div>
+                    @* Itens montados pelo script a partir do menu lateral *@
+                    <div class="acesso-lista" id="listaAcesso"></div>
+                    <div class="text-muted text-center py-4 d-none" id="acessoVazio">Nenhuma funcionalidade encontrada</div>
+                </div>
+                <div class="tab-pane fade" id="painelLinks" role="tabpanel">
+                    <div class="acesso-lista">
+                        <a class="acesso-item" href="https://solucoes.receita.fazenda.gov.br/servicos/cnpjreva/cnpj_solicitacao.asp" target="_blank" rel="noopener">
+                            <span><i class="bi bi-building me-2"></i>Consulta CNPJ (Receita Federal)</span><i class="bi bi-box-arrow-up-right"></i>
+                        </a>
+                        <a class="acesso-item" href="https://servicos.receita.fazenda.gov.br/servicos/cpf/consultasituacao/consultapublica.asp" target="_blank" rel="noopener">
+                            <span><i class="bi bi-person-vcard me-2"></i>Consulta CPF (Receita Federal)</span><i class="bi bi-box-arrow-up-right"></i>
+                        </a>
+                        <a class="acesso-item" href="https://buscacepinter.correios.com.br/app/endereco/index.php" target="_blank" rel="noopener">
+                            <span><i class="bi bi-mailbox me-2"></i>Busca CEP (Correios)</span><i class="bi bi-box-arrow-up-right"></i>
+                        </a>
+                        <a class="acesso-item" href="https://www.nfe.fazenda.gov.br/portal/principal.aspx" target="_blank" rel="noopener">
+                            <span><i class="bi bi-receipt me-2"></i>Portal da NF-e</span><i class="bi bi-box-arrow-up-right"></i>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-5">
+        <div class="card h-100">
+            <div class="card-header bg-white">
+                <h6 class="fw-bold mb-0 py-1"><i class="bi bi-activity me-2"></i>Atividades no sistema</h6>
+            </div>
+            <div class="card-body p-0">
+                @if (Model.Atividades.Any())
+                {
+                    <div class="atividades-lista">
+                        @foreach (var a in Model.Atividades)
+                        {
+                            <a class="atividade-item" href="@Url.Page(a.Pagina, a.Rota)"
+                               data-abrir-aba data-aba-titulo="@a.TituloAba" data-aba-icone="bi @a.Icone">
+                                <span class="atividade-icone" style="color: @a.Cor; background: @(a.Cor)1a;">
+                                    <i class="bi @a.Icone"></i>
+                                </span>
+                                <span class="flex-grow-1 overflow-hidden">
+                                    <span class="d-block fw-semibold">@a.Titulo</span>
+                                    <span class="d-block text-muted small text-truncate">@a.Detalhe</span>
+                                </span>
+                                <span class="text-muted small text-nowrap" title="@a.Data.ToString("dd/MM/yyyy HH:mm")">@QuandoFoi(a.Data)</span>
+                            </a>
+                        }
+                    </div>
+                }
+                else
+                {
+                    <div class="text-muted text-center py-5">Nenhuma atividade registrada no sistema.</div>
+                }
+            </div>
+        </div>
+    </div>
+</div>
 
 <!-- KPI Cards -->
 <div class="row g-3 mb-4">
@@ -90,7 +183,7 @@
         <div class="table-container">
             <div class="table-header">
                 <h5><i class="bi bi-calendar-event me-2"></i>Próximos Agendamentos</h5>
-                <a href="/Cadastro/Agendamentos" class="btn btn-sm btn-outline-primary">Ver Todos</a>
+                <a asp-page="/Cadastro/Agendamentos" class="btn btn-sm btn-outline-primary" data-abrir-aba>Ver Todos</a>
             </div>
             <div class="table-responsive">
                 <table class="table">
@@ -163,7 +256,7 @@
                                 <tr>
                                     <td>#@v.IdVenda</td>
                                     <td>@(v.Cliente?.NmCliente ?? "-")</td>
-                                    <td><strong>R$ @v.VlTotal.ToString("N2")</strong></td>
+                                    <td class="text-nowrap"><strong>R$ @v.VlTotal.ToString("N2")</strong></td>
                                     <td><span class="badge-status @badgeClass">@v.TpStatus</span></td>
                                 </tr>
                             }
@@ -180,6 +273,42 @@
 </div>
 
 @section Scripts {
+    <script>
+        // Menu de acesso rapido: lista em ordem alfabetica os itens do menu lateral
+        // (mesma fonte do menu, entao uma tela nova no menu aparece aqui sozinha)
+        (function () {
+            const lista = document.getElementById('listaAcesso');
+            const vazio = document.getElementById('acessoVazio');
+            const busca = document.getElementById('buscaAcesso');
+            const semAcento = t => t.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+
+            [...document.querySelectorAll('#sidebarNav a.sidebar-link:not([data-aba-principal])')]
+                .map(a => ({ nome: a.textContent.trim(), href: a.getAttribute('href'), icone: a.querySelector('i')?.className || 'bi bi-window' }))
+                .sort((x, y) => x.nome.localeCompare(y.nome, 'pt-BR'))
+                .forEach(i => {
+                    const a = document.createElement('a');
+                    a.className = 'acesso-item';
+                    a.href = i.href;
+                    a.setAttribute('data-abrir-aba', '');
+                    a.dataset.abaIcone = i.icone;
+                    a.innerHTML = '<span><i></i><span></span></span><i class="bi bi-chevron-right"></i>';
+                    a.querySelector('span > i').className = i.icone + ' me-2';
+                    a.querySelector('span > span').textContent = i.nome;
+                    lista.appendChild(a);
+                });
+
+            busca.addEventListener('input', function () {
+                const q = semAcento(this.value.trim());
+                let visiveis = 0;
+                lista.querySelectorAll('.acesso-item').forEach(a => {
+                    const ok = !q || semAcento(a.textContent).includes(q);
+                    a.classList.toggle('d-none', !ok);
+                    if (ok) visiveis++;
+                });
+                vazio.classList.toggle('d-none', visiveis > 0);
+            });
+        })();
+    </script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
     <script>
         // Dados reais vindos do banco de dados

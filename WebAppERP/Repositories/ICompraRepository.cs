@@ -10,6 +10,9 @@ public interface ICompraRepository
     Task<List<FinContaPagar>> ObterContasGeradasAsync(CompraChaveDto chave);
     Task<CompraCombosDto> ObterCombosAsync();
 
+    // Valida a chave de uma compra nova (fornecedor ativo e chave ainda nao usada).
+    Task<(bool ok, string? erro, string? nomeFornecedor)> ValidarChaveNovaAsync(CompraChaveDto chave);
+
     // Grava a compra. TpStatus RASCUNHO nao gera Contas a Pagar nem estoque;
     // FINALIZADA grava tudo de forma atomica (compra + itens + parcelas +
     // contas a pagar + estoque).

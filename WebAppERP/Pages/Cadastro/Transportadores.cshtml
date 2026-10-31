@@ -104,19 +104,13 @@
                             <label class="form-label">CPF / CNPJ</label>
                             <input type="text" class="form-control" asp-for="TransportadorForm.NrCpfCnpj" id="formNrCpfCnpj" maxlength="18" placeholder="000.000.000-00" />
                         </div>
-                        <div class="col-md-8">
+                        <div class="col-md-7">
                             <label class="form-label">Endereço</label>
                             <input type="text" class="form-control" asp-for="TransportadorForm.DsEndereco" id="formDsEndereco" />
                         </div>
-                        <div class="col-md-4">
+                        <div class="col-md-5">
                             <label class="form-label">Cidade</label>
-                            <select class="form-select" asp-for="TransportadorForm.IdCidade" id="formIdCidade">
-                                <option value="">Selecione a cidade</option>
-                                @foreach (var cidade in Model.Cidades)
-                                {
-                                    <option value="@cidade.IdCidade">@cidade.NmCidade / @cidade.Estado?.SgUF</option>
-                                }
-                            </select>
+                            @await Component.InvokeAsync("CampoCidade", new { nome = "TransportadorForm.IdCidade", id = "formIdCidade", idCidade = Model.TransportadorForm.IdCidade })
                         </div>
                         <div class="col-md-6">
                             <label class="form-label">Inscrição Estadual</label>
@@ -164,7 +158,7 @@
             document.getElementById('formDsRazaoSocial').value = '';
             document.getElementById('formNrCpfCnpj').value = '';
             document.getElementById('formDsEndereco').value = '';
-            document.getElementById('formIdCidade').value = '';
+            limparCidade('formIdCidade');
             document.getElementById('formNrInscEstadual').value = '';
         }
 
@@ -174,7 +168,7 @@
             document.getElementById('formDsRazaoSocial').value = razao;
             document.getElementById('formNrCpfCnpj').value = doc;
             document.getElementById('formDsEndereco').value = end;
-            document.getElementById('formIdCidade').value = cidade;
+            definirCidade('formIdCidade', cidade);
             document.getElementById('formNrInscEstadual').value = ie;
         }
     </script>

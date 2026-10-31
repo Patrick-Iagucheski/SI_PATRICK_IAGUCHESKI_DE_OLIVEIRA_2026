@@ -14,7 +14,6 @@
             idFormaPagamento = p.IdFormaPagamento,
             vlPercentual = p.VlPercentual
         }));
-    var formasJs = Model.Formas.Select(f => new { id = f.IdFormaPagamento, nome = f.DsFormaPagamento });
 }
 
 <div class="d-flex justify-content-between align-items-start mb-4">
@@ -22,7 +21,7 @@
         <h1 class="page-title">Condições de Pagamento</h1>
         <p class="page-subtitle">Cadastre prazos, parcelas e ajustes financeiros (juro, multa e desconto)</p>
     </div>
-    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#modalCondicao" onclick="limparForm()">
+    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#modalCondicao" onclick="limparFormCondicao()">
         <i class="bi bi-plus-lg me-1"></i> Nova Condição
     </button>
 </div>
@@ -124,7 +123,7 @@
                                 </form>
                                 <button class="btn btn-icon btn-outline-primary" title="Editar"
                                         data-bs-toggle="modal" data-bs-target="#modalCondicao"
-                                        onclick="editarCondicao(@c.IdCondicaoPagamento,'@c.DsCondicao.Replace("'", "\\'")','@c.VlJuro.ToString(inv)','@c.VlMulta.ToString(inv)','@c.VlDesconto.ToString(inv)','@(c.FlAtivo ? "true" : "false")')">
+                                        onclick="editarCondicao(@c.IdCondicaoPagamento,'@c.DsCondicao.Replace("'", "\\'")','@c.VlJuro.ToString(inv)','@c.VlMulta.ToString(inv)','@c.VlDesconto.ToString(inv)','@(c.FlAtivo ? "true" : "false")', PARCELAS_MAP[@c.IdCondicaoPagamento])">
                                     <i class="bi bi-pencil"></i>
                                 </button>
                                 <form method="post" asp-page-handler="Delete" class="d-inline" onsubmit="return confirm('Deseja realmente excluir esta condicao de pagamento?')">
@@ -146,99 +145,14 @@
     </div>
 </div>
 
-<!-- Modal Nova/Editar Condicao -->
-<div class="modal fade" id="modalCondicao" tabindex="-1">
-    <div class="modal-dialog modal-xl">
-        <div class="modal-content">
-            <form method="post" id="formCondicao">
-                <div class="modal-header">
-                    <h5 class="modal-title" id="modalTitle"><i class="bi bi-list-check me-2"></i>Nova Condição de Pagamento</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                </div>
-                <div class="modal-body">
-                    <input type="hidden" asp-for="CondicaoForm.IdCondicaoPagamento" id="formIdCondicao" />
-                    <input type="hidden" asp-for="ParcelasJson" id="formParcelasJson" />
-
-                    <div class="row g-3">
-                        <div class="col-md-2">
-                            <label class="form-label">Código</label>
-                            <input type="text" class="form-control bg-light" id="formCodigoDisplay" placeholder="(novo)" readonly />
-                        </div>
-                        <div class="col-md-7">
-                            <label class="form-label">Condição de Pagamento *</label>
-                            <input type="text" class="form-control" asp-for="CondicaoForm.DsCondicao" id="formDsCondicao" maxlength="100" placeholder="Ex: A vista, 30 dias, Parcelado 3x" required />
-                        </div>
-                        <div class="col-md-3">
-                            <label class="form-label">Ativo</label>
-                            <select class="form-select" asp-for="CondicaoForm.FlAtivo" id="formFlAtivo">
-                                <option value="true">Sim</option>
-                                <option value="false">Não</option>
-                            </select>
-                        </div>
-
-                        <div class="col-md-4">
-                            <label class="form-label">Juro (%)</label>
-                            <input type="number" step="0.01" min="0" class="form-control" asp-for="CondicaoForm.VlJuro" id="formVlJuro" />
-                        </div>
-                        <div class="col-md-4">
-                            <label class="form-label">Multa (%)</label>
-                            <input type="number" step="0.01" min="0" class="form-control" asp-for="CondicaoForm.VlMulta" id="formVlMulta" />
-                        </div>
-                        <div class="col-md-4">
-                            <label class="form-label">Desconto (%)</label>
-                            <input type="number" step="0.01" min="0" max="100" class="form-control" asp-for="CondicaoForm.VlDesconto" id="formVlDesconto" />
-                        </div>
-                    </div>
-
-                    <hr class="my-4" />
-
-                    <div class="d-flex justify-content-between align-items-center mb-2">
-                        <div>
-                            <h6 class="mb-0"><i class="bi bi-stack me-1"></i>Parcelas</h6>
-                            <span class="text-muted small">O percentual total deve ser igual a 100%.</span>
-                        </div>
-                        <button type="button" class="btn btn-sm btn-outline-primary" onclick="addParcela()">
-                            <i class="bi bi-plus-lg me-1"></i>Adicionar parcela
-                        </button>
-                    </div>
-
-                    <div class="table-responsive">
-                        <table class="table table-sm align-middle" id="tblParcelas">
-                            <thead>
-                                <tr>
-                                    <th style="width:80px;">Parcela</th>
-                                    <th>Dias para vencimento *</th>
-                                    <th>Forma de Pagamento *</th>
-                                    <th style="width:140px;">Percentual (%) *</th>
-                                    <th class="text-center" style="width:70px;">Ações</th>
-                                </tr>
-                            </thead>
-                            <tbody></tbody>
-                            <tfoot>
-                                <tr>
-                                    <td colspan="3" class="text-end fw-semibold">Total</td>
-                                    <td class="fw-semibold" id="totalPercentual">0,00 %</td>
-                                    <td></td>
-                                </tr>
-                            </tfoot>
-                        </table>
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                    <button type="submit" class="btn btn-primary"><i class="bi bi-check-lg me-1"></i>Salvar condição</button>
-                </div>
-            </form>
-        </div>
-    </div>
-</div>
+<!-- Modal Nova/Editar Condicao (componente compartilhado com o cadastro de fornecedor) -->
+@await Component.InvokeAsync("CadastroCondicaoPagamento", new { modo = "post", form = Model.CondicaoForm })
 
 <!-- Token antiforgery para os forms reconstruidos via AJAX (busca) -->
 <form id="formBuscaToken" class="d-none">@Html.AntiForgeryToken()</form>
 
 @section Scripts {
     <script>
-        const FORMAS = @Html.Raw(JsonSerializer.Serialize(formasJs));
         const PARCELAS_MAP = @Html.Raw(JsonSerializer.Serialize(parcelasMap));
 
         // ===== Busca de Condicoes de Pagamento (filtros na pagina -> atualiza a grid via AJAX) =====
@@ -323,130 +237,8 @@
 
         function abrirEdicao(i) {
             const c = resultadosBusca[i];
-            document.getElementById('modalTitle').innerHTML = '<i class="bi bi-pencil me-2"></i>Editar Condicao de Pagamento';
-            document.getElementById('formIdCondicao').value = c.id;
-            document.getElementById('formCodigoDisplay').value = c.id;
-            document.getElementById('formDsCondicao').value = c.condicao || '';
-            document.getElementById('formFlAtivo').value = c.ativo ? 'true' : 'false';
-            document.getElementById('formVlJuro').value = c.juro;
-            document.getElementById('formVlMulta').value = c.multa;
-            document.getElementById('formVlDesconto').value = c.desconto;
-            document.querySelector('#tblParcelas tbody').innerHTML = '';
-            const parcelas = c.parcelas || [];
-            if (parcelas.length === 0) { addParcela(0, '', 100); }
-            else { parcelas.forEach(p => addParcela(p.nrDiasVencimento, p.idFormaPagamento, p.vlPercentual)); }
+            editarCondicao(c.id, c.condicao || '', c.juro, c.multa, c.desconto, c.ativo ? 'true' : 'false', c.parcelas || []);
             bootstrap.Modal.getOrCreateInstance(document.getElementById('modalCondicao')).show();
         }
-
-        // ===== Grid de parcelas =====
-        function opcoesForma(selecionado) {
-            let html = '<option value="">Selecione</option>';
-            FORMAS.forEach(f => {
-                const sel = (String(f.id) === String(selecionado)) ? ' selected' : '';
-                html += `<option value="${f.id}"${sel}>${f.nome}</option>`;
-            });
-            return html;
-        }
-
-        function addParcela(dias, idForma, perc) {
-            const tbody = document.querySelector('#tblParcelas tbody');
-            const tr = document.createElement('tr');
-            tr.innerHTML =
-                '<td><input type="text" class="form-control form-control-sm p-num bg-light" readonly></td>' +
-                '<td><input type="number" min="0" class="form-control form-control-sm p-dias" value="' + (dias ?? 0) + '"></td>' +
-                '<td><select class="form-select form-select-sm p-forma">' + opcoesForma(idForma ?? '') + '</select></td>' +
-                '<td><input type="number" step="0.01" min="0" max="100" class="form-control form-control-sm p-perc" value="' + (perc ?? '') + '"></td>' +
-                '<td class="text-center"><button type="button" class="btn btn-icon btn-outline-danger" title="Remover" onclick="removeParcela(this)"><i class="bi bi-trash"></i></button></td>';
-            tbody.appendChild(tr);
-            tr.querySelector('.p-perc').addEventListener('input', atualizarTotal);
-            renumerar();
-            atualizarTotal();
-        }
-
-        function removeParcela(btn) {
-            btn.closest('tr').remove();
-            renumerar();
-            atualizarTotal();
-        }
-
-        function renumerar() {
-            document.querySelectorAll('#tblParcelas tbody tr').forEach((tr, i) => {
-                tr.querySelector('.p-num').value = i + 1;
-            });
-        }
-
-        function atualizarTotal() {
-            let soma = 0;
-            document.querySelectorAll('#tblParcelas tbody .p-perc').forEach(inp => {
-                soma += parseFloat(inp.value) || 0;
-            });
-            const el = document.getElementById('totalPercentual');
-            el.textContent = soma.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' %';
-            el.classList.toggle('text-danger', Math.abs(soma - 100) > 0.01);
-            el.classList.toggle('text-success', Math.abs(soma - 100) <= 0.01);
-        }
-
-        function coletarParcelas() {
-            const parcelas = [];
-            document.querySelectorAll('#tblParcelas tbody tr').forEach((tr, i) => {
-                parcelas.push({
-                    nrParcela: i + 1,
-                    nrDiasVencimento: parseInt(tr.querySelector('.p-dias').value) || 0,
-                    idFormaPagamento: parseInt(tr.querySelector('.p-forma').value) || 0,
-                    vlPercentual: parseFloat(tr.querySelector('.p-perc').value) || 0
-                });
-            });
-            return parcelas;
-        }
-
-        // ===== Abertura do modal =====
-        function limparForm() {
-            document.getElementById('modalTitle').innerHTML = '<i class="bi bi-list-check me-2"></i>Nova Condicao de Pagamento';
-            document.getElementById('formIdCondicao').value = '0';
-            document.getElementById('formCodigoDisplay').value = '';
-            document.getElementById('formDsCondicao').value = '';
-            document.getElementById('formFlAtivo').value = 'true';
-            document.getElementById('formVlJuro').value = '0';
-            document.getElementById('formVlMulta').value = '0';
-            document.getElementById('formVlDesconto').value = '0';
-            document.querySelector('#tblParcelas tbody').innerHTML = '';
-            addParcela(0, '', 100);
-        }
-
-        function editarCondicao(id, nome, juro, multa, desc, ativo) {
-            document.getElementById('modalTitle').innerHTML = '<i class="bi bi-pencil me-2"></i>Editar Condicao de Pagamento';
-            document.getElementById('formIdCondicao').value = id;
-            document.getElementById('formCodigoDisplay').value = id;
-            document.getElementById('formDsCondicao').value = nome;
-            document.getElementById('formFlAtivo').value = ativo;
-            document.getElementById('formVlJuro').value = juro;
-            document.getElementById('formVlMulta').value = multa;
-            document.getElementById('formVlDesconto').value = desc;
-            document.querySelector('#tblParcelas tbody').innerHTML = '';
-            const parcelas = PARCELAS_MAP[id] || [];
-            if (parcelas.length === 0) { addParcela(0, '', 100); }
-            else { parcelas.forEach(p => addParcela(p.nrDiasVencimento, p.idFormaPagamento, p.vlPercentual)); }
-        }
-
-        // ===== Submit: serializa parcelas e valida =====
-        document.getElementById('formCondicao').addEventListener('submit', function (e) {
-            const parcelas = coletarParcelas();
-            if (parcelas.length === 0) {
-                e.preventDefault(); alert('Adicione ao menos uma parcela.'); return;
-            }
-            if (parcelas.some(p => !p.idFormaPagamento)) {
-                e.preventDefault(); alert('Selecione a forma de pagamento em todas as parcelas.'); return;
-            }
-            if (parcelas.some(p => p.vlPercentual <= 0 || p.vlPercentual > 100)) {
-                e.preventDefault(); alert('O percentual de cada parcela deve estar entre 0 e 100.'); return;
-            }
-            const soma = parcelas.reduce((s, p) => s + p.vlPercentual, 0);
-            if (Math.abs(soma - 100) > 0.01) {
-                e.preventDefault();
-                alert('O percentual total das parcelas deve ser 100%. Atual: ' + soma.toFixed(2) + '%.');
-                return;
-            }
-            document.getElementById('formParcelasJson').value = JSON.stringify(parcelas);
-        });
     </script>
 }

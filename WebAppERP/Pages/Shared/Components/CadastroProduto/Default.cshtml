@@ -1,0 +1,206 @@
+@model WebAppERP.ViewModels.CadastroProdutoViewModel
+@*
+    Componente de cadastro de produto (ViewComponents/CadastroProdutoViewComponent).
+    Precisa de wwwroot/js/cadastro-produto.js na pagina que o usa.
+    data-modo="ajax" faz o Salvar gravar por fetch e disparar o evento
+    'produto:salvo' (detail: id, nome, unidade, custo).
+    Os ids usam o prefixo "prod" para nao colidir com o componente de
+    fornecedor, que fica na mesma tela da Compra.
+*@
+
+<!-- Modal Novo/Editar Produto -->
+<div class="modal fade" id="modalProduto" tabindex="-1"
+     data-modo="@Model.Modo" data-url-produtos="@Url.Page("/Cadastro/Produtos")">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <form method="post" asp-page="/Cadastro/Produtos" enctype="multipart/form-data">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="prodModalTitle"><i class="bi bi-box-seam me-2"></i>Novo Produto</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div id="prodMsg"></div>
+                    <input type="hidden" asp-for="ProdutoForm.IdProduto" id="prodIdProduto" />
+                    <input type="hidden" asp-for="ProdutoForm.DsImagem" id="prodDsImagem" />
+                    <div class="row g-3">
+                        <!-- Codigo | Produto | Categoria | Status -->
+                        <div class="col-md-2">
+                            <label class="form-label">Código</label>
+                            <input type="text" class="form-control bg-light" id="prodCodigoDisplay" placeholder="(novo)" readonly />
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Produto *</label>
+                            <input type="text" class="form-control" asp-for="ProdutoForm.DsProduto" id="prodDsProduto" maxlength="300" placeholder="Ex: Pomada modeladora" required />
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Categoria</label>
+                            <div class="input-group">
+                                <select class="form-select" asp-for="ProdutoForm.IdCategoria" id="prodIdCategoria">
+                                    <option value="">Selecione</option>
+                                    @foreach (var categoria in Model.Categorias)
+                                    {
+                                        <option value="@categoria.IdCategoria">@categoria.NmCategoria</option>
+                                    }
+                                </select>
+                                <button type="button" class="btn btn-outline-primary"
+                                        onclick="abrirModalEmpilhado('modalCategoriaRapido')" title="Cadastrar nova categoria">
+                                    <i class="bi bi-plus-lg"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label">Status</label>
+                            <select class="form-select" asp-for="ProdutoForm.FlAtivo" id="prodFlAtivo">
+                                <option value="true">Ativo</option>
+                                <option value="false">Inativo</option>
+                            </select>
+                        </div>
+
+                        <!-- Marca | Unidade de Medida -->
+                        <div class="col-md-8">
+                            <label class="form-label">Marca</label>
+                            <div class="input-group">
+                                <select class="form-select" asp-for="ProdutoForm.IdMarca" id="prodIdMarca">
+                                    <option value="">Selecione</option>
+                                    @foreach (var marca in Model.Marcas)
+                                    {
+                                        <option value="@marca.IdMarca">@marca.NmMarca</option>
+                                    }
+                                </select>
+                                <button type="button" class="btn btn-outline-primary"
+                                        onclick="abrirModalEmpilhado('modalMarcaRapido')" title="Cadastrar nova marca">
+                                    <i class="bi bi-plus-lg"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Unidade de Medida</label>
+                            <select class="form-select" asp-for="ProdutoForm.SgUnidade" id="prodSgUnidade">
+                                <option value="">Selecione</option>
+                                <option value="UN">UN - Unidade</option>
+                                <option value="PC">PC - Peca</option>
+                                <option value="CX">CX - Caixa</option>
+                                <option value="KG">KG - Quilograma</option>
+                                <option value="G">G - Grama</option>
+                                <option value="L">L - Litro</option>
+                                <option value="ML">ML - Mililitro</option>
+                                <option value="M">M - Metro</option>
+                            </select>
+                        </div>
+
+                        <!-- Valor Custo | Valor Minimo Venda | Valor Venda | % Comissao -->
+                        <div class="col-md-3">
+                            <label class="form-label">Valor Custo (R$)</label>
+                            <input type="number" step="0.01" min="0" class="form-control" asp-for="ProdutoForm.VlCusto" id="prodVlCusto" placeholder="0,00" />
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Valor Minimo Venda (R$)</label>
+                            <input type="number" step="0.01" min="0" class="form-control" asp-for="ProdutoForm.VlVendaMinimo" id="prodVlVendaMinimo" placeholder="0,00" />
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Valor Venda (R$)</label>
+                            <input type="number" step="0.01" min="0" class="form-control" asp-for="ProdutoForm.VlVenda" id="prodVlVenda" placeholder="0,00" />
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Percentual Comissao (%)</label>
+                            <input type="number" step="0.01" min="0" max="999.99" class="form-control" asp-for="ProdutoForm.PcComissao" id="prodPcComissao" placeholder="0,00" />
+                        </div>
+
+                        <!-- Estoque | Desconto -->
+                        <div class="col-md-6">
+                            <label class="form-label">Estoque</label>
+                            <input type="number" step="0.01" min="0" class="form-control" asp-for="ProdutoForm.QtSaldo" id="prodQtSaldo" placeholder="Ex: 12" />
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Desconto (R$)</label>
+                            <input type="number" step="0.01" min="0" class="form-control" asp-for="ProdutoForm.VlDesconto" id="prodVlDesconto" placeholder="0,00" />
+                        </div>
+
+                        <!-- Imagem -->
+                        <div class="col-12">
+                            <label class="form-label">Imagem</label>
+                            <input type="file" class="form-control" name="ImagemUpload" id="prodImagemUpload" accept="image/*" onchange="previewImagem(event)" />
+                            <small class="text-muted">A imagem sera enviada apenas ao salvar o produto. Formatos: JPG, PNG, WEBP, GIF (max 500 MB).</small>
+                            <div class="mt-2 d-none" id="prodImgPreviewWrap">
+                                @* Sem src no HTML: src vazio dispara onerror ja no carregamento,
+                                   antes de cadastro-produto.js existir. *@
+                                <img id="prodImgPreview" alt="Pre-visualizacao" class="img-thumbnail d-block mb-2"
+                                     style="max-height:120px;" onerror="imagemQuebrada()" />
+                                <span id="prodImgIndisponivel" class="text-muted small d-none">
+                                    <i class="bi bi-image me-1"></i>Imagem atual indisponivel (arquivo nao encontrado).
+                                </span>
+                                <button type="button" class="btn btn-sm btn-outline-danger" onclick="removerImagem()">
+                                    <i class="bi bi-trash me-1"></i>Remover imagem
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Descricao -->
+                        <div class="col-12">
+                            <label class="form-label">Descrição</label>
+                            <textarea class="form-control" rows="2" asp-for="ProdutoForm.DsDescricao" id="prodDsDescricao" maxlength="500" placeholder="Descreva rapidamente o produto"></textarea>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary"><i class="bi bi-check-lg me-1"></i>Salvar produto</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal de Cadastro Rapido de Marca (AJAX) -->
+<div class="modal fade" id="modalMarcaRapido" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="bi bi-tags me-2"></i>Cadastrar Marca</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div id="marcaMsg"></div>
+                <div class="row g-3">
+                    <div class="col-12">
+                        <label class="form-label">Marca *</label>
+                        <input type="text" class="form-control" id="marcaNome" maxlength="100" placeholder="Ex: Don Alcides" />
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-primary" id="btnSalvarMarcaRapido" onclick="salvarMarcaRapida()">
+                    <i class="bi bi-check-lg me-1"></i>Salvar Marca
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal de Cadastro Rapido de Categoria (AJAX) -->
+<div class="modal fade" id="modalCategoriaRapido" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="bi bi-collection me-2"></i>Cadastrar Categoria</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div id="categoriaMsg"></div>
+                <div class="row g-3">
+                    <div class="col-12">
+                        <label class="form-label">Categoria *</label>
+                        <input type="text" class="form-control" id="categoriaNome" maxlength="100" placeholder="Ex: Pomadas" />
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-primary" id="btnSalvarCategoriaRapido" onclick="salvarCategoriaRapida()">
+                    <i class="bi bi-check-lg me-1"></i>Salvar Categoria
+                </button>
+            </div>
+        </div>
+    </div>
+</div>

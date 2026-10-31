@@ -13,9 +13,6 @@ public class FuncionariosModel : PageModel
     public FuncionariosModel(AppDbContext db) => _db = db;
 
     public List<GerFuncionario> Funcionarios { get; set; } = [];
-    public List<GerCidade> Cidades { get; set; } = [];
-    public List<GerEstado> Estados { get; set; } = [];
-    public List<GerPais> Paises { get; set; } = [];
     public List<GerCargo> Cargos { get; set; } = [];
 
     [BindProperty]
@@ -31,10 +28,6 @@ public class FuncionariosModel : PageModel
             .Where(f => f.FlAtivo)
             .OrderBy(f => f.NmFuncionario)
             .ToListAsync();
-
-        Cidades = await _db.Cidades.Include(c => c.Estado).OrderBy(c => c.NmCidade).ToListAsync();
-        Estados = await _db.Estados.OrderBy(e => e.NmEstado).ToListAsync();
-        Paises = await _db.Paises.OrderBy(p => p.NmPais).ToListAsync();
 
         // Apenas cargos ativos no dropdown.
         Cargos = await _db.Cargos.Where(c => c.FlAtivo).OrderBy(c => c.NmCargo).ToListAsync();
@@ -162,139 +155,6 @@ public class FuncionariosModel : PageModel
         await _db.SaveChangesAsync();
 
         return new JsonResult(new { sucesso = true, id = cargo.IdCargo, nome = cargo.NmCargo });
-    }
-
-    // ============================================================
-    // Cadastro rapido de Cidade via AJAX
-    // ============================================================
-    public class CidadeRapidoDto
-    {
-        public string NmCidade { get; set; } = string.Empty;
-        public int IdEstado { get; set; }
-    }
-
-    public async Task<IActionResult> OnPostCidadeRapidoAsync([FromBody] CidadeRapidoDto dto)
-    {
-        if (dto is null || string.IsNullOrWhiteSpace(dto.NmCidade))
-            return new JsonResult(new { sucesso = false, mensagem = "Informe o nome da cidade." });
-
-        if (dto.IdEstado <= 0)
-            return new JsonResult(new { sucesso = false, mensagem = "Selecione o estado." });
-
-        var estado = await _db.Estados.FindAsync(dto.IdEstado);
-        if (estado is null)
-            return new JsonResult(new { sucesso = false, mensagem = "Estado inválido." });
-
-        var nome = dto.NmCidade.Trim();
-        bool existe = await _db.Cidades.AnyAsync(c => c.NmCidade == nome && c.IdEstado == dto.IdEstado);
-        if (existe)
-            return new JsonResult(new { sucesso = false, mensagem = "Já existe uma cidade com esse nome neste estado." });
-
-        var cidade = new GerCidade
-        {
-            NmCidade = nome,
-            IdEstado = dto.IdEstado,
-            DtCriacao = DateTime.Now
-        };
-
-        _db.Cidades.Add(cidade);
-        await _db.SaveChangesAsync();
-
-        return new JsonResult(new
-        {
-            sucesso = true,
-            id = cidade.IdCidade,
-            nome = cidade.NmCidade,
-            uf = estado.SgUF
-        });
-    }
-
-    // ============================================================
-    // Cadastro rapido de Estado via AJAX
-    // ============================================================
-    public class EstadoRapidoDto
-    {
-        public string SgUF { get; set; } = string.Empty;
-        public string NmEstado { get; set; } = string.Empty;
-        public int IdPais { get; set; }
-    }
-
-    public async Task<IActionResult> OnPostEstadoRapidoAsync([FromBody] EstadoRapidoDto dto)
-    {
-        if (dto is null || string.IsNullOrWhiteSpace(dto.NmEstado))
-            return new JsonResult(new { sucesso = false, mensagem = "Informe o nome do estado." });
-
-        if (string.IsNullOrWhiteSpace(dto.SgUF) || dto.SgUF.Trim().Length != 2)
-            return new JsonResult(new { sucesso = false, mensagem = "Informe a UF (2 letras)." });
-
-        if (dto.IdPais <= 0)
-            return new JsonResult(new { sucesso = false, mensagem = "Selecione o país." });
-
-        var pais = await _db.Paises.FindAsync(dto.IdPais);
-        if (pais is null)
-            return new JsonResult(new { sucesso = false, mensagem = "País inválido." });
-
-        var uf = dto.SgUF.Trim().ToUpper();
-        bool existe = await _db.Estados.AnyAsync(e => e.SgUF == uf && e.IdPais == dto.IdPais);
-        if (existe)
-            return new JsonResult(new { sucesso = false, mensagem = "Já existe um estado com essa UF neste país." });
-
-        var estado = new GerEstado
-        {
-            SgUF = uf,
-            NmEstado = dto.NmEstado.Trim(),
-            IdPais = dto.IdPais,
-            DtCriacao = DateTime.Now
-        };
-
-        _db.Estados.Add(estado);
-        await _db.SaveChangesAsync();
-
-        return new JsonResult(new
-        {
-            sucesso = true,
-            id = estado.IdEstado,
-            nome = estado.NmEstado,
-            uf = estado.SgUF
-        });
-    }
-
-    // ============================================================
-    // Cadastro rapido de Pais via AJAX
-    // ============================================================
-    public class PaisRapidoDto
-    {
-        public string NmPais { get; set; } = string.Empty;
-        public string SgPais { get; set; } = string.Empty;
-        public string? NrDDI { get; set; }
-        public string? DsMoeda { get; set; }
-    }
-
-    public async Task<IActionResult> OnPostPaisRapidoAsync([FromBody] PaisRapidoDto dto)
-    {
-        if (dto is null || string.IsNullOrWhiteSpace(dto.NmPais))
-            return new JsonResult(new { sucesso = false, mensagem = "Informe o nome do país." });
-
-        if (string.IsNullOrWhiteSpace(dto.SgPais))
-            return new JsonResult(new { sucesso = false, mensagem = "Informe a sigla do país." });
-
-        var nome = dto.NmPais.Trim();
-        bool existe = await _db.Paises.AnyAsync(p => p.NmPais == nome);
-        if (existe)
-            return new JsonResult(new { sucesso = false, mensagem = "Já existe um país com esse nome." });
-
-        var pais = new GerPais
-        {
-            NmPais = nome,
-            SgPais = dto.SgPais.Trim().ToUpper(),
-            NrDDI = string.IsNullOrWhiteSpace(dto.NrDDI) ? null : SomenteNumeros(dto.NrDDI),
-            DsMoeda = string.IsNullOrWhiteSpace(dto.DsMoeda) ? null : dto.DsMoeda.Trim()
-        };
-
-        _db.Paises.Add(pais);
-        await _db.SaveChangesAsync();
-
-        return new JsonResult(new { sucesso = true, id = pais.IdPais, nome = pais.NmPais });
     }
 
     // ============================================================

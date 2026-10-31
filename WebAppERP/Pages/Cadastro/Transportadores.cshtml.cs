@@ -13,7 +13,6 @@ public class TransportadoresModel : PageModel
     public TransportadoresModel(AppDbContext db) => _db = db;
 
     public List<GerTransportador> Transportadores { get; set; } = [];
-    public List<GerCidade> Cidades { get; set; } = [];
 
     [BindProperty]
     public GerTransportador TransportadorForm { get; set; } = new();
@@ -25,8 +24,6 @@ public class TransportadoresModel : PageModel
             .ThenInclude(c => c!.Estado)
             .OrderBy(t => t.DsRazaoSocial)
             .ToListAsync();
-
-        Cidades = await _db.Cidades.Include(c => c.Estado).OrderBy(c => c.NmCidade).ToListAsync();
     }
 
     public async Task<IActionResult> OnPostAsync()

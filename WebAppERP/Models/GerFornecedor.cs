@@ -98,6 +98,14 @@ public class GerFornecedor
     [ForeignKey("IdCidade")]
     public GerCidade? Cidade { get; set; }
 
+    // Condicao de pagamento padrao do fornecedor (opcional).
+    // Coluna criada em Database/AlterFornecedoresCondicaoPagamento.sql.
+    [Column("idCondicaoPagamento")]
+    public int? IdCondicaoPagamento { get; set; }
+
+    [ForeignKey("IdCondicaoPagamento")]
+    public FinCondicaoPagamento? CondicaoPagamento { get; set; }
+
     // ===== Contato =====
 
     [Column("nrTelefoneFixo")]

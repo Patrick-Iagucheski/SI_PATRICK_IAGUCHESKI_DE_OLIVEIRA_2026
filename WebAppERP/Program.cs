@@ -23,13 +23,26 @@ builder.Services.Configure<Microsoft.AspNetCore.Http.Features.FormOptions>(optio
 // enviado por <input type="number"> (ponto decimal), sem alterar a exibicao pt-BR.
 builder.Services.Configure<Microsoft.AspNetCore.Mvc.MvcOptions>(options =>
     options.ModelBinderProviders.Insert(0, new InvariantDecimalModelBinderProvider()));
-builder.Services.AddDbContext<AppDbContext>(options =>
-    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+// Conexao no padrao do SoftTur: servidor selecionado em Servers/servers.json.
+// As opcoes sao montadas a cada requisicao, entao editar o arquivo ja troca o banco.
+builder.Services.AddSingleton<ConexaoBanco>();
+builder.Services.AddDbContext<AppDbContext>((sp, options) =>
+    options.UseSqlServer(sp.GetRequiredService<ConexaoBanco>().StringConexao()));
 
 builder.Services.AddScoped<IVendaRepository, VendaRepository>();
 builder.Services.AddScoped<ICompraRepository, CompraRepository>();
 
+// Nome e logo da empresa do layout (lidos do banco, em cache)
+builder.Services.AddMemoryCache();
+builder.Services.AddScoped<EmpresaService>();
+
 var app = builder.Build();
+
+// Mostra no console qual banco esta em uso (ajuda a conferir o servers.json)
+var servidor = app.Services.GetRequiredService<ConexaoBanco>().Servidor;
+app.Logger.LogInformation(servidor == null
+    ? "Banco: DefaultConnection do appsettings.json (Servers/servers.json nao encontrado)"
+    : $"Banco: {servidor.name} -> {servidor.host} / {servidor.database} (Servers/servers.json)");
 
 // Configure the HTTP request pipeline.
 if (!app.Environment.IsDevelopment())

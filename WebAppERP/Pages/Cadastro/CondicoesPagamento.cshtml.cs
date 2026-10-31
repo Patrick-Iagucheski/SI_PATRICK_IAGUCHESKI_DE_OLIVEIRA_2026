@@ -16,7 +16,9 @@ public class CondicoesPagamentoModel : PageModel
     private static readonly JsonSerializerOptions JsonOpts = new() { PropertyNameCaseInsensitive = true };
 
     public List<FinCondicaoPagamento> Condicoes { get; set; } = [];
-    public List<FinFormaPagamento> Formas { get; set; } = [];
+
+    // As formas de pagamento do modal sao carregadas pelo proprio componente
+    // (ViewComponents/CadastroCondicaoPagamentoViewComponent).
 
     [BindProperty] public FinCondicaoPagamento CondicaoForm { get; set; } = new();
     [BindProperty] public string ParcelasJson { get; set; } = "[]";
@@ -37,33 +39,59 @@ public class CondicoesPagamentoModel : PageModel
                 .ThenInclude(p => p.FormaPagamento)
             .OrderBy(c => c.DsCondicao)
             .ToListAsync();
-
-        Formas = await _db.FormasPagamento.Where(f => f.FlAtivo).OrderBy(f => f.DsFormaPagamento).ToListAsync();
     }
 
     public async Task<IActionResult> OnPostAsync()
+    {
+        var erro = await ValidarEGravarAsync();
+        if (erro != null) return await ComErroAsync(erro);
+
+        return RedirectToPage();
+    }
+
+    // Cadastro pelo componente em modo AJAX (ex.: botao + da condicao no
+    // cadastro de fornecedor). Mesmas regras do OnPostAsync, mas responde JSON
+    // para a tela de origem nao ser recarregada.
+    public async Task<IActionResult> OnPostSalvarAjaxAsync()
+    {
+        var erro = await ValidarEGravarAsync();
+        if (erro != null) return new JsonResult(new { sucesso = false, mensagem = erro });
+
+        return new JsonResult(new
+        {
+            sucesso = true,
+            id = CondicaoForm.IdCondicaoPagamento,
+            nome = CondicaoForm.DsCondicao,
+            ativo = CondicaoForm.FlAtivo
+        });
+    }
+
+    // Valida a condicao e as parcelas (ParcelasJson) e inclui/atualiza.
+    // Retorna a mensagem do primeiro erro, ou null se gravou. Na inclusao,
+    // CondicaoForm.IdCondicaoPagamento recebe o id gerado.
+    private async Task<string?> ValidarEGravarAsync()
     {
         var parcelas = JsonSerializer.Deserialize<List<ParcelaDto>>(ParcelasJson ?? "[]", JsonOpts) ?? [];
 
         // ===== Validacoes de servidor (defensivas; a tela ja valida) =====
         if (string.IsNullOrWhiteSpace(CondicaoForm.DsCondicao))
-            return await ComErroAsync("Informe a condição de pagamento.");
+            return "Informe a condição de pagamento.";
 
         if (parcelas.Count == 0)
-            return await ComErroAsync("Adicione ao menos uma parcela.");
+            return "Adicione ao menos uma parcela.";
 
         if (parcelas.Any(p => p.IdFormaPagamento <= 0))
-            return await ComErroAsync("Selecione a forma de pagamento em todas as parcelas.");
+            return "Selecione a forma de pagamento em todas as parcelas.";
 
         if (parcelas.Any(p => p.VlPercentual <= 0 || p.VlPercentual > 100))
-            return await ComErroAsync("O percentual de cada parcela deve estar entre 0 e 100.");
+            return "O percentual de cada parcela deve estar entre 0 e 100.";
 
         if (parcelas.Any(p => p.NrDiasVencimento < 0))
-            return await ComErroAsync("Os dias para vencimento não podem ser negativos.");
+            return "Os dias para vencimento não podem ser negativos.";
 
         var soma = parcelas.Sum(p => p.VlPercentual);
         if (Math.Abs(soma - 100m) > 0.01m)
-            return await ComErroAsync($"O percentual total das parcelas deve ser 100%. Atual: {soma:N2}%.");
+            return $"O percentual total das parcelas deve ser 100%. Atual: {soma:N2}%.";
 
         // Renumera as parcelas (1..N) garantindo a chave composta.
         var ordenadas = parcelas
@@ -98,6 +126,11 @@ public class CondicoesPagamentoModel : PageModel
                 Parcelas = ordenadas
             };
             _db.CondicoesPagamento.Add(nova);
+            await _db.SaveChangesAsync();
+
+            CondicaoForm.IdCondicaoPagamento = nova.IdCondicaoPagamento;
+            CondicaoForm.DsCondicao = nova.DsCondicao;
+            return null;
         }
         else
         {
@@ -125,7 +158,8 @@ public class CondicoesPagamentoModel : PageModel
         }
 
         await _db.SaveChangesAsync();
-        return RedirectToPage();
+        CondicaoForm.DsCondicao = nome;
+        return null;
     }
 
     public async Task<IActionResult> OnPostToggleAsync(int id)

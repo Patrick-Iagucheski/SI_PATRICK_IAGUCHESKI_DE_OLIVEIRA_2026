@@ -1,0 +1,108 @@
+@model WebAppERP.ViewModels.CadastroCondicaoPagamentoViewModel
+@*
+    Componente de cadastro de condicao de pagamento
+    (ViewComponents/CadastroCondicaoPagamentoViewComponent).
+    Traz o proprio script (cadastro-condicao.js), incluido uma vez por pagina.
+    data-modo="ajax" faz o Salvar gravar por fetch e disparar o evento
+    'condicao:salva' (detail: id, nome, ativo).
+    Os ids usam o prefixo "cond" para nao colidir com o componente de
+    fornecedor, que pode estar na mesma tela.
+*@
+@{
+    var formasJs = Model.Formas.Select(f => new { id = f.IdFormaPagamento, nome = f.DsFormaPagamento });
+}
+
+<!-- Modal Nova/Editar Condicao -->
+<div class="modal fade" id="modalCondicao" tabindex="-1"
+     data-modo="@Model.Modo" data-url-condicoes="@Url.Page("/Cadastro/CondicoesPagamento")"
+     data-formas="@System.Text.Json.JsonSerializer.Serialize(formasJs)">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <form method="post" asp-page="/Cadastro/CondicoesPagamento" id="condForm">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="condModalTitle"><i class="bi bi-list-check me-2"></i>Nova Condição de Pagamento</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div id="condMsg"></div>
+                    <input type="hidden" asp-for="CondicaoForm.IdCondicaoPagamento" id="condIdCondicao" />
+                    <input type="hidden" name="ParcelasJson" id="condParcelasJson" value="[]" />
+
+                    <div class="row g-3">
+                        <div class="col-md-2">
+                            <label class="form-label">Código</label>
+                            <input type="text" class="form-control bg-light" id="condCodigoDisplay" placeholder="(novo)" readonly />
+                        </div>
+                        <div class="col-md-7">
+                            <label class="form-label">Condição de Pagamento *</label>
+                            <input type="text" class="form-control" asp-for="CondicaoForm.DsCondicao" id="condDsCondicao" maxlength="100" placeholder="Ex: A vista, 30 dias, Parcelado 3x" required />
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Ativo</label>
+                            <select class="form-select" asp-for="CondicaoForm.FlAtivo" id="condFlAtivo">
+                                <option value="true">Sim</option>
+                                <option value="false">Não</option>
+                            </select>
+                        </div>
+
+                        <div class="col-md-4">
+                            <label class="form-label">Juro (%)</label>
+                            <input type="number" step="0.01" min="0" class="form-control" asp-for="CondicaoForm.VlJuro" id="condVlJuro" />
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Multa (%)</label>
+                            <input type="number" step="0.01" min="0" class="form-control" asp-for="CondicaoForm.VlMulta" id="condVlMulta" />
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Desconto (%)</label>
+                            <input type="number" step="0.01" min="0" max="100" class="form-control" asp-for="CondicaoForm.VlDesconto" id="condVlDesconto" />
+                        </div>
+                    </div>
+
+                    <hr class="my-4" />
+
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <div>
+                            <h6 class="mb-0"><i class="bi bi-stack me-1"></i>Parcelas</h6>
+                            <span class="text-muted small">O percentual total deve ser igual a 100%.</span>
+                        </div>
+                        <button type="button" class="btn btn-sm btn-outline-primary" onclick="addParcelaCondicao()">
+                            <i class="bi bi-plus-lg me-1"></i>Adicionar parcela
+                        </button>
+                    </div>
+
+                    <div class="table-responsive">
+                        <table class="table table-sm align-middle" id="condTblParcelas">
+                            <thead>
+                                <tr>
+                                    <th style="width:80px;">Parcela</th>
+                                    <th>Dias para vencimento *</th>
+                                    <th>Forma de Pagamento *</th>
+                                    <th style="width:140px;">Percentual (%) *</th>
+                                    <th class="text-center" style="width:70px;">Ações</th>
+                                </tr>
+                            </thead>
+                            <tbody></tbody>
+                            <tfoot>
+                                <tr>
+                                    <td colspan="3" class="text-end fw-semibold">Total</td>
+                                    <td class="fw-semibold" id="condTotalPercentual">0,00 %</td>
+                                    <td></td>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary"><i class="bi bi-check-lg me-1"></i>Salvar condição</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@if (Model.IncluirScript)
+{
+    <script src="~/js/cadastro-condicao.js" asp-append-version="true"></script>
+}

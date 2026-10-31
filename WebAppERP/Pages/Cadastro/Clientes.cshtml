@@ -123,8 +123,8 @@
                             <td>@c.IdCliente</td>
                             <td><strong>@c.NmCliente</strong></td>
                             <td>@TipoPessoaLabel(c.TpPessoa)</td>
-                            <td>@(string.IsNullOrEmpty(DocumentoExibicao(c)) ? "-" : DocumentoExibicao(c))</td>
-                            <td>@FormatarTelefone(c.NrTelefone)</td>
+                            <td class="text-nowrap">@(string.IsNullOrEmpty(DocumentoExibicao(c)) ? "-" : DocumentoExibicao(c))</td>
+                            <td class="text-nowrap">@FormatarTelefone(c.NrTelefone)</td>
                             <td>@(c.DsEmail ?? "-")</td>
                             <td>@(c.Cidade != null ? $"{c.Cidade.NmCidade}/{c.Cidade.Estado?.SgUF}" : "-")</td>
                             <td>
@@ -256,19 +256,7 @@
                         <!-- Cidade (cadastro rapido) | CEP | Status -->
                         <div class="col-md-6">
                             <label class="form-label">Cidade</label>
-                            <div class="input-group">
-                                <select class="form-select" asp-for="ClienteForm.IdCidade" id="formIdCidade">
-                                    <option value="">Selecione</option>
-                                    @foreach (var cidade in Model.Cidades)
-                                    {
-                                        <option value="@cidade.IdCidade">@cidade.NmCidade / @cidade.Estado?.SgUF</option>
-                                    }
-                                </select>
-                                <button type="button" class="btn btn-outline-primary"
-                                        onclick="abrirModalEmpilhado('modalCidadeRapido')" title="Cadastrar nova cidade">
-                                    <i class="bi bi-plus-lg"></i>
-                                </button>
-                            </div>
+                            @await Component.InvokeAsync("CampoCidade", new { nome = "ClienteForm.IdCidade", id = "formIdCidade", idCidade = Model.ClienteForm.IdCidade })
                         </div>
                         <div class="col-md-3">
                             <label class="form-label">CEP</label>
@@ -294,135 +282,6 @@
                     <button type="submit" class="btn btn-primary"><i class="bi bi-check-lg me-1"></i>Salvar</button>
                 </div>
             </form>
-        </div>
-    </div>
-</div>
-
-<!-- Modal de Cadastro Rapido de Cidade (AJAX) -->
-<div class="modal fade" id="modalCidadeRapido" tabindex="-1">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title"><i class="bi bi-building me-2"></i>Cadastrar Cidade</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body">
-                <div id="cidMsg"></div>
-                <div class="row g-3">
-                    <div class="col-12">
-                        <label class="form-label">Nome da Cidade *</label>
-                        <input type="text" class="form-control" id="cidNome" maxlength="150" />
-                    </div>
-                    <div class="col-12">
-                        <label class="form-label">Estado *</label>
-                        <div class="input-group">
-                            <select class="form-select" id="cidEstado">
-                                <option value="">Selecione</option>
-                                @foreach (var estado in Model.Estados)
-                                {
-                                    <option value="@estado.IdEstado">@estado.NmEstado / @estado.SgUF</option>
-                                }
-                            </select>
-                            <button type="button" class="btn btn-outline-primary"
-                                    onclick="abrirModalEmpilhado('modalEstadoRapido')" title="Cadastrar novo estado">
-                                <i class="bi bi-plus-lg"></i>
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                <button type="button" class="btn btn-primary" id="btnSalvarCidadeRapido" onclick="salvarCidadeRapido()">
-                    <i class="bi bi-check-lg me-1"></i>Salvar Cidade
-                </button>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- Modal de Cadastro Rapido de Estado (AJAX) -->
-<div class="modal fade" id="modalEstadoRapido" tabindex="-1">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title"><i class="bi bi-map me-2"></i>Cadastrar Estado</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body">
-                <div id="estMsg"></div>
-                <div class="row g-3">
-                    <div class="col-md-8">
-                        <label class="form-label">Nome do Estado *</label>
-                        <input type="text" class="form-control" id="estNome" maxlength="100" />
-                    </div>
-                    <div class="col-md-4">
-                        <label class="form-label">UF *</label>
-                        <input type="text" class="form-control text-uppercase" id="estUF" maxlength="2" placeholder="Ex: PR" />
-                    </div>
-                    <div class="col-12">
-                        <label class="form-label">País *</label>
-                        <div class="input-group">
-                            <select class="form-select" id="estPais">
-                                <option value="">Selecione</option>
-                                @foreach (var pais in Model.Paises)
-                                {
-                                    <option value="@pais.IdPais">@pais.NmPais</option>
-                                }
-                            </select>
-                            <button type="button" class="btn btn-outline-primary"
-                                    onclick="abrirModalEmpilhado('modalPaisRapido')" title="Cadastrar novo país">
-                                <i class="bi bi-plus-lg"></i>
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                <button type="button" class="btn btn-primary" id="btnSalvarEstadoRapido" onclick="salvarEstadoRapido()">
-                    <i class="bi bi-check-lg me-1"></i>Salvar Estado
-                </button>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- Modal de Cadastro Rapido de Pais (AJAX) -->
-<div class="modal fade" id="modalPaisRapido" tabindex="-1">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title"><i class="bi bi-globe-americas me-2"></i>Cadastrar País</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body">
-                <div id="paisMsg"></div>
-                <div class="row g-3">
-                    <div class="col-md-8">
-                        <label class="form-label">Nome do País *</label>
-                        <input type="text" class="form-control" id="paisNome" maxlength="100" />
-                    </div>
-                    <div class="col-md-4">
-                        <label class="form-label">Sigla *</label>
-                        <input type="text" class="form-control text-uppercase" id="paisSigla" maxlength="5" placeholder="Ex: BR" />
-                    </div>
-                    <div class="col-md-6">
-                        <label class="form-label">DDI</label>
-                        <input type="text" class="form-control" id="paisDDI" maxlength="5" placeholder="Ex: 55" />
-                    </div>
-                    <div class="col-md-6">
-                        <label class="form-label">Moeda</label>
-                        <input type="text" class="form-control" id="paisMoeda" maxlength="50" placeholder="Ex: Real" />
-                    </div>
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                <button type="button" class="btn btn-primary" id="btnSalvarPaisRapido" onclick="salvarPaisRapido()">
-                    <i class="bi bi-check-lg me-1"></i>Salvar País
-                </button>
-            </div>
         </div>
     </div>
 </div>
@@ -538,12 +397,13 @@
 
         function limparForm() {
             document.getElementById('modalTitle').innerHTML = '<i class="bi bi-person-plus me-2"></i>Novo Cliente';
-            ['formNmCliente','formNrCpf','formNrCnpj','formNrDocumento','formNrRG','formNrTelefone','formDsEmail','formDsEndereco','formNrNumero','formDsComplemento','formDsBairro','formIdCidade','formNrCEP','formDtNascimento','formDsSexo','formDsObservacao','formCodigoDisplay'].forEach(id => {
+            ['formNmCliente','formNrCpf','formNrCnpj','formNrDocumento','formNrRG','formNrTelefone','formDsEmail','formDsEndereco','formNrNumero','formDsComplemento','formDsBairro','formNrCEP','formDtNascimento','formDsSexo','formDsObservacao','formCodigoDisplay'].forEach(id => {
                 document.getElementById(id).value = '';
             });
             document.getElementById('formIdCliente').value = '0';
             document.getElementById('formTpPessoa').value = 'F';
             document.getElementById('formFlAtivo').value = 'true';
+            limparCidade('formIdCidade');
             toggleTipoPessoa();
         }
 
@@ -563,133 +423,13 @@
             document.getElementById('formNrNumero').value = numero || '';
             document.getElementById('formDsComplemento').value = complemento || '';
             document.getElementById('formDsBairro').value = bairro || '';
-            document.getElementById('formIdCidade').value = cidade || '';
+            definirCidade('formIdCidade', cidade);
             document.getElementById('formNrCEP').value = mascaraCEP(cep || '');
             document.getElementById('formDtNascimento').value = nasc || '';
             document.getElementById('formDsSexo').value = sexo || '';
             document.getElementById('formDsObservacao').value = obs || '';
             document.getElementById('formFlAtivo').value = ativo === 'True' ? 'true' : 'false';
             toggleTipoPessoa();
-        }
-
-        // ===== Helpers AJAX (reutilizados pelos cadastros rapidos hierarquicos) =====
-        function alertaErro(m) {
-            return '<div class="alert alert-danger py-1 px-2 small mb-2">' + m + '</div>';
-        }
-        async function postJson(url, body) {
-            const token = document.querySelector('#formTokenAjax input[name="__RequestVerificationToken"]').value;
-            const resp = await fetch(url, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'RequestVerificationToken': token },
-                body: JSON.stringify(body)
-            });
-            return await resp.json();
-        }
-
-        // ===== Cadastro rapido de Cidade =====
-        async function salvarCidadeRapido() {
-            const nome = document.getElementById('cidNome').value.trim();
-            const idEstado = document.getElementById('cidEstado').value;
-            const msg = document.getElementById('cidMsg');
-            const btn = document.getElementById('btnSalvarCidadeRapido');
-            msg.innerHTML = '';
-
-            if (!nome) { msg.innerHTML = alertaErro('Informe o nome da cidade.'); return; }
-            if (!idEstado) { msg.innerHTML = alertaErro('Selecione o estado.'); return; }
-
-            btn.disabled = true;
-            try {
-                const data = await postJson('?handler=CidadeRapido', { nmCidade: nome, idEstado: parseInt(idEstado) });
-                if (!data.sucesso) { msg.innerHTML = alertaErro(data.mensagem); return; }
-
-                const sel = document.getElementById('formIdCidade');
-                const opt = document.createElement('option');
-                opt.value = data.id;
-                opt.textContent = data.nome + ' / ' + data.uf;
-                sel.appendChild(opt);
-                sel.value = data.id;
-
-                document.getElementById('cidNome').value = '';
-                document.getElementById('cidEstado').value = '';
-                bootstrap.Modal.getInstance(document.getElementById('modalCidadeRapido')).hide();
-            } catch (e) {
-                msg.innerHTML = alertaErro('Erro ao salvar a cidade. Tente novamente.');
-            } finally {
-                btn.disabled = false;
-            }
-        }
-
-        // ===== Cadastro rapido de Estado =====
-        async function salvarEstadoRapido() {
-            const nome = document.getElementById('estNome').value.trim();
-            const uf = document.getElementById('estUF').value.trim().toUpperCase();
-            const idPais = document.getElementById('estPais').value;
-            const msg = document.getElementById('estMsg');
-            const btn = document.getElementById('btnSalvarEstadoRapido');
-            msg.innerHTML = '';
-
-            if (!nome) { msg.innerHTML = alertaErro('Informe o nome do estado.'); return; }
-            if (uf.length !== 2) { msg.innerHTML = alertaErro('Informe a UF (2 letras).'); return; }
-            if (!idPais) { msg.innerHTML = alertaErro('Selecione o pais.'); return; }
-
-            btn.disabled = true;
-            try {
-                const data = await postJson('?handler=EstadoRapido', { sgUF: uf, nmEstado: nome, idPais: parseInt(idPais) });
-                if (!data.sucesso) { msg.innerHTML = alertaErro(data.mensagem); return; }
-
-                const sel = document.getElementById('cidEstado');
-                const opt = document.createElement('option');
-                opt.value = data.id;
-                opt.textContent = data.nome + ' / ' + data.uf;
-                sel.appendChild(opt);
-                sel.value = data.id;
-
-                document.getElementById('estNome').value = '';
-                document.getElementById('estUF').value = '';
-                document.getElementById('estPais').value = '';
-                bootstrap.Modal.getInstance(document.getElementById('modalEstadoRapido')).hide();
-            } catch (e) {
-                msg.innerHTML = alertaErro('Erro ao salvar o estado. Tente novamente.');
-            } finally {
-                btn.disabled = false;
-            }
-        }
-
-        // ===== Cadastro rapido de Pais =====
-        async function salvarPaisRapido() {
-            const nome = document.getElementById('paisNome').value.trim();
-            const sigla = document.getElementById('paisSigla').value.trim().toUpperCase();
-            const ddi = document.getElementById('paisDDI').value.trim();
-            const moeda = document.getElementById('paisMoeda').value.trim();
-            const msg = document.getElementById('paisMsg');
-            const btn = document.getElementById('btnSalvarPaisRapido');
-            msg.innerHTML = '';
-
-            if (!nome) { msg.innerHTML = alertaErro('Informe o nome do pais.'); return; }
-            if (!sigla) { msg.innerHTML = alertaErro('Informe a sigla do pais.'); return; }
-
-            btn.disabled = true;
-            try {
-                const data = await postJson('?handler=PaisRapido', { nmPais: nome, sgPais: sigla, nrDDI: ddi || null, dsMoeda: moeda || null });
-                if (!data.sucesso) { msg.innerHTML = alertaErro(data.mensagem); return; }
-
-                const sel = document.getElementById('estPais');
-                const opt = document.createElement('option');
-                opt.value = data.id;
-                opt.textContent = data.nome;
-                sel.appendChild(opt);
-                sel.value = data.id;
-
-                document.getElementById('paisNome').value = '';
-                document.getElementById('paisSigla').value = '';
-                document.getElementById('paisDDI').value = '';
-                document.getElementById('paisMoeda').value = '';
-                bootstrap.Modal.getInstance(document.getElementById('modalPaisRapido')).hide();
-            } catch (e) {
-                msg.innerHTML = alertaErro('Erro ao salvar o pais. Tente novamente.');
-            } finally {
-                btn.disabled = false;
-            }
         }
 
         // ===== Busca de Clientes (filtros na pagina -> atualiza a grid via AJAX) =====
@@ -725,8 +465,8 @@
                 '<td>' + f.id + '</td>' +
                 '<td><strong>' + (f.nome || '') + '</strong></td>' +
                 '<td>' + tipoLabel(f.tipoPessoa) + '</td>' +
-                '<td>' + documentoExibicao(f) + '</td>' +
-                '<td>' + (f.tel ? mascaraTelefone(f.tel) : '-') + '</td>' +
+                '<td class="text-nowrap">' + documentoExibicao(f) + '</td>' +
+                '<td class="text-nowrap">' + (f.tel ? mascaraTelefone(f.tel) : '-') + '</td>' +
                 '<td>' + (f.email || '-') + '</td>' +
                 '<td>' + (f.cidadeNome || '-') + '</td>' +
                 '<td>' + statusBadge(f.ativo) + '</td>' +

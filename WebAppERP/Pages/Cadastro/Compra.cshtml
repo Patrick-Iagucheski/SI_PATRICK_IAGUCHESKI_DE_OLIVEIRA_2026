@@ -6,6 +6,13 @@
         : "Cadastro de Compras";
 
     var ro = Model.Vm.SomenteLeitura;
+
+    // Chave validada libera o resto da tela; depois disso ela nao muda mais.
+    var chaveOk = ro || Model.ChaveValidada;
+    var chaveTravada = ro || Model.Vm.Edicao || Model.ChaveValidada;
+
+    // Rascunho ja gravado: a tela salva sozinha a cada alteracao.
+    var salvarSozinho = !ro && Model.Vm.Edicao && Model.Vm.Compra.TpStatus == "RASCUNHO";
     var statusBadge = Model.Vm.Compra.TpStatus switch
     {
         "FINALIZADA" => "badge-concluido",
@@ -38,7 +45,6 @@
         dtVencimento = p.DtVencimento.ToString("yyyy-MM-dd")
     });
 
-    var classificacoesJs = Model.Vm.Combos.Classificacoes.Select(c => new { id = c.IdClassificacaoConta, nome = c.DsClassificacaoConta });
     var formasJs = Model.Vm.Combos.Formas.Select(f => new { id = f.IdFormaPagamento, nome = f.DsFormaPagamento });
     var condicoesJs = Model.Vm.Combos.Condicoes.Select(c => new { id = c.IdCondicaoPagamento, nome = c.DsCondicao });
 }
@@ -82,30 +88,30 @@
         <div class="card-body">
             <h6 class="fw-bold mb-3"><i class="bi bi-file-earmark-text me-2"></i>Dados da Nota</h6>
             <div class="row g-3">
-                <div class="col-md-3">
+                <div class="col-md-3 col-lg-4 col-xxl-3">
                     <label class="form-label">Modelo *</label>
-                    <select class="form-select" asp-for="NrModelo" id="NrModelo" disabled="@(ro || Model.Vm.Edicao)">
+                    <select class="form-select" asp-for="NrModelo" id="NrModelo" disabled="@chaveTravada">
                         <option value="55">NFe - Nota Fiscal Eletrônica</option>
                         <option value="65">NFCe - Nota Fiscal de Consumidor</option>
                         <option value="1">NF - Nota Fiscal Modelo 1</option>
                         <option value="2">NF - Nota Fiscal de Venda a Consumidor</option>
                     </select>
                 </div>
-                <div class="col-md-2">
+                <div class="col-md-2 col-lg-1 col-xxl-2">
                     <label class="form-label">Série *</label>
-                    <input type="number" min="0" class="form-control" asp-for="NrSerie" id="NrSerie" disabled="@(ro || Model.Vm.Edicao)" />
+                    <input type="number" min="0" class="form-control" asp-for="NrSerie" id="NrSerie" disabled="@chaveTravada" />
                 </div>
                 <div class="col-md-2">
                     <label class="form-label">Nº *</label>
-                    <input type="number" min="1" class="form-control" asp-for="NrNota" id="NrNota" disabled="@(ro || Model.Vm.Edicao)" />
+                    <input type="number" min="1" class="form-control" asp-for="NrNota" id="NrNota" disabled="@chaveTravada" />
                 </div>
                 <div class="col-md-2">
                     <label class="form-label">ID Fornecedor *</label>
                     <div class="input-group">
-                        <input type="number" min="1" class="form-control" asp-for="IdFornecedor" id="IdFornecedor" disabled="@(ro || Model.Vm.Edicao)" />
-                        @if (!ro && !Model.Vm.Edicao)
+                        <input type="number" min="1" class="form-control" asp-for="IdFornecedor" id="IdFornecedor" disabled="@chaveTravada" />
+                        @if (!chaveTravada)
                         {
-                            <button type="button" class="btn btn-outline-primary" title="Pesquisar fornecedor" onclick="abrirBuscaFornecedor()">
+                            <button type="button" class="btn btn-outline-primary" id="btnBuscaFornecedor" title="Pesquisar fornecedor" onclick="abrirBuscaFornecedor()">
                                 <i class="bi bi-search"></i>
                             </button>
                         }
@@ -113,43 +119,72 @@
                 </div>
                 <div class="col-md-3">
                     <label class="form-label">Fornecedor</label>
-                    <input type="text" class="form-control" id="nomeFornecedor"
-                           value="@(Model.Vm.Compra.Fornecedor?.DsRazaoSocial)" placeholder="Informe o ID ao lado" readonly />
-                </div>
-
-                <div class="col-md-3">
-                    <label class="form-label">Data de Emissão *</label>
-                    <input type="date" class="form-control" asp-for="DtEmissao" id="DtEmissao" disabled="@ro" />
-                </div>
-                <div class="col-md-3">
-                    <label class="form-label">Data de Chegada</label>
-                    <input type="date" class="form-control" asp-for="DtChegada" id="DtChegada" disabled="@ro" />
-                </div>
-                <div class="col-md-2">
-                    <label class="form-label">ID Transportadora</label>
                     <div class="input-group">
-                        <input type="number" min="1" class="form-control" asp-for="IdTransportador" id="IdTransportador" disabled="@ro" />
-                        @if (!ro)
+                        <input type="text" class="form-control" id="nomeFornecedor"
+                               value="@(Model.Vm.Compra.Fornecedor?.DsRazaoSocial)" placeholder="Informe o ID ao lado" readonly />
+                        @if (!chaveTravada)
                         {
-                            <button type="button" class="btn btn-outline-primary" title="Pesquisar transportadora" onclick="abrirBuscaTransportador()">
-                                <i class="bi bi-search"></i>
+                            <button type="button" class="btn btn-primary" id="btnValidarChave" title="Validar a chave da nota" onclick="validarChave()">
+                                <i class="bi bi-check2-circle me-1"></i>Validar
                             </button>
                         }
                     </div>
                 </div>
-                <div class="col-md-4">
-                    <label class="form-label">Transportadora</label>
-                    <input type="text" class="form-control" id="nomeTransportador"
-                           value="@(Model.Vm.Compra.Transportador?.DsRazaoSocial)" placeholder="Opcional" readonly />
-                </div>
-                <div class="col-md-12">
-                    <label class="form-label">Observação</label>
-                    <input type="text" class="form-control" asp-for="DsObservacao" disabled="@ro" />
-                </div>
+                @if (!chaveTravada)
+                {
+                    <div class="col-md-12 mt-1">
+                        <small class="text-muted" id="chaveMsg">
+                            <i class="bi bi-info-circle me-1"></i>Informe modelo, série, número e fornecedor e clique em
+                            <strong>Validar</strong> para liberar os demais campos.
+                        </small>
+                    </div>
+                }
+
+                @* Etapa 2: datas, liberadas so depois da chave validada. *@
+                <fieldset class="col-md-6 etapa-datas" disabled="@(!chaveOk)">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Data de Emissão *</label>
+                            <input type="date" class="form-control" asp-for="DtEmissao" id="DtEmissao"
+                                   max="@DateTime.Today.ToString("yyyy-MM-dd")" disabled="@ro" />
+                            <div class="invalid-feedback" id="DtEmissaoErro"></div>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Data de Chegada</label>
+                            <input type="date" class="form-control" asp-for="DtChegada" id="DtChegada"
+                                   max="@DateTime.Today.ToString("yyyy-MM-dd")" disabled="@ro" />
+                            <div class="invalid-feedback" id="DtChegadaErro"></div>
+                        </div>
+                    </div>
+                </fieldset>
+
+                @* Etapa 3: demais campos, liberados com chave e datas validas. *@
+                <fieldset class="col-md-6 etapa-demais" disabled="@(!chaveOk)">
+                    <div class="row g-3">
+                        <div class="col-md-5">
+                            <label class="form-label">ID Transportadora</label>
+                            <div class="input-group">
+                                <input type="number" min="1" class="form-control" asp-for="IdTransportador" id="IdTransportador" disabled="@ro" />
+                                @if (!ro)
+                                {
+                                    <button type="button" class="btn btn-outline-primary" title="Pesquisar transportadora" onclick="abrirBuscaTransportador()">
+                                        <i class="bi bi-search"></i>
+                                    </button>
+                                }
+                            </div>
+                        </div>
+                        <div class="col-md-7">
+                            <label class="form-label">Transportadora</label>
+                            <input type="text" class="form-control" id="nomeTransportador"
+                                   value="@(Model.Vm.Compra.Transportador?.DsRazaoSocial)" placeholder="Opcional" readonly />
+                        </div>
+                    </div>
+                </fieldset>
             </div>
         </div>
     </div>
 
+    <fieldset class="etapa-demais" disabled="@(!chaveOk)">
     @if (!ro)
     {
         <!-- ================= Adicionar Produto / Serviço ================= -->
@@ -157,14 +192,14 @@
             <div class="card-body">
                 <h6 class="fw-bold mb-3"><i class="bi bi-box-seam me-2"></i>Adicionar Produto / Serviço</h6>
                 <div class="row g-2 align-items-end">
-                    <div class="col-md-2">
+                    <div class="col-md-2 col-xxl-1">
                         <label class="form-label">Tipo</label>
                         <select class="form-select" id="itTipo" onchange="onTipoChange()">
                             <option value="PRODUTO">Produto</option>
                             <option value="SERVICO">Serviço</option>
                         </select>
                     </div>
-                    <div class="col-md-3">
+                    <div class="col-md-6 col-xxl-5">
                         <label class="form-label">Produto / Serviço</label>
                         <div class="input-group">
                             <input type="number" min="1" class="form-control" id="itCodigo" placeholder="ID" onchange="onCodigoItemChange()" />
@@ -174,17 +209,7 @@
                         </div>
                         <small class="text-muted" id="itDescricao"></small>
                     </div>
-                    <div class="col-md-2">
-                        <label class="form-label">Classificação da Conta</label>
-                        <select class="form-select" id="itClassificacao">
-                            <option value="">Selecione</option>
-                            @foreach (var c in Model.Vm.Combos.Classificacoes)
-                            {
-                                <option value="@c.IdClassificacaoConta">@c.DsClassificacaoConta</option>
-                            }
-                        </select>
-                    </div>
-                    <div class="col-md-1">
+                    <div class="col-md-2 col-xxl-1">
                         <label class="form-label">UND</label>
                         <select class="form-select" id="itUnidade">
                             <option value="">-</option>
@@ -198,19 +223,36 @@
                             <option value="M">M</option>
                         </select>
                     </div>
-                    <div class="col-md-1">
+                    <div class="col-md-2 col-xxl-1">
                         <label class="form-label">Quantidade</label>
                         <input type="number" step="0.0001" min="0" class="form-control" id="itQt" value="1" />
                     </div>
-                    <div class="col-md-1">
+                    <div class="col-md-3 col-xxl-1">
                         <label class="form-label">Preço Unit.</label>
                         <input type="number" step="0.0001" min="0" class="form-control" id="itVlUnit" value="0" />
                     </div>
-                    <div class="col-md-1">
-                        <label class="form-label">Desconto</label>
-                        <input type="number" step="0.01" min="0" class="form-control" id="itDesc" value="0" />
+                    <div class="col-md-6 col-xxl-2">
+                        @* Porcentagem e valor ficam abaixo do rotulo Desconto e
+                           se recalculam entre si (ver calcItemTotal). *@
+                        <label class="form-label mb-1">Desconto</label>
+                        <div class="row g-1">
+                            <div class="col-6">
+                                <small class="text-muted d-block">Porcentagem</small>
+                                <div class="input-group">
+                                    <input type="number" step="0.01" min="0" max="100" class="form-control px-2" id="itDescPerc" value="0" />
+                                    <span class="input-group-text px-2">%</span>
+                                </div>
+                            </div>
+                            <div class="col-6">
+                                <small class="text-muted d-block">Valor</small>
+                                <div class="input-group">
+                                    <span class="input-group-text px-2">R$</span>
+                                    <input type="number" step="0.01" min="0" class="form-control px-2" id="itDesc" value="0" />
+                                </div>
+                            </div>
+                        </div>
                     </div>
-                    <div class="col-md-1">
+                    <div class="col-md-3 col-xxl-1">
                         <label class="form-label">Total</label>
                         <input type="text" class="form-control" id="itTotal" readonly />
                     </div>
@@ -240,16 +282,28 @@
                     <tr>
                         <th style="width: 50px;">#</th>
                         <th>Produto / Serviço</th>
-                        <th>Classificação</th>
                         <th class="text-center">UND</th>
                         <th class="text-end">Qtd.</th>
                         <th class="text-end">Preço Unit.</th>
                         <th class="text-end">Desconto</th>
                         <th class="text-end">Total</th>
+                        <th class="text-end" title="Parcela do frete + seguro + outros gastos">Rateio</th>
+                        <th class="text-end" title="(Total + Rateio) / Quantidade">Custo Unit.</th>
                         <th class="text-center">Ações</th>
                     </tr>
                 </thead>
                 <tbody id="itensBody"></tbody>
+                <tfoot id="itensFoot">
+                    <tr>
+                        <th colspan="3" class="text-end">Totais</th>
+                        <th class="text-end" id="totQtd"></th>
+                        <th></th>
+                        <th class="text-end" id="totDesconto"></th>
+                        <th class="text-end" id="totItens"></th>
+                        <th class="text-end" id="totRateio"></th>
+                        <th colspan="2"></th>
+                    </tr>
+                </tfoot>
             </table>
         </div>
     </div>
@@ -303,13 +357,20 @@
                 <div class="row g-2 align-items-end">
                     <div class="col-md-3">
                         <label class="form-label">Condição de Pagamento</label>
-                        <select class="form-select" asp-for="IdCondicaoPagamento" id="IdCondicaoPagamento">
-                            <option value="">Selecione</option>
-                            @foreach (var c in Model.Vm.Combos.Condicoes)
-                            {
-                                <option value="@c.IdCondicaoPagamento">@c.DsCondicao</option>
-                            }
-                        </select>
+                        <div class="input-group">
+                            <select class="form-select" asp-for="IdCondicaoPagamento" id="IdCondicaoPagamento">
+                                <option value="">Selecione</option>
+                                @foreach (var c in Model.Vm.Combos.Condicoes)
+                                {
+                                    <option value="@c.IdCondicaoPagamento">@c.DsCondicao</option>
+                                }
+                            </select>
+                            <!-- Abre o componente compartilhado de condicao de pagamento -->
+                            <button type="button" class="btn btn-outline-primary" id="btnNovaCondicao"
+                                    title="Cadastrar nova condição de pagamento" onclick="novaCondicaoCompra()">
+                                <i class="bi bi-plus-lg"></i>
+                            </button>
+                        </div>
                     </div>
                     <div class="col-md-3">
                         <label class="form-label">Forma de Pagamento</label>
@@ -338,6 +399,9 @@
                         <button type="button" class="btn btn-outline-primary btn-sm" onclick="gerarParcelasDaCondicao()">
                             <i class="bi bi-magic me-1"></i>Gerar parcelas pela condição de pagamento
                         </button>
+                        <span class="text-muted small ms-2 d-none" id="condicaoFornecedorAviso">
+                            <i class="bi bi-lock me-1"></i>Condição definida no cadastro do fornecedor.
+                        </span>
                         <span class="text-muted small ms-2" id="pgEditando"></span>
                     </div>
                 </div>
@@ -367,6 +431,15 @@
             </div>
         </div>
     </div>
+
+    <!-- ================= Observação ================= -->
+    <div class="card mb-3">
+        <div class="card-body">
+            <h6 class="fw-bold mb-3"><i class="bi bi-chat-left-text me-2"></i>Observação</h6>
+            <textarea class="form-control" asp-for="DsObservacao" rows="3" maxlength="500" disabled="@ro"></textarea>
+        </div>
+    </div>
+    </fieldset>
 
     @if (Model.Vm.ContasGeradas.Any())
     {
@@ -420,14 +493,16 @@
             </a>
             @if (!ro)
             {
-                <div class="d-flex gap-2">
+                @* Situacao do salvamento automatico (so em rascunho) *@
+                <span class="small text-muted ms-auto me-3" id="autoSalvarStatus"></span>
+                <fieldset class="etapa-demais d-flex gap-2" disabled="@(!chaveOk)">
                     <button type="button" class="btn btn-outline-primary" onclick="salvar('RASCUNHO')">
                         <i class="bi bi-file-earmark-text me-1"></i>Salvar Rascunho
                     </button>
                     <button type="button" class="btn btn-primary" onclick="salvar('FINALIZADA')">
                         <i class="bi bi-check2-circle me-1"></i>Salvar Compra
                     </button>
-                </div>
+                </fieldset>
             }
         </div>
     </div>
@@ -442,11 +517,20 @@
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
-                <div class="search-box mb-3">
-                    <i class="bi bi-search search-icon"></i>
-                    <input type="text" class="form-control" id="buscaTermo" placeholder="Digite para pesquisar..." autocomplete="off" />
+                <div class="d-flex align-items-center gap-2 mb-3">
+                    <div class="search-box flex-grow-1">
+                        <i class="bi bi-search search-icon"></i>
+                        <input type="text" class="form-control" id="buscaTermo" placeholder="Digite para pesquisar..." autocomplete="off" />
+                    </div>
+                    <!-- So aparece na pesquisa de fornecedor e de produto: abre o
+                         componente de cadastro correspondente. -->
+                    <button type="button" class="btn btn-primary d-none" id="btnBuscaNovo"
+                            title="Cadastrar novo" onclick="novoCadastroBusca()">
+                        <i class="bi bi-plus-lg"></i>
+                    </button>
                 </div>
-                <div class="table-responsive">
+                <!-- Altura limitada: a lista rola por dentro e o cabecalho fica fixo. -->
+                <div class="table-responsive busca-resultados">
                     <table class="table">
                         <thead>
                             <tr>
@@ -465,12 +549,44 @@
     </div>
 </div>
 
+@if (!chaveTravada)
+{
+    <!-- Cadastro de fornecedor (componente compartilhado com a tela de Fornecedores).
+         Fica fora do formCompra: tem o proprio <form> e grava por AJAX. -->
+    @await Component.InvokeAsync("CadastroFornecedor", new { modo = "ajax" })
+}
+else if (!ro)
+{
+    <!-- Cadastro de condicao de pagamento (+ do bloco Pagamento). Antes da chave
+         validada ele ja vem dentro do componente de fornecedor. -->
+    @await Component.InvokeAsync("CadastroCondicaoPagamento", new { modo = "ajax" })
+}
+
+@if (!ro)
+{
+    <!-- Cadastro de produto (componente compartilhado com a tela de Produtos),
+         aberto pelo + da pesquisa de produto. Tambem grava por AJAX. -->
+    @await Component.InvokeAsync("CadastroProduto", new { modo = "ajax" })
+}
+
 @section Scripts {
+    @if (!chaveTravada)
+    {
+        <script src="~/js/cadastro-fornecedor.js" asp-append-version="true"></script>
+    }
+    @if (!ro)
+    {
+        <script src="~/js/cadastro-produto.js" asp-append-version="true"></script>
+    }
     <script>
-        const CLASSIFICACOES = @Json.Serialize(classificacoesJs);
         const FORMAS = @Json.Serialize(formasJs);
         const CONDICOES = @Json.Serialize(condicoesJs);
         const SOMENTE_LEITURA = @Json.Serialize(Model.Vm.SomenteLeitura);
+        const CAMPOS_CHAVE = ['NrModelo', 'NrSerie', 'NrNota', 'IdFornecedor'];
+        const CONDICAO_FORNECEDOR = @Json.Serialize(Model.CondicaoFornecedor);
+
+        // Enquanto a chave nao for validada, nenhum outro campo e editavel.
+        let chaveValidada = @Json.Serialize(chaveOk);
 
         let ITENS = @Json.Serialize(itensJs);
         let PAGAMENTOS = @Json.Serialize(pagamentosJs);
@@ -493,6 +609,10 @@
             return (Number(n) || 0).toLocaleString('pt-BR', { minimumFractionDigits: 3, maximumFractionDigits: 4 });
         }
 
+        function arred2(n) {
+            return Math.round(((Number(n) || 0) + Number.EPSILON) * 100) / 100;
+        }
+
         function num(id) {
             const el = document.getElementById(id);
             if (!el) return 0;
@@ -506,11 +626,6 @@
 
         function escapar(s) {
             return String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-        }
-
-        function nomeClassificacao(id) {
-            const c = CLASSIFICACOES.find(x => x.id === id);
-            return c ? c.nome : '-';
         }
 
         function nomeForma(id) {
@@ -537,6 +652,11 @@
             document.getElementById('buscaTermo').value = '';
             document.getElementById('buscaBody').innerHTML =
                 '<tr><td colspan="3" class="text-center text-muted py-3">Digite para pesquisar</td></tr>';
+            // "+" so onde ha componente de cadastro: fornecedor e produto.
+            const novo = cadastroDaBusca();
+            const btnNovo = document.getElementById('btnBuscaNovo');
+            btnNovo.classList.toggle('d-none', !novo);
+            if (novo) btnNovo.title = novo.titulo;
             bootstrap.Modal.getOrCreateInstance(document.getElementById('modalBusca')).show();
             executarBusca();
         }
@@ -590,6 +710,32 @@
             bootstrap.Modal.getOrCreateInstance(document.getElementById('modalBusca')).hide();
         }
 
+        // Componente de cadastro que o "+" abre na pesquisa atual, ou null
+        // quando a pesquisa nao tem cadastro (transportadora, servico) ou o
+        // componente nao foi renderizado (tela somente leitura / chave travada).
+        function cadastroDaBusca() {
+            if (buscaContexto === 'fornecedor' && document.getElementById('modalFornecedor'))
+                return { modal: 'modalFornecedor', limpar: limparForm, titulo: 'Cadastrar novo fornecedor' };
+            if (buscaContexto === 'item' && document.getElementById('itTipo').value === 'PRODUTO'
+                && document.getElementById('modalProduto'))
+                return { modal: 'modalProduto', limpar: limparFormProduto, titulo: 'Cadastrar novo produto' };
+            return null;
+        }
+
+        // "+" da pesquisa: abre o cadastro por cima da pesquisa.
+        function novoCadastroBusca() {
+            const novo = cadastroDaBusca();
+            if (!novo) return;
+            novo.limpar();
+            abrirModalEmpilhado(novo.modal);
+        }
+
+        // Registro gravado pelo componente: ja volta selecionado na compra.
+        document.addEventListener('fornecedor:salvo', e =>
+            selecionarBusca({ id: e.detail.id, nome: e.detail.razaoSocial }));
+        document.addEventListener('produto:salvo', e =>
+            selecionarBusca({ id: e.detail.id, nome: e.detail.nome, unidade: e.detail.unidade, custo: e.detail.custo }));
+
         // Preenche os campos do item a partir do produto/servico escolhido.
         function aplicarItemSelecionado(reg) {
             document.getElementById('itCodigo').value = reg.id;
@@ -641,8 +787,21 @@
             calcItemTotal();
         }
 
+        // Qual dos dois campos de desconto o usuario digitou por ultimo: o
+        // outro e recalculado a partir dele (inclusive quando muda qtd/preco).
+        let descontoPorPercentual = false;
+
         function calcItemTotal() {
-            const total = num('itQt') * num('itVlUnit') - num('itDesc');
+            const bruto = arred2(num('itQt') * num('itVlUnit'));
+
+            if (descontoPorPercentual) {
+                document.getElementById('itDesc').value = arred2(bruto * num('itDescPerc') / 100).toFixed(2);
+            } else {
+                document.getElementById('itDescPerc').value =
+                    bruto > 0 ? arred2(num('itDesc') / bruto * 100).toFixed(2) : '0';
+            }
+
+            const total = bruto - num('itDesc');
             document.getElementById('itTotal').value = (total > 0 ? total : 0).toFixed(2);
         }
 
@@ -661,14 +820,12 @@
 
             const vlUnit = num('itVlUnit');
             const desc = num('itDesc');
-            const bruto = qt * vlUnit;
+            const bruto = arred2(qt * vlUnit);
 
             if (desc > bruto) {
                 alert('O desconto (R$ ' + moeda(desc) + ') é maior que o valor do item (R$ ' + moeda(bruto) + ').');
                 return;
             }
-
-            const classificacao = parseInt(document.getElementById('itClassificacao').value) || null;
 
             const item = {
                 tpItem: tipo,
@@ -676,7 +833,9 @@
                 idServico: tipo === 'SERVICO' ? codigo : null,
                 codigo: codigo,
                 descricao: descricao,
-                idClassificacaoConta: classificacao,
+                // A classificacao saiu da tela. Item antigo que ja tinha uma
+                // a mantem ao ser editado, para nao perder o que foi gravado.
+                idClassificacaoConta: itemEditandoIdx !== null ? (ITENS[itemEditandoIdx].idClassificacaoConta ?? null) : null,
                 sgUnidade: document.getElementById('itUnidade').value || null,
                 qtItem: qt,
                 vlUnitario: vlUnit,
@@ -693,13 +852,14 @@
 
         function limparItemForm() {
             itemEditandoIdx = null;
+            descontoPorPercentual = false;
             document.getElementById('itCodigo').value = '';
             document.getElementById('itDescricao').textContent = '';
-            document.getElementById('itClassificacao').value = '';
             document.getElementById('itUnidade').value = '';
             document.getElementById('itQt').value = '1';
             document.getElementById('itVlUnit').value = '0';
             document.getElementById('itDesc').value = '0';
+            document.getElementById('itDescPerc').value = '0';
             document.getElementById('itTotal').value = '';
             document.getElementById('itEditando').textContent = '';
         }
@@ -707,15 +867,16 @@
         function editarItem(idx) {
             const it = ITENS[idx];
             itemEditandoIdx = idx;
+            descontoPorPercentual = false;
 
             document.getElementById('itTipo').value = it.tpItem;
             document.getElementById('itCodigo').value = it.codigo;
             document.getElementById('itDescricao').textContent = it.descricao;
-            document.getElementById('itClassificacao').value = it.idClassificacaoConta || '';
             document.getElementById('itUnidade').value = it.sgUnidade || '';
             document.getElementById('itQt').value = it.qtItem;
             document.getElementById('itVlUnit').value = it.vlUnitario;
             document.getElementById('itDesc').value = it.vlDesconto;
+
             document.getElementById('itEditando').textContent = 'Editando o item ' + (idx + 1) + '.';
 
             calcItemTotal();
@@ -734,8 +895,10 @@
             tb.innerHTML = '';
 
             if (!ITENS.length) {
-                tb.innerHTML = '<tr><td colspan="9" class="text-center text-muted py-3">Nenhum produto/serviço adicionado</td></tr>';
+                tb.innerHTML = '<tr><td colspan="10" class="text-center text-muted py-3">Nenhum produto/serviço adicionado</td></tr>';
             }
+
+            const rateios = calcRateio();
 
             ITENS.forEach((it, idx) => {
                 const badge = it.tpItem === 'PRODUTO' ? 'badge-agendado' : 'badge-confirmado';
@@ -744,25 +907,61 @@
                     '<button type="button" class="btn btn-icon btn-outline-primary" title="Editar" onclick="editarItem(' + idx + ')"><i class="bi bi-pencil"></i></button> ' +
                     '<button type="button" class="btn btn-icon btn-outline-danger" title="Excluir" onclick="removerItem(' + idx + ')"><i class="bi bi-trash"></i></button></td>';
 
+                const bruto = arred2(it.qtItem * it.vlUnitario);
+                const percDesc = bruto > 0 && it.vlDesconto > 0
+                    ? '<div class="text-muted small">' + moeda(it.vlDesconto / bruto * 100) + '%</div>' : '';
+                // 2 casas, arredondando como o servidor (5 para cima, abaixo de 5 para baixo).
+                const custoUnit = it.qtItem > 0 ? arred2(((Number(it.vlTotal) || 0) + rateios[idx]) / it.qtItem) : 0;
+
                 const tr = document.createElement('tr');
                 tr.innerHTML =
                     '<td>' + (idx + 1) + '</td>' +
                     '<td><strong>' + escapar(it.descricao) + '</strong>' +
                         '<div class="text-muted small"><span class="badge-status ' + badge + '">' + it.tpItem + '</span> Cód. ' + it.codigo + '</div></td>' +
-                    '<td>' + escapar(nomeClassificacao(it.idClassificacaoConta)) + '</td>' +
                     '<td class="text-center">' + escapar(it.sgUnidade || '-') + '</td>' +
                     '<td class="text-end">' + qtd(it.qtItem) + '</td>' +
                     '<td class="text-end">R$ ' + moeda(it.vlUnitario) + '</td>' +
-                    '<td class="text-end">R$ ' + moeda(it.vlDesconto) + '</td>' +
+                    '<td class="text-end">R$ ' + moeda(it.vlDesconto) + percDesc + '</td>' +
                     '<td class="text-end"><strong>R$ ' + moeda(it.vlTotal) + '</strong></td>' +
+                    '<td class="text-end">' + (it.tpItem === 'PRODUTO' ? 'R$ ' + moeda(rateios[idx]) : '-') + '</td>' +
+                    '<td class="text-end">R$ ' + moeda(custoUnit) + '</td>' +
                     acoes;
                 tb.appendChild(tr);
             });
+
+            // Totalizador da grade.
+            const soma = campo => ITENS.reduce((a, b) => a + (Number(b[campo]) || 0), 0);
+            document.getElementById('itensFoot').style.display = ITENS.length ? '' : 'none';
+            document.getElementById('totQtd').textContent = qtd(soma('qtItem'));
+            document.getElementById('totDesconto').textContent = 'R$ ' + moeda(soma('vlDesconto'));
+            document.getElementById('totItens').textContent = 'R$ ' + moeda(soma('vlTotal'));
+            document.getElementById('totRateio').textContent = 'R$ ' + moeda(rateios.reduce((a, b) => a + b, 0));
 
             document.getElementById('contadorItens').textContent =
                 ITENS.length + (ITENS.length === 1 ? ' item' : ' itens');
 
             calcTotais();
+            agendarAutoSalvar();
+        }
+
+        // Rateio do custo adicional (frete + seguro + outros) entre os PRODUTOS,
+        // proporcional ao total de cada um. O ultimo produto absorve a diferenca
+        // de arredondamento. Mesma conta de RatearCustoAdicional no servidor.
+        function calcRateio() {
+            const custo = custoAdicional();
+            const produtos = ITENS.map((it, i) => it.tpItem === 'PRODUTO' ? i : -1).filter(i => i >= 0);
+            const base = produtos.reduce((a, i) => a + (Number(ITENS[i].vlTotal) || 0), 0);
+            const rateios = ITENS.map(() => 0);
+            let acumulado = 0;
+
+            produtos.forEach((i, n) => {
+                const proporcao = base > 0 ? (Number(ITENS[i].vlTotal) || 0) / base : 1 / produtos.length;
+                const valor = n === produtos.length - 1 ? arred2(custo - acumulado) : arred2(custo * proporcao);
+                acumulado += valor;
+                rateios[i] = valor;
+            });
+
+            return rateios;
         }
 
         // ---------------- Totais ----------------
@@ -844,7 +1043,8 @@
             const p = PAGAMENTOS[idx];
             pagamentoEditandoIdx = idx;
 
-            if (p.idCondicaoPagamento) document.getElementById('IdCondicaoPagamento').value = p.idCondicaoPagamento;
+            const selCondicao = document.getElementById('IdCondicaoPagamento');
+            if (p.idCondicaoPagamento && !selCondicao.disabled) selCondicao.value = p.idCondicaoPagamento;
             document.getElementById('pgForma').value = p.idFormaPagamento;
             document.getElementById('pgValor').value = p.vlParcela;
             document.getElementById('pgVencimento').value = p.dtVencimento;
@@ -889,6 +1089,7 @@
             });
 
             calcTotalParcelas();
+            agendarAutoSalvar();
         }
 
         // Gera as parcelas a partir da condicao de pagamento cadastrada
@@ -943,6 +1144,151 @@
             renderPagamentos();
         }
 
+        // Fornecedor com condicao de pagamento no cadastro: a compra usa a dele e o
+        // campo fica travado (o servidor tambem garante isso ao gravar). Se a
+        // condicao dele estiver inativa (fora da lista), o campo fica livre.
+        function travarCondicaoFornecedor(idCondicao) {
+            const sel = document.getElementById('IdCondicaoPagamento');
+            if (!sel) return;
+            const travar = !!idCondicao && !!sel.querySelector('option[value="' + idCondicao + '"]');
+            if (travar) sel.value = idCondicao;
+            sel.disabled = travar;
+            document.getElementById('btnNovaCondicao').disabled = travar;
+            document.getElementById('condicaoFornecedorAviso').classList.toggle('d-none', !travar);
+        }
+
+        // + da condicao de pagamento: usa o mesmo modal do cadastro de fornecedor.
+        // A flag diz que a condicao salva deve ser selecionada na compra.
+        let condicaoPelaCompra = false;
+        function novaCondicaoCompra() {
+            condicaoPelaCompra = true;
+            limparFormCondicao();
+            abrirModalEmpilhado('modalCondicao');
+        }
+
+        // Condicao cadastrada (pelo + daqui ou pelo do cadastro de fornecedor):
+        // entra na lista da compra; so e selecionada quando veio do + daqui.
+        document.addEventListener('condicao:salva', e => {
+            const pelaCompra = condicaoPelaCompra;
+            condicaoPelaCompra = false;
+            const sel = document.getElementById('IdCondicaoPagamento');
+            if (!sel || !e.detail.ativo) return;
+
+            let opt = sel.querySelector('option[value="' + e.detail.id + '"]');
+            if (!opt) {
+                opt = document.createElement('option');
+                opt.value = e.detail.id;
+                sel.appendChild(opt);
+            }
+            opt.textContent = e.detail.nome;
+
+            const c = CONDICOES.find(x => x.id === e.detail.id);
+            if (c) c.nome = e.detail.nome;
+            else CONDICOES.push({ id: e.detail.id, nome: e.detail.nome });
+
+            if (pelaCompra && !sel.disabled) sel.value = e.detail.id;
+        });
+
+        // Fechou o modal sem salvar: o proximo cadastro pode vir do fornecedor.
+        document.getElementById('modalCondicao')?.addEventListener('hidden.bs.modal', () => condicaoPelaCompra = false);
+
+        // ---------------- Chave e datas (liberacao por etapas) ----------------
+
+        function mensagemChave(html, classe) {
+            const el = document.getElementById('chaveMsg');
+            if (!el) return;
+            el.className = 'small ' + classe;
+            el.innerHTML = html;
+        }
+
+        // Etapa 1: confere no servidor se a chave esta completa, se o
+        // fornecedor existe e se a nota ainda nao foi lancada. Chave aceita, o
+        // servidor ja grava o rascunho e a tela reabre como edicao dessa compra
+        // (dali em diante tudo e salvo sozinho, ver "Salvamento automatico").
+        async function validarChave() {
+            if (!texto('NrModelo')) { alert('Selecione o modelo da nota.'); return; }
+            if (texto('NrSerie') === '') { alert('Informe a série da nota.'); document.getElementById('NrSerie').focus(); return; }
+            if (!texto('NrNota')) { alert('Informe o número da nota.'); document.getElementById('NrNota').focus(); return; }
+            if (!texto('IdFornecedor')) { alert('Informe o fornecedor.'); document.getElementById('IdFornecedor').focus(); return; }
+
+            const dados = new FormData();
+            dados.append('__RequestVerificationToken', document.querySelector('#formCompra input[name="__RequestVerificationToken"]').value);
+            CAMPOS_CHAVE.forEach(id => dados.append(id, texto(id)));
+
+            const btn = document.getElementById('btnValidarChave');
+            btn.disabled = true;
+
+            let r;
+            try {
+                const resp = await fetch('?handler=IniciarRascunho', { method: 'POST', body: dados });
+                r = await resp.json();
+            } catch {
+                mensagemChave('<i class="bi bi-x-circle me-1"></i>Não foi possível validar a chave. Tente novamente.', 'text-danger');
+                btn.disabled = false;
+                return;
+            }
+
+            if (r.fornecedor) document.getElementById('nomeFornecedor').value = r.fornecedor;
+
+            if (!r.ok) {
+                mensagemChave('<i class="bi bi-x-circle me-1"></i>' + escapar(r.erro), 'text-danger');
+                btn.disabled = false;
+                return;
+            }
+
+            // replace: o Voltar do navegador nao retorna a tela vazia de inclusao.
+            mensagemChave('<span class="spinner-border spinner-border-sm me-1"></span>Chave validada. Rascunho criado, abrindo a compra...', 'text-success');
+            location.replace(r.url);
+        }
+
+        function hojeIso() {
+            const d = new Date();
+            return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+        }
+
+        function marcarErroData(id, msg) {
+            document.getElementById(id).classList.toggle('is-invalid', !!msg);
+            document.getElementById(id + 'Erro').textContent = msg;
+        }
+
+        // Etapa 2: emissao obrigatoria e ate hoje; chegada opcional, nunca
+        // antes da emissao (pode ser no mesmo dia) e nunca futura, pois so se
+        // informa depois que a mercadoria chegou. Retorna o primeiro erro.
+        function validarDatas() {
+            const emissao = texto('DtEmissao');
+            const chegada = texto('DtChegada');
+            let erroEmissao = '', erroChegada = '';
+
+            // Embaixo do campo a mensagem e so "Data inválida." (pedido do
+            // usuario); o motivo fica nos comentarios das regras abaixo.
+            const INVALIDA = 'Data inválida.';
+
+            // Emissao: obrigatoria e nunca futura.
+            if (!emissao) erroEmissao = 'Informe a data de emissão.';
+            else if (emissao > hojeIso()) erroEmissao = INVALIDA;
+
+            // Chegada: nunca futura e nunca antes da emissao. So compara com a
+            // emissao quando ela e valida, para nao acusar a chegada a toa.
+            if (chegada && chegada > hojeIso())
+                erroChegada = INVALIDA;
+            else if (chegada && emissao && !erroEmissao && chegada < emissao)
+                erroChegada = INVALIDA;
+
+            marcarErroData('DtEmissao', erroEmissao);
+            marcarErroData('DtChegada', erroChegada);
+
+            return erroEmissao || erroChegada;
+        }
+
+        // Datas so abrem com a chave validada; o resto da tela, com chave e datas validas.
+        function aplicarEtapas() {
+            if (SOMENTE_LEITURA) return;
+
+            const datasOk = chaveValidada && !validarDatas();
+            document.querySelectorAll('fieldset.etapa-datas').forEach(fs => fs.disabled = !chaveValidada);
+            document.querySelectorAll('fieldset.etapa-demais').forEach(fs => fs.disabled = !datasOk);
+        }
+
         // ---------------- Gravacao ----------------
 
         function salvar(status) {
@@ -950,7 +1296,15 @@
             if (!texto('NrNota')) { alert('Informe o número da nota.'); document.getElementById('NrNota').focus(); return; }
             if (texto('NrSerie') === '') { alert('Informe a série da nota.'); document.getElementById('NrSerie').focus(); return; }
             if (!texto('IdFornecedor')) { alert('Informe o fornecedor.'); document.getElementById('IdFornecedor').focus(); return; }
-            if (!texto('DtEmissao')) { alert('Informe a data de emissão.'); document.getElementById('DtEmissao').focus(); return; }
+            if (!chaveValidada) { alert('Valide a chave da nota antes de salvar.'); return; }
+
+            const erroData = validarDatas();
+            if (erroData) {
+                alert(erroData);
+                // A mensagem e generica: o foco mostra qual data esta errada.
+                document.querySelector('#DtEmissao.is-invalid, #DtChegada.is-invalid')?.focus();
+                return;
+            }
 
             if (status === 'FINALIZADA') {
                 if (!ITENS.length) { alert('Adicione ao menos um produto/serviço para finalizar a compra.'); return; }
@@ -965,6 +1319,28 @@
                 if (!confirm('Finalizar a compra? Serão gerados os títulos no Contas a Pagar e a entrada no estoque.')) return;
             }
 
+            // Daqui em diante quem grava e o submit: o salvamento automatico para.
+            clearTimeout(autoSalvarTimer);
+            enviandoFormulario = true;
+
+            prepararEnvio(status);
+
+            // Campos desabilitados nao sao enviados: a chave e reenviada
+            // pelos hidden Orig* e reaplicada aqui antes do submit (a condicao
+            // de pagamento travada pelo fornecedor tambem).
+            CAMPOS_TRAVADOS.forEach(id => {
+                const el = document.getElementById(id);
+                if (el && el.disabled) el.disabled = false;
+            });
+
+            document.getElementById('formCompra').submit();
+        }
+
+        // Campos que ficam desabilitados na edicao mas precisam ir no envio.
+        const CAMPOS_TRAVADOS = ['NrNota', 'NrSerie', 'NrModelo', 'IdFornecedor', 'IdCondicaoPagamento'];
+
+        // Situacao, itens e parcelas vao nos campos ocultos do form.
+        function prepararEnvio(status) {
             document.getElementById('TpStatus').value = status;
 
             document.getElementById('ItensJson').value = JSON.stringify(ITENS.map(i => ({
@@ -984,28 +1360,115 @@
                 VlParcela: p.vlParcela,
                 DtVencimento: p.dtVencimento
             })));
-
-            // Campos desabilitados nao sao enviados: a chave e reenviada
-            // pelos hidden Orig* e reaplicada aqui antes do submit.
-            ['NrNota', 'NrSerie', 'NrModelo', 'IdFornecedor'].forEach(id => {
-                const el = document.getElementById(id);
-                if (el && el.disabled) el.disabled = false;
-            });
-
-            document.getElementById('formCompra').submit();
         }
+
+        // ---------------- Salvamento automatico do rascunho ----------------
+        // Compra em rascunho e salva sozinha a cada alteracao (campo do
+        // cabecalho, item, parcela), com um pequeno atraso para juntar a
+        // digitacao. Se a energia cair ou a tela fechar, o que ja foi lancado
+        // continua no banco. Compra finalizada so muda pelo botao Salvar.
+
+        const AUTO_SALVAR = @Json.Serialize(salvarSozinho);
+        let autoSalvarTimer = null;
+        let autoSalvarEmAndamento = false;
+        let autoSalvarPendente = false;
+        let enviandoFormulario = false;
+        let telaIniciada = false;
+
+        function statusAutoSalvar(html, classe) {
+            const el = document.getElementById('autoSalvarStatus');
+            if (!el) return;
+            el.className = 'small ms-auto me-3 ' + classe;
+            el.innerHTML = html;
+        }
+
+        function agendarAutoSalvar() {
+            if (!AUTO_SALVAR || !telaIniciada || enviandoFormulario) return;
+            clearTimeout(autoSalvarTimer);
+            statusAutoSalvar('<i class="bi bi-pencil me-1"></i>Alterações ainda não salvas...', 'text-muted');
+            autoSalvarTimer = setTimeout(autoSalvar, 1500);
+        }
+
+        // Form completo como no Salvar Rascunho, mas para envio por fetch/beacon.
+        function dadosRascunho() {
+            prepararEnvio('RASCUNHO');
+            const dados = new FormData(document.getElementById('formCompra'));
+            CAMPOS_TRAVADOS.forEach(id => {
+                const el = document.getElementById(id);
+                if (el && el.disabled) dados.set(el.name, el.value);
+            });
+            return dados;
+        }
+
+        async function autoSalvar() {
+            autoSalvarTimer = null;
+            if (enviandoFormulario) return;
+            // Uma gravacao por vez: o que mudar durante ela sai logo em seguida.
+            if (autoSalvarEmAndamento) { autoSalvarPendente = true; return; }
+
+            if (validarDatas()) {
+                statusAutoSalvar('<i class="bi bi-exclamation-triangle me-1"></i>Rascunho não salvo: corrija as datas.', 'text-danger');
+                return;
+            }
+
+            autoSalvarEmAndamento = true;
+            statusAutoSalvar('<span class="spinner-border spinner-border-sm me-1"></span>Salvando rascunho...', 'text-muted');
+            try {
+                const resp = await fetch('?handler=AutoSalvar', { method: 'POST', body: dadosRascunho() });
+                const r = await resp.json();
+                if (r.ok) statusAutoSalvar('<i class="bi bi-cloud-check me-1"></i>Rascunho salvo às ' + r.hora, 'text-success');
+                else statusAutoSalvar('<i class="bi bi-exclamation-triangle me-1"></i>Rascunho não salvo: ' + escapar(r.erro), 'text-danger');
+            } catch {
+                statusAutoSalvar('<i class="bi bi-exclamation-triangle me-1"></i>Não foi possível salvar o rascunho. Verifique a conexão.', 'text-danger');
+            } finally {
+                autoSalvarEmAndamento = false;
+                if (autoSalvarPendente) { autoSalvarPendente = false; autoSalvar(); }
+            }
+        }
+
+        // Saindo da tela (Voltar, fechar a aba) com alteracao ainda esperando o
+        // atraso: o navegador envia mesmo com a pagina sendo descarregada.
+        window.addEventListener('pagehide', () => {
+            if (!autoSalvarTimer || enviandoFormulario) return;
+            clearTimeout(autoSalvarTimer);
+            navigator.sendBeacon('?handler=AutoSalvar', dadosRascunho());
+        });
 
         // ---------------- Inicializacao ----------------
 
         document.addEventListener('DOMContentLoaded', function () {
             renderItens();
             renderPagamentos();
+            aplicarEtapas();
+            if (chaveValidada) travarCondicaoFornecedor(CONDICAO_FORNECEDOR);
 
-            ['itQt', 'itVlUnit', 'itDesc'].forEach(id =>
+            // Rascunho: qualquer campo do form (os que tem name) salva sozinho.
+            // Os campos de digitacao de item/parcela nao tem name: so contam
+            // quando o item ou a parcela entra na grade (renderItens/renderPagamentos).
+            ['input', 'change'].forEach(ev => document.getElementById('formCompra').addEventListener(ev, e => {
+                if (e.target.name && e.target.type !== 'hidden') agendarAutoSalvar();
+            }));
+            if (AUTO_SALVAR) statusAutoSalvar('<i class="bi bi-cloud-check me-1"></i>Rascunho salvo automaticamente', 'text-muted');
+
+            ['itQt', 'itVlUnit'].forEach(id =>
                 document.getElementById(id)?.addEventListener('input', calcItemTotal));
 
+            document.getElementById('itDesc')?.addEventListener('input', () => { descontoPorPercentual = false; calcItemTotal(); });
+            document.getElementById('itDescPerc')?.addEventListener('input', () => { descontoPorPercentual = true; calcItemTotal(); });
+
+            // Custo adicional muda o rateio da grade, nao so os totais.
             ['VlFrete', 'VlSeguro', 'VlOutrasDespesas'].forEach(id =>
-                document.getElementById(id)?.addEventListener('input', calcTotais));
+                document.getElementById(id)?.addEventListener('input', renderItens));
+
+            ['DtEmissao', 'DtChegada'].forEach(id =>
+                document.getElementById(id)?.addEventListener('change', aplicarEtapas));
+
+            // Enter num campo da chave valida a chave (e nao submete o form).
+            CAMPOS_CHAVE.forEach(id => document.getElementById(id)?.addEventListener('keydown', e => {
+                if (e.key !== 'Enter') return;
+                e.preventDefault();
+                if (document.getElementById('btnValidarChave')) validarChave();
+            }));
 
             document.getElementById('IdFornecedor')?.addEventListener('change', () =>
                 buscarPorId('BuscarFornecedor', 'IdFornecedor', 'nomeFornecedor'));
@@ -1018,6 +1481,9 @@
                 clearTimeout(buscaTimer);
                 buscaTimer = setTimeout(executarBusca, 300);
             });
+
+            // A partir daqui as alteracoes sao do usuario (o render inicial nao salva).
+            telaIniciada = true;
         });
     </script>
 }

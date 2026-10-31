@@ -39,7 +39,6 @@ public class CompraRepository : ICompraRepository
             .Include(c => c.CondicaoPagamento)
             .Include(c => c.Itens).ThenInclude(i => i.Produto)
             .Include(c => c.Itens).ThenInclude(i => i.Servico)
-            .Include(c => c.Itens).ThenInclude(i => i.ClassificacaoConta)
             .Include(c => c.Pagamentos).ThenInclude(p => p.FormaPagamento)
             .Include(c => c.Pagamentos).ThenInclude(p => p.CondicaoPagamento)
             .FirstOrDefaultAsync(c => c.NrNota == chave.NrNota
@@ -58,13 +57,50 @@ public class CompraRepository : ICompraRepository
             .OrderBy(c => c.NrParcela)
             .ToListAsync();
 
+    // Validacao da chave de uma compra NOVA, feita pela tela antes de liberar
+    // os demais campos: chave completa, fornecedor ativo e chave ainda nao usada.
+    public async Task<(bool ok, string? erro, string? nomeFornecedor)> ValidarChaveNovaAsync(CompraChaveDto chave)
+    {
+        if (chave.NrModelo <= 0)
+            return (false, "Informe o modelo da nota.", null);
+        if (chave.NrSerie < 0)
+            return (false, "Informe a série da nota.", null);
+        if (chave.NrNota <= 0)
+            return (false, "Informe o número da nota.", null);
+        if (chave.IdFornecedor <= 0)
+            return (false, "Informe o fornecedor.", null);
+
+        var fornecedor = await _db.Fornecedores
+            .Where(f => f.IdFornecedor == chave.IdFornecedor)
+            .Select(f => new { f.DsRazaoSocial, f.FlAtivo })
+            .FirstOrDefaultAsync();
+
+        if (fornecedor == null)
+            return (false, "Fornecedor informado não existe.", null);
+        if (!fornecedor.FlAtivo)
+            return (false, "Fornecedor informado está inativo.", null);
+
+        var existente = await _db.Compras
+            .Where(c => c.NrNota == chave.NrNota
+                     && c.NrSerie == chave.NrSerie
+                     && c.NrModelo == chave.NrModelo
+                     && c.IdFornecedor == chave.IdFornecedor)
+            .Select(c => c.TpStatus)
+            .FirstOrDefaultAsync();
+
+        if (existente != null)
+            return (false, $"Já existe uma compra ({existente}) com modelo {chave.NrModelo}, série {chave.NrSerie}, "
+                         + $"número {chave.NrNota} para este fornecedor.", fornecedor.DsRazaoSocial);
+
+        return (true, null, fornecedor.DsRazaoSocial);
+    }
+
     public async Task<CompraCombosDto> ObterCombosAsync() => new()
     {
         Fornecedores = await _db.Fornecedores.Where(f => f.FlAtivo).OrderBy(f => f.DsRazaoSocial).ToListAsync(),
         Transportadores = await _db.Transportadores.OrderBy(t => t.DsRazaoSocial).ToListAsync(),
         Produtos = await _db.Produtos.Where(p => p.FlAtivo).OrderBy(p => p.DsProduto).ToListAsync(),
         Servicos = await _db.Servicos.Where(s => s.FlAtivo).OrderBy(s => s.DsServico).ToListAsync(),
-        Classificacoes = await _db.ClassificacoesConta.Where(c => c.FlAtivo).OrderBy(c => c.DsClassificacaoConta).ToListAsync(),
         Condicoes = await _db.CondicoesPagamento.Where(c => c.FlAtivo).OrderBy(c => c.DsCondicao).ToListAsync(),
         Formas = await _db.FormasPagamento.Where(f => f.FlAtivo).OrderBy(f => f.DsFormaPagamento).ToListAsync()
     };
@@ -140,6 +176,7 @@ public class CompraRepository : ICompraRepository
 
         var custoAdicional = input.VlFrete + input.VlSeguro + input.VlOutrasDespesas;
         var totalCompra = totalProdutos + custoAdicional;
+        RatearCustoAdicional(novosItens, custoAdicional);
 
         // ---------- 5. Parcelas ----------
         var (parcelasOk, erroParcelas, novasParcelas) = MontarParcelas(input, chave);
@@ -159,7 +196,7 @@ public class CompraRepository : ICompraRepository
                 return (false, $"A soma das parcelas (R$ {somaParcelas:N2}) é diferente do total da compra "
                              + $"(R$ {totalCompra:N2}). Ajuste os pagamentos.", chave);
 
-            // Entrada no estoque dos produtos.
+            // Entrada no estoque dos produtos, recalculando o custo medio.
             var (estoqueOk, erroEstoque) = await AjustarEstoqueAsync(novosItens, +1);
             if (!estoqueOk) return (false, erroEstoque, chave);
         }
@@ -337,14 +374,34 @@ public class CompraRepository : ICompraRepository
         if (input.DtEmissao == null)
             return (false, "Informe a data de emissão.");
 
+        if (input.DtEmissao > DateOnly.FromDateTime(DateTime.Today))
+            return (false, "A data de emissão não pode ser posterior à data atual.");
+
         if (input.DtChegada != null && input.DtChegada < input.DtEmissao)
             return (false, "A data de chegada não pode ser anterior à data de emissão.");
+
+        // So se informa a chegada depois que a mercadoria chegou.
+        if (input.DtChegada > DateOnly.FromDateTime(DateTime.Today))
+            return (false, "A data de chegada não pode ser posterior à data atual.");
 
         if (input.VlFrete < 0 || input.VlSeguro < 0 || input.VlOutrasDespesas < 0)
             return (false, "Frete, seguro e outros gastos não podem ser negativos.");
 
-        if (!await _db.Fornecedores.AnyAsync(f => f.IdFornecedor == input.IdFornecedor))
+        var fornecedor = await _db.Fornecedores.AsNoTracking()
+            .Where(f => f.IdFornecedor == input.IdFornecedor)
+            .Select(f => new { f.IdCondicaoPagamento })
+            .FirstOrDefaultAsync();
+        if (fornecedor == null)
             return (false, "Fornecedor informado não existe.");
+
+        // Fornecedor com condicao de pagamento no cadastro: a compra usa sempre a
+        // dele (a tela trava o campo; aqui vale mesmo que o POST venha diferente).
+        if (fornecedor.IdCondicaoPagamento is > 0)
+        {
+            input.IdCondicaoPagamento = fornecedor.IdCondicaoPagamento;
+            foreach (var p in input.Pagamentos)
+                p.IdCondicaoPagamento = fornecedor.IdCondicaoPagamento;
+        }
 
         if (input.IdTransportador is > 0
             && !await _db.Transportadores.AnyAsync(t => t.IdTransportador == input.IdTransportador))
@@ -405,7 +462,7 @@ public class CompraRepository : ICompraRepository
                 TpItem = produto ? "PRODUTO" : "SERVICO",
                 IdProduto = produto ? dto.IdProduto : null,
                 IdServico = produto ? null : dto.IdServico,
-                IdClassificacaoConta = dto.IdClassificacaoConta is > 0 ? dto.IdClassificacaoConta : null,
+                IdClassificacaoConta = dto.IdClassificacaoConta,
                 SgUnidade = Truncar(dto.SgUnidade, 10),
                 QtItem = dto.QtItem,
                 VlUnitario = dto.VlUnitario,
@@ -415,6 +472,40 @@ public class CompraRepository : ICompraRepository
         }
 
         return (true, null, itens, total);
+    }
+
+    // Rateia o custo adicional (frete + seguro + outros) entre os PRODUTOS,
+    // proporcional ao total de cada item. O ultimo produto absorve a
+    // diferenca de arredondamento, para a soma fechar com o custo adicional.
+    // Mesma conta feita pela tela em calcRateio().
+    private static void RatearCustoAdicional(List<OpeCompraItem> itens, decimal custoAdicional)
+    {
+        var produtos = itens.Where(i => i.TpItem == "PRODUTO").ToList();
+        var baseRateio = produtos.Sum(i => i.VlTotal);
+        decimal acumulado = 0;
+
+        for (var n = 0; n < produtos.Count; n++)
+        {
+            var item = produtos[n];
+
+            // Sem valor para ponderar (itens zerados): divide em partes iguais.
+            var proporcao = baseRateio > 0 ? item.VlTotal / baseRateio : 1m / produtos.Count;
+
+            var rateio = n == produtos.Count - 1
+                ? custoAdicional - acumulado
+                : Math.Round(custoAdicional * proporcao, 2, MidpointRounding.AwayFromZero);
+
+            acumulado += rateio;
+            item.VlRateio = rateio;
+        }
+
+        foreach (var item in itens)
+        {
+            if (item.TpItem != "PRODUTO") item.VlRateio = 0;
+            // 2 casas decimais, igual a tela: 5 arredonda para cima, abaixo de 5 para baixo.
+            item.VlCustoUnitario = Math.Round((item.VlTotal + item.VlRateio) / item.QtItem, 2,
+                                              MidpointRounding.AwayFromZero);
+        }
     }
 
     private (bool ok, string? erro, List<OpeCompraPagamento> parcelas) MontarParcelas(
@@ -489,9 +580,10 @@ public class CompraRepository : ICompraRepository
         return contas;
     }
 
-    // Ajusta o saldo dos produtos. sinal = +1 (entrada pela compra) ou
-    // -1 (estorno). validar=true impede que o estorno deixe saldo negativo.
-    // Mesmo mecanismo usado por VendaRepository, com o sinal invertido.
+    // Ajusta o saldo dos produtos e recalcula o custo medio. sinal = +1
+    // (entrada pela compra) ou -1 (estorno). validar=true impede que o estorno
+    // deixe saldo negativo. Mesmo mecanismo de saldo usado por VendaRepository,
+    // com o sinal invertido.
     private async Task<(bool ok, string? erro)> AjustarEstoqueAsync(
         IEnumerable<OpeCompraItem> itens, int sinal, bool validar = false)
     {
@@ -508,9 +600,34 @@ public class CompraRepository : ICompraRepository
                              + $"(atual: {atual:N4}, estorno: {item.QtItem:N4}). "
                              + "Provavelmente o produto já foi vendido/consumido.");
 
+            // O custo medio usa o saldo ANTERIOR ao movimento, por isso e
+            // calculado antes de gravar o novo saldo.
+            prod.VlCusto = CalcularCustoMedio(atual, prod.VlCusto ?? 0, sinal * item.QtItem, item.VlCustoUnitario)
+                           ?? prod.VlCusto;
             prod.QtSaldo = novo;
         }
 
         return (true, null);
+    }
+
+    // Custo medio ponderado, conforme definido em aula:
+    //   custoMedio = (saldo * custo + qtde * custoUnit) / (saldo + qtde)
+    // custoUnit e o VlCustoUnitario do item, que ja sai com o desconto
+    // (vlTotal = bruto - desconto) e com o rateio de frete/seguro/outros.
+    // No estorno qtde vem negativa, o que desfaz a media daquela entrada.
+    // Retorna null quando a conta nao se aplica (saldo final zerado ou custo
+    // negativo); nesse caso o custo atual do produto e mantido.
+    private static decimal? CalcularCustoMedio(decimal saldo, decimal custo, decimal qtde, decimal custoUnit)
+    {
+        // Saldo negativo nao tem custo a ponderar: entra na media como zero.
+        if (saldo < 0) saldo = 0;
+
+        var saldoFinal = saldo + qtde;
+        if (saldoFinal <= 0) return null;
+
+        var custoMedio = (saldo * custo + qtde * custoUnit) / saldoFinal;
+        if (custoMedio < 0) return null;
+
+        return Math.Round(custoMedio, 2, MidpointRounding.AwayFromZero);
     }
 }

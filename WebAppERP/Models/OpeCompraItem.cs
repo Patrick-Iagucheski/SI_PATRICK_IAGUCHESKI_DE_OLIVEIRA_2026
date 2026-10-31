@@ -68,4 +68,15 @@ public class OpeCompraItem
 
     [Column("vlTotal", TypeName = "decimal(12,2)")]
     public decimal VlTotal { get; set; }
+
+    // Parcela do custo adicional (frete + seguro + outros) rateada para
+    // este item, proporcional ao seu total. So produtos recebem rateio.
+    // Colunas criadas em Database/AlterCompraItensRateio.sql.
+    [Column("vlRateio", TypeName = "decimal(12,2)")]
+    public decimal VlRateio { get; set; }
+
+    // Custo unitario final = (vlTotal + vlRateio) / qtItem, arredondado em
+    // 2 casas (a coluna aceita 4, mas o sistema grava so 2).
+    [Column("vlCustoUnitario", TypeName = "decimal(12,4)")]
+    public decimal VlCustoUnitario { get; set; }
 }

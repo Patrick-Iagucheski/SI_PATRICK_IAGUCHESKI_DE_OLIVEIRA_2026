@@ -22,6 +22,8 @@ public class CompraItemDto
     public string TpItem { get; set; } = "PRODUTO"; // PRODUTO | SERVICO
     public int? IdProduto { get; set; }
     public int? IdServico { get; set; }
+    // Saiu da tela (pedido do professor). So vem preenchida em item antigo que
+    // ja tinha classificacao, para ela nao se perder ao editar a compra.
     public int? IdClassificacaoConta { get; set; }
     public string? SgUnidade { get; set; }
     public decimal QtItem { get; set; } = 1;
@@ -83,7 +85,6 @@ public class CompraCombosDto
     public List<GerTransportador> Transportadores { get; set; } = [];
     public List<EstProduto> Produtos { get; set; } = [];
     public List<GerServico> Servicos { get; set; } = [];
-    public List<FinClassificacaoConta> Classificacoes { get; set; } = [];
     public List<FinCondicaoPagamento> Condicoes { get; set; } = [];
     public List<FinFormaPagamento> Formas { get; set; } = [];
 }

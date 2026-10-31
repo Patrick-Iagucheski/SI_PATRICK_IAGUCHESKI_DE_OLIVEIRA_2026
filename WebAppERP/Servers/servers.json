@@ -1,0 +1,12 @@
+[
+  {
+    "id": 1,
+    "name": "PC-PATRICK",
+    "host": "localhost\\SQLEXPRESS",
+    "user": "sa",
+    "pwd": "123",
+    "database": "SoftwareErp",
+    "selected": true,
+    "databases": null
+  }
+]

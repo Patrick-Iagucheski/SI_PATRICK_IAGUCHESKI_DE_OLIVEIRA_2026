@@ -24,6 +24,14 @@ public class IndexModel : PageModel
     public List<string> ServicosLabels { get; set; } = [];
     public List<int> ServicosValores { get; set; } = [];
 
+    // Painel "Atividades no sistema": ultimas vendas, compras e agendamentos
+    // criados ou alterados, do mais recente para o mais antigo
+    public List<AtividadeSistema> Atividades { get; set; } = [];
+
+    public record AtividadeSistema(
+        DateTime Data, string Titulo, string Detalhe, string Icone, string Cor,
+        string Pagina, object? Rota, string TituloAba);
+
     public async Task OnGetAsync()
     {
         var hoje = DateOnly.FromDateTime(DateTime.Today);
@@ -57,6 +65,74 @@ public class IndexModel : PageModel
             .ToListAsync();
 
         await CarregarGraficosAsync(hoje, inicioMes);
+        await CarregarAtividadesAsync();
+    }
+
+    private async Task CarregarAtividadesAsync()
+    {
+        const int qtd = 10;
+
+        var vendas = await _db.Vendas
+            .Include(v => v.Cliente)
+            .OrderByDescending(v => v.DtEdicao ?? v.DtCriacao)
+            .Take(qtd)
+            .ToListAsync();
+
+        var compras = await _db.Compras
+            .Include(c => c.Fornecedor)
+            .OrderByDescending(c => c.DtEdicao ?? c.DtCriacao)
+            .Take(qtd)
+            .ToListAsync();
+
+        var agendamentos = await _db.Agendamentos
+            .Include(a => a.Cliente)
+            .Include(a => a.Servico)
+            .OrderByDescending(a => a.DtEdicao ?? a.DtCriacao)
+            .Take(qtd)
+            .ToListAsync();
+
+        foreach (var v in vendas)
+        {
+            var acao = v.TpStatus == "CANCELADA" ? "cancelada"
+                : v.TpStatus == "FINALIZADA" ? "finalizada"
+                : v.DtEdicao != null ? "alterada" : "registrada";
+            Atividades.Add(new AtividadeSistema(
+                v.DtEdicao ?? v.DtCriacao,
+                $"Venda #{v.IdVenda} {acao}",
+                $"R$ {v.VlTotal:N2} · {v.Cliente?.NmCliente ?? "Consumidor"}",
+                "bi-cart-check-fill", "#10b981",
+                "/Cadastro/Venda", new { id = v.IdVenda }, $"Venda #{v.IdVenda}"));
+        }
+
+        foreach (var c in compras)
+        {
+            var acao = c.TpStatus == "CANCELADA" ? "cancelada"
+                : c.TpStatus == "FINALIZADA" ? "finalizada"
+                : c.DtEdicao != null ? "alterada" : "lançada";
+            Atividades.Add(new AtividadeSistema(
+                c.DtEdicao ?? c.DtCriacao,
+                $"Compra Nº {c.NrNota} {acao}",
+                $"R$ {c.VlTotalCompra:N2} · {c.Fornecedor?.DsRazaoSocial ?? "-"}",
+                "bi-cart-plus-fill", "#3b82f6",
+                "/Cadastro/Compra",
+                new { nrNota = c.NrNota, nrSerie = c.NrSerie, nrModelo = c.NrModelo, idFornecedor = c.IdFornecedor },
+                $"Compra Nº {c.NrNota}"));
+        }
+
+        foreach (var a in agendamentos)
+        {
+            var acao = a.TpStatus == "CANCELADO" ? "cancelado"
+                : a.TpStatus == "CONCLUIDO" ? "concluído"
+                : a.DtEdicao != null ? "alterado" : "marcado";
+            Atividades.Add(new AtividadeSistema(
+                a.DtEdicao ?? a.DtCriacao,
+                $"Agendamento {acao}",
+                $"{a.Cliente?.NmCliente ?? "-"} · {a.Servico?.DsServico ?? "-"} · {a.DtAgendamento:dd/MM} {a.HrInicio:HH:mm}",
+                "bi-calendar-check-fill", "#f59e0b",
+                "/Cadastro/Agendamentos", new { DataFiltro = a.DtAgendamento.ToString("yyyy-MM-dd") }, "Agendamentos"));
+        }
+
+        Atividades = Atividades.OrderByDescending(x => x.Data).Take(qtd).ToList();
     }
 
     private async Task CarregarGraficosAsync(DateOnly hoje, DateOnly inicioMes)
