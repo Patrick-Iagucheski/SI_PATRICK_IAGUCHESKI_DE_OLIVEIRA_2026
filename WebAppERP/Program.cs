@@ -23,7 +23,7 @@ builder.Services.Configure<Microsoft.AspNetCore.Http.Features.FormOptions>(optio
 // enviado por <input type="number"> (ponto decimal), sem alterar a exibicao pt-BR.
 builder.Services.Configure<Microsoft.AspNetCore.Mvc.MvcOptions>(options =>
     options.ModelBinderProviders.Insert(0, new InvariantDecimalModelBinderProvider()));
-// Conexao no padrao do SoftTur: servidor selecionado em Servers/servers.json.
+// Conexao com o banco: servidor selecionado em Servers/servers.json.
 // As opcoes sao montadas a cada requisicao, entao editar o arquivo ja troca o banco.
 builder.Services.AddSingleton<ConexaoBanco>();
 builder.Services.AddDbContext<AppDbContext>((sp, options) =>

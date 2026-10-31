@@ -3,7 +3,7 @@ using Microsoft.Data.SqlClient;
 
 namespace WebAppERP.Infrastructure;
 
-// Um servidor do Servers/servers.json (mesma estrutura do servers.json do SoftTur).
+// Um servidor da lista em Servers/servers.json.
 public class ServidorBanco
 {
     public int id { get; set; }
@@ -16,8 +16,8 @@ public class ServidorBanco
     public string[]? databases { get; set; }
 }
 
-// Conexao com o banco no padrao do SoftTur: a lista de servidores fica em
-// Servers/servers.json e vale o marcado com "selected" (ou o primeiro).
+// Conexao com o banco: a lista de servidores fica em Servers/servers.json e
+// vale o marcado com "selected" (ou o primeiro).
 // O arquivo e relido quando muda, entao trocar de banco nao exige recompilar
 // nem reiniciar o sistema. Sem o arquivo, vale o DefaultConnection do appsettings.
 public class ConexaoBanco
@@ -70,7 +70,7 @@ public class ConexaoBanco
             TrustServerCertificate = true
         };
 
-        // Com usuario: login do SQL (ex.: sa), como no SoftTur.
+        // Com usuario: login do SQL (ex.: sa).
         // Sem usuario: login do Windows de quem roda o sistema.
         if (string.IsNullOrWhiteSpace(s.user))
             cs.IntegratedSecurity = true;
