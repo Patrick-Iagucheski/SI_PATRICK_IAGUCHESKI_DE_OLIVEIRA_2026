@@ -35,7 +35,9 @@ document.addEventListener('click', function (e) {
     // Nome da empresa (Configuracoes): sufixo do titulo das paginas
     var nomeEmpresa = html.dataset.empresa || '';
     function sufixoTitulo() { return ' - ' + nomeEmpresa; }
-    var CHAVE_STORAGE = 'webapperp.abas';
+    // v3: telas mudaram de pasta (por modulo); abas salvas com o
+    // endereco antigo sao descartadas em vez de abrir pagina inexistente
+    var CHAVE_STORAGE = 'webapperp.abas.v3';
     // chave = tela de origem (a mesma tela pode estar aberta em varias abas);
     // numero diferencia as de mesmo titulo: "Clientes", "Clientes (2)", ...
     // tituloFixo = titulo dado por quem abriu (ex.: "Venda #2"), nao vem da pagina

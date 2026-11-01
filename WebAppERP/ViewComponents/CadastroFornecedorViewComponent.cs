@@ -1,7 +1,5 @@
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using WebAppERP.Data;
-using WebAppERP.Models;
+﻿using Microsoft.AspNetCore.Mvc;
+using WebAppERP.Business.Financeiro;
 using WebAppERP.ViewModels;
 
 namespace WebAppERP.ViewComponents;
@@ -9,21 +7,21 @@ namespace WebAppERP.ViewComponents;
 // Modal de cadastro de fornecedor, reaproveitado pela tela de Fornecedores e
 // pela pesquisa de fornecedor da Compra. A cidade usa o componente unico
 // CampoCidade. View: Pages/Shared/Components/CadastroFornecedor/Default.cshtml.
-// Script: wwwroot/js/cadastro-fornecedor.js. A gravacao fica em
-// FornecedoresModel (OnPostAsync / OnPostSalvarAjaxAsync).
+// Script: wwwroot/js/Gerais/CadastroFornecedor.js. A gravacao fica em
+// FornecedorBusiness (chamado por FornecedoresModel).
 public class CadastroFornecedorViewComponent : ViewComponent
 {
-    private readonly AppDbContext _db;
+    private readonly CondicaoPagamentoBusiness _condicao;
 
-    public CadastroFornecedorViewComponent(AppDbContext db) => _db = db;
+    public CadastroFornecedorViewComponent(CondicaoPagamentoBusiness condicao) => _condicao = condicao;
 
-    public async Task<IViewComponentResult> InvokeAsync(string modo = "post", GerFornecedor? form = null)
+    public async Task<IViewComponentResult> InvokeAsync(string modo = "post", Fornecedor? form = null)
     {
         var vm = new CadastroFornecedorViewModel
         {
-            FornecedorForm = form ?? new GerFornecedor(),
+            FornecedorForm = form ?? new Fornecedor(),
             Modo = modo == "ajax" ? "ajax" : "post",
-            Condicoes = await _db.CondicoesPagamento.Where(c => c.FlAtivo).OrderBy(c => c.DsCondicao).ToListAsync()
+            Condicoes = await _condicao.Listar(somenteAtivas: true)
         };
 
         return View(vm);

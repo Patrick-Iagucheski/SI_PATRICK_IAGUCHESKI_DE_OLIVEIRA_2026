@@ -1,0 +1,16 @@
+root = true
+
+# Padrao dos arquivos de codigo: UTF-8 com BOM (acentos certos em textos e
+# comentarios) e quebra de linha do Windows (CRLF).
+[*.{cs,cshtml,js,css}]
+charset = utf-8-bom
+end_of_line = crlf
+indent_style = space
+indent_size = 4
+
+# Bibliotecas de terceiros ficam como vieram
+[wwwroot/lib/**]
+charset = unset
+end_of_line = unset
+indent_style = unset
+indent_size = unset

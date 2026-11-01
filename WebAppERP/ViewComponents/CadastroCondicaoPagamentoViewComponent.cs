@@ -1,30 +1,28 @@
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using WebAppERP.Data;
-using WebAppERP.Models;
+﻿using Microsoft.AspNetCore.Mvc;
+using WebAppERP.Business.Financeiro;
 using WebAppERP.ViewModels;
 
 namespace WebAppERP.ViewComponents;
 
 // Modal de cadastro de condicao de pagamento (com a grade de parcelas),
 // reaproveitado pela tela de Condicoes de Pagamento e pelo + do cadastro de
-// fornecedor. Traz o proprio script (wwwroot/js/cadastro-condicao.js).
+// fornecedor. Traz o proprio script (wwwroot/js/Financeiro/CadastroCondicaoPagamento.js).
 // View: Pages/Shared/Components/CadastroCondicaoPagamento/Default.cshtml.
-// A gravacao fica em CondicoesPagamentoModel (OnPostAsync / OnPostSalvarAjaxAsync).
+// A gravacao fica em CondicaoPagamentoBusiness (chamado por CondicoesPagamentoModel).
 public class CadastroCondicaoPagamentoViewComponent : ViewComponent
 {
     private const string ChaveScriptIncluido = "CadastroCondicaoPagamento.ScriptIncluido";
-    private readonly AppDbContext _db;
+    private readonly FormaPagamentoBusiness _forma;
 
-    public CadastroCondicaoPagamentoViewComponent(AppDbContext db) => _db = db;
+    public CadastroCondicaoPagamentoViewComponent(FormaPagamentoBusiness forma) => _forma = forma;
 
-    public async Task<IViewComponentResult> InvokeAsync(string modo = "post", FinCondicaoPagamento? form = null)
+    public async Task<IViewComponentResult> InvokeAsync(string modo = "post", CondicaoPagamento? form = null)
     {
         var vm = new CadastroCondicaoPagamentoViewModel
         {
-            CondicaoForm = form ?? new FinCondicaoPagamento(),
+            CondicaoForm = form ?? new CondicaoPagamento(),
             Modo = modo == "ajax" ? "ajax" : "post",
-            Formas = await _db.FormasPagamento.Where(f => f.FlAtivo).OrderBy(f => f.DsFormaPagamento).ToListAsync()
+            Formas = await _forma.Listar(somenteAtivas: true)
         };
 
         if (!HttpContext.Items.ContainsKey(ChaveScriptIncluido))

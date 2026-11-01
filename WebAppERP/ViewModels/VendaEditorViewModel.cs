@@ -1,14 +1,13 @@
-using WebAppERP.DTOs;
-using WebAppERP.Models;
+﻿using WebAppERP.DTOs.Vendas;
 
 namespace WebAppERP.ViewModels;
 
 public class VendaEditorViewModel
 {
-    public OpeVenda Venda { get; set; } = new() { TpStatus = "ABERTA", DtVenda = DateTime.Now };
-    public List<OpeVendaItem> Itens { get; set; } = [];
-    public VendaCombosDto Combos { get; set; } = new();
+    public Venda Venda { get; set; } = new() { TpStatus = Venda.ABERTA, DtVenda = DateTime.Now };
+    public List<VendaItem> Itens { get; set; } = [];
+    public VendaCombosDTO Combos { get; set; } = new();
 
     // Venda cancelada nao pode ser editada (regra de negocio).
-    public bool SomenteLeitura => Venda.TpStatus == "CANCELADA";
+    public bool SomenteLeitura => Venda.TpStatus == Venda.CANCELADA;
 }

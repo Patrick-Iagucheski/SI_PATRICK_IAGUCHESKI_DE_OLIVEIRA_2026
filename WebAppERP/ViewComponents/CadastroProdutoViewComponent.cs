@@ -1,6 +1,5 @@
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using WebAppERP.Data;
+﻿using Microsoft.AspNetCore.Mvc;
+using WebAppERP.Business.Estoque;
 using WebAppERP.ViewModels;
 
 namespace WebAppERP.ViewComponents;
@@ -8,21 +7,26 @@ namespace WebAppERP.ViewComponents;
 // Modal de cadastro de produto (com cadastro rapido de marca), reaproveitado
 // pela tela de Produtos e pela pesquisa de produto da Compra.
 // View: Pages/Shared/Components/CadastroProduto/Default.cshtml.
-// Script: wwwroot/js/cadastro-produto.js. A gravacao fica em ProdutosModel
-// (OnPostAsync / OnPostSalvarAjaxAsync).
+// Script: wwwroot/js/Estoque/CadastroProduto.js. A gravacao fica em ProdutosModel
+// (OnPost / OnPostSalvarAjax).
 public class CadastroProdutoViewComponent : ViewComponent
 {
-    private readonly AppDbContext _db;
+    private readonly MarcaBusiness _marca;
+    private readonly CategoriaBusiness _categoria;
 
-    public CadastroProdutoViewComponent(AppDbContext db) => _db = db;
+    public CadastroProdutoViewComponent(MarcaBusiness marca, CategoriaBusiness categoria)
+    {
+        _marca = marca;
+        _categoria = categoria;
+    }
 
     public async Task<IViewComponentResult> InvokeAsync(string modo = "post")
     {
         var vm = new CadastroProdutoViewModel
         {
             Modo = modo == "ajax" ? "ajax" : "post",
-            Marcas = await _db.Marcas.Where(m => m.FlAtivo).OrderBy(m => m.NmMarca).ToListAsync(),
-            Categorias = await _db.Categorias.Where(c => c.FlAtivo).OrderBy(c => c.NmCategoria).ToListAsync()
+            Marcas = await _marca.Listar(),
+            Categorias = await _categoria.Listar()
         };
 
         return View(vm);

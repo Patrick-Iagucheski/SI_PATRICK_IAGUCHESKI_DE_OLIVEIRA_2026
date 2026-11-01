@@ -1,8 +1,8 @@
-@model WebAppERP.ViewModels.CadastroCondicaoPagamentoViewModel
+﻿@model WebAppERP.ViewModels.CadastroCondicaoPagamentoViewModel
 @*
     Componente de cadastro de condicao de pagamento
     (ViewComponents/CadastroCondicaoPagamentoViewComponent).
-    Traz o proprio script (cadastro-condicao.js), incluido uma vez por pagina.
+    Traz o proprio script (CadastroCondicaoPagamento.js), incluido uma vez por pagina.
     data-modo="ajax" faz o Salvar gravar por fetch e disparar o evento
     'condicao:salva' (detail: id, nome, ativo).
     Os ids usam o prefixo "cond" para nao colidir com o componente de
@@ -14,11 +14,11 @@
 
 <!-- Modal Nova/Editar Condicao -->
 <div class="modal fade" id="modalCondicao" tabindex="-1"
-     data-modo="@Model.Modo" data-url-condicoes="@Url.Page("/Cadastro/CondicoesPagamento")"
+     data-modo="@Model.Modo" data-url-condicoes="@Url.Page("/Financeiro/CondicoesPagamento")"
      data-formas="@System.Text.Json.JsonSerializer.Serialize(formasJs)">
     <div class="modal-dialog modal-xl">
         <div class="modal-content">
-            <form method="post" asp-page="/Cadastro/CondicoesPagamento" id="condForm">
+            <form method="post" asp-page="/Financeiro/CondicoesPagamento" id="condForm">
                 <div class="modal-header">
                     <h5 class="modal-title" id="condModalTitle"><i class="bi bi-list-check me-2"></i>Nova Condição de Pagamento</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
@@ -104,5 +104,5 @@
 
 @if (Model.IncluirScript)
 {
-    <script src="~/js/cadastro-condicao.js" asp-append-version="true"></script>
+    <script src="~/js/Financeiro/CadastroCondicaoPagamento.js" asp-append-version="true"></script>
 }

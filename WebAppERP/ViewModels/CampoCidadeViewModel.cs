@@ -1,4 +1,4 @@
-namespace WebAppERP.ViewModels;
+﻿namespace WebAppERP.ViewModels;
 
 // Dados do componente CampoCidade (ViewComponents/CampoCidadeViewComponent).
 public class CampoCidadeViewModel

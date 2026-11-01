@@ -1,0 +1,124 @@
+﻿@page
+@model WebAppERP.Pages.Estoque.ProdutosModel
+@using System.Globalization
+@{
+    ViewData["Title"] = "Produtos";
+
+    string Moeda(decimal? v) => "R$ " + (v ?? 0).ToString("N2", new CultureInfo("pt-BR"));
+    string Inv(decimal? v) => v.HasValue ? v.Value.ToString(CultureInfo.InvariantCulture) : "";
+}
+
+<div class="d-flex justify-content-between align-items-start mb-4">
+    <div>
+        <h1 class="page-title">Produtos</h1>
+        <p class="page-subtitle">Gerencie os produtos do estoque</p>
+    </div>
+    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#modalProduto" onclick="limparFormProduto()">
+        <i class="bi bi-plus-lg me-1"></i> Novo Produto
+    </button>
+</div>
+
+<!-- Filtros de busca (todos opcionais e combinaveis) -->
+<div class="card mb-3">
+    <div class="card-body py-3">
+        <div class="row g-2 align-items-end">
+            <div class="col-md-2">
+                <label class="form-label small mb-1">ID / Codigo</label>
+                <input type="number" class="form-control" id="buscaId" min="1" autocomplete="off" />
+            </div>
+            <div class="col-md-6">
+                <label class="form-label small mb-1">Nome / Descricao do Produto</label>
+                <input type="text" class="form-control" id="buscaTermo" autocomplete="off" />
+            </div>
+        </div>
+        <div class="d-flex justify-content-between align-items-center mt-3">
+            <div class="form-check mb-0">
+                <input class="form-check-input" type="checkbox" id="buscaInativos" onchange="buscarProdutos()" />
+                <label class="form-check-label" for="buscaInativos">Exibir Produtos Inativos</label>
+            </div>
+            <button type="button" class="btn btn-primary" onclick="buscarProdutos()">
+                <i class="bi bi-search me-1"></i>Buscar
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Tabela -->
+<div class="table-container">
+    <div class="table-header">
+        <h5><i class="bi bi-box-seam me-2"></i>Lista de Produtos</h5>
+        <span class="text-muted small" id="contadorRegistros">@Model.Produtos.Count registros encontrados</span>
+    </div>
+    <div class="table-responsive">
+        <table class="table" id="tblProdutos">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Produto</th>
+                    <th>Marca</th>
+                    <th>Categoria</th>
+                    <th>Unid.</th>
+                    <th class="text-end">Valor Venda</th>
+                    <th class="text-end">Estoque</th>
+                    <th>Status</th>
+                    <th class="text-center">Ações</th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (Model.Produtos.Any())
+                {
+                    @foreach (var p in Model.Produtos)
+                    {
+                        <tr>
+                            <td>@p.IdProduto</td>
+                            <td><strong>@p.DsProduto</strong></td>
+                            <td>@(p.Marca?.NmMarca ?? "-")</td>
+                            <td>@(p.Categoria?.NmCategoria ?? "-")</td>
+                            <td>@(p.SgUnidade ?? "-")</td>
+                            <td class="text-end">@Moeda(p.VlVenda)</td>
+                            <td class="text-end">@((p.QtSaldo ?? 0).ToString("0.##", new CultureInfo("pt-BR")))</td>
+                            <td>
+                                @if (p.FlAtivo)
+                                {
+                                    <span class="badge-status badge-ativo">Ativo</span>
+                                }
+                                else
+                                {
+                                    <span class="badge-status badge-inativo">Inativo</span>
+                                }
+                            </td>
+                            <td class="text-center">
+                                <button class="btn btn-icon btn-outline-primary" title="Editar"
+                                        data-bs-toggle="modal" data-bs-target="#modalProduto"
+                                        onclick="editarProduto(@p.IdProduto,'@p.DsProduto.Replace("'", "\\'")','@(p.IdMarca?.ToString() ?? "")','@(p.IdCategoria?.ToString() ?? "")','@p.SgUnidade','@Inv(p.VlCusto)','@Inv(p.VlVendaMinimo)','@Inv(p.VlVenda)','@Inv(p.PcComissao)','@Inv(p.VlDesconto)','@Inv(p.QtSaldo)','@p.DsDescricao?.Replace("'", "\\'").Replace("\r", " ").Replace("\n", " ")','@p.DsImagem','@p.FlAtivo')">
+                                    <i class="bi bi-pencil"></i>
+                                </button>
+                                <form method="post" asp-page-handler="Excluir" class="d-inline" onsubmit="return confirm('Deseja realmente excluir este produto?')">
+                                    <input type="hidden" name="id" value="@p.IdProduto" />
+                                    <button type="submit" class="btn btn-icon btn-outline-danger" title="Excluir">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </form>
+                            </td>
+                        </tr>
+                    }
+                }
+                else
+                {
+                    <tr><td colspan="9" class="text-center text-muted py-4">Nenhum produto cadastrado</td></tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Modal Novo/Editar Produto + cadastro rapido de marca (componente compartilhado com a Compra) -->
+@await Component.InvokeAsync("CadastroProduto", new { modo = "post" })
+
+<!-- Token antiforgery para as chamadas AJAX -->
+<form id="formTokenAjax" class="d-none">@Html.AntiForgeryToken()</form>
+
+@section Scripts {
+    <script src="~/js/Estoque/CadastroProduto.js" asp-append-version="true"></script>
+    <script src="~/Pages/Estoque/Produtos.cshtml.js" asp-append-version="true"></script>
+}

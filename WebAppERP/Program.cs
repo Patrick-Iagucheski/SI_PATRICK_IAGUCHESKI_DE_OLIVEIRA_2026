@@ -1,7 +1,14 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using WebAppERP.Data;
+using WebAppERP.Business.Compras;
+using WebAppERP.Business.Estoque;
+using WebAppERP.Business.Financeiro;
+using WebAppERP.Business.Gerais;
+using WebAppERP.Business.Operacional;
+using WebAppERP.Business.Principal;
+using WebAppERP.Business.Seguranca;
+using WebAppERP.Business.Vendas;
 using WebAppERP.Infrastructure;
-using WebAppERP.Repositories;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -27,10 +34,30 @@ builder.Services.Configure<Microsoft.AspNetCore.Mvc.MvcOptions>(options =>
 // As opcoes sao montadas a cada requisicao, entao editar o arquivo ja troca o banco.
 builder.Services.AddSingleton<ConexaoBanco>();
 builder.Services.AddDbContext<AppDbContext>((sp, options) =>
-    options.UseSqlServer(sp.GetRequiredService<ConexaoBanco>().StringConexao()));
+    options.UseSqlServer(sp.GetRequiredService<ConexaoBanco>().GetStringConexao()));
 
-builder.Services.AddScoped<IVendaRepository, VendaRepository>();
-builder.Services.AddScoped<ICompraRepository, CompraRepository>();
+// Regras de negocio por modulo (Business/<Modulo>)
+builder.Services.AddScoped<VendaBusiness>();
+builder.Services.AddScoped<CompraBusiness>();
+builder.Services.AddScoped<CargoBusiness>();
+builder.Services.AddScoped<PaisBusiness>();
+builder.Services.AddScoped<EstadoBusiness>();
+builder.Services.AddScoped<CidadeBusiness>();
+builder.Services.AddScoped<ClienteBusiness>();
+builder.Services.AddScoped<FornecedorBusiness>();
+builder.Services.AddScoped<FuncionarioBusiness>();
+builder.Services.AddScoped<ServicoBusiness>();
+builder.Services.AddScoped<TransportadorBusiness>();
+builder.Services.AddScoped<AgendamentoBusiness>();
+builder.Services.AddScoped<VeiculoBusiness>();
+builder.Services.AddScoped<EmpresaBusiness>();
+builder.Services.AddScoped<PrincipalBusiness>();
+builder.Services.AddScoped<MarcaBusiness>();
+builder.Services.AddScoped<CategoriaBusiness>();
+builder.Services.AddScoped<ProdutoBusiness>();
+builder.Services.AddScoped<FormaPagamentoBusiness>();
+builder.Services.AddScoped<CondicaoPagamentoBusiness>();
+builder.Services.AddScoped<ContaAPagarBusiness>();
 
 // Nome e logo da empresa do layout (lidos do banco, em cache)
 builder.Services.AddMemoryCache();

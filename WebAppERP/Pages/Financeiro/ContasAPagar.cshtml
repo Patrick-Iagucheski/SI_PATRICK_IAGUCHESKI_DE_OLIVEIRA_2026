@@ -1,0 +1,288 @@
+﻿@page
+@model WebAppERP.Pages.Financeiro.ContasAPagarModel
+@using System.Globalization
+@{
+    ViewData["Title"] = "Contas a Pagar";
+    var hoje = DateOnly.FromDateTime(DateTime.Today);
+    CultureInfo inv = CultureInfo.InvariantCulture;
+}
+
+<div class="d-flex justify-content-between align-items-start mb-4">
+    <div>
+        <h1 class="page-title">Contas a Pagar</h1>
+        <p class="page-subtitle">Controle contas, fornecedores, vencimentos, pagamentos e status financeiro</p>
+    </div>
+    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#modalConta" onclick="limparForm()">
+        <i class="bi bi-plus-lg me-1"></i> Nova Conta
+    </button>
+</div>
+
+<!-- Indicadores -->
+<div class="row g-3 mb-4">
+    <div class="col-md-4">
+        <div class="card kpi-card kpi-blue">
+            <div class="card-body d-flex align-items-center justify-content-between">
+                <div>
+                    <div class="kpi-label">Em Aberto (@Model.QtAberto)</div>
+                    <div class="kpi-value mt-1">R$ @Model.VlAberto.ToString("N2")</div>
+                </div>
+                <div class="kpi-icon" style="background: #dbeafe; color: #3b82f6;">
+                    <i class="bi bi-hourglass-split"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card kpi-card kpi-orange">
+            <div class="card-body d-flex align-items-center justify-content-between">
+                <div>
+                    <div class="kpi-label">Vencidas (@Model.QtVencidas)</div>
+                    <div class="kpi-value mt-1">R$ @Model.VlVencidas.ToString("N2")</div>
+                </div>
+                <div class="kpi-icon" style="background: #fee2e2; color: #ef4444;">
+                    <i class="bi bi-exclamation-triangle"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card kpi-card kpi-green">
+            <div class="card-body d-flex align-items-center justify-content-between">
+                <div>
+                    <div class="kpi-label">Pagas (@Model.QtPagas)</div>
+                    <div class="kpi-value mt-1">R$ @Model.VlPagas.ToString("N2")</div>
+                </div>
+                <div class="kpi-icon" style="background: #dcfce7; color: #10b981;">
+                    <i class="bi bi-check2-circle"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Filtros de busca (todos opcionais e combinaveis) -->
+<div class="card mb-3">
+    <div class="card-body py-3">
+        <div class="row g-2 align-items-end">
+            <div class="col-md-2">
+                <label class="form-label small mb-1">ID</label>
+                <input type="number" class="form-control" id="buscaId" min="1" autocomplete="off" />
+            </div>
+            <div class="col-md-4">
+                <label class="form-label small mb-1">Conta</label>
+                <input type="text" class="form-control" id="buscaConta" autocomplete="off" />
+            </div>
+            <div class="col-md-3">
+                <label class="form-label small mb-1">Documento</label>
+                <input type="text" class="form-control" id="buscaDocumento" autocomplete="off" />
+            </div>
+            <div class="col-md-3">
+                <label class="form-label small mb-1">Fornecedor</label>
+                <select class="form-select" id="buscaFornecedor">
+                    <option value="">Todos</option>
+                    @foreach (var f in Model.Fornecedores)
+                    {
+                        <option value="@f.IdFornecedor">@f.DsRazaoSocial</option>
+                    }
+                </select>
+            </div>
+        </div>
+        <div class="d-flex justify-content-between align-items-center mt-3">
+            <div class="form-check mb-0">
+                <input class="form-check-input" type="checkbox" id="buscaInativos" onchange="buscarContas()" />
+                <label class="form-check-label" for="buscaInativos">Exibir Contas Inativas</label>
+            </div>
+            <button type="button" class="btn btn-primary" onclick="buscarContas()">
+                <i class="bi bi-search me-1"></i>Buscar
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Tabela -->
+<div class="table-container">
+    <div class="table-header">
+        <h5><i class="bi bi-cash-stack me-2"></i>Contas a pagar cadastradas</h5>
+        <span class="text-muted small" id="contadorRegistros">@Model.Contas.Count registros encontrados</span>
+    </div>
+    <div class="table-responsive">
+        <table class="table" id="tblContas">
+            <thead>
+                <tr>
+                    <th>Conta</th>
+                    <th>Fornecedor</th>
+                    <th>Vencimento</th>
+                    <th class="text-end">Valor</th>
+                    <th class="text-end">Pago</th>
+                    <th>Status</th>
+                    <th class="text-center">Ativo</th>
+                    <th>Forma</th>
+                    <th class="text-center">Ações</th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (Model.Contas.Any())
+                {
+                    @foreach (var c in Model.Contas)
+                    {
+                        var sit = WebAppERP.Business.Financeiro.ContaAPagarBusiness.GetSituacao(c, hoje);
+                        var badge = sit switch
+                        {
+                            ContaAPagar.PAGO => "badge-concluido",
+                            ContaAPagar.VENCIDA => "badge-cancelado",
+                            ContaAPagar.CANCELADO => "badge-inativo",
+                            _ => "badge-agendado"
+                        };
+                        <tr data-fornecedor="@c.IdFornecedor" data-situacao="@sit" data-venc="@(c.DtVencimento?.ToString("yyyy-MM-dd"))">
+                            <td>
+                                <strong>@c.DsConta</strong>
+                                @if (!string.IsNullOrWhiteSpace(c.NrDocumento))
+                                {
+                                    <div class="text-muted small">Doc: @c.NrDocumento</div>
+                                }
+                            </td>
+                            <td>@(c.Fornecedor?.DsRazaoSocial ?? "-")</td>
+                            <td>@(c.DtVencimento?.ToString("dd/MM/yyyy") ?? "-")</td>
+                            <td class="text-end"><strong>R$ @c.VlValor.ToString("N2")</strong></td>
+                            <td class="text-end">R$ @c.VlPago.ToString("N2")</td>
+                            <td><span class="badge-status @badge">@sit</span></td>
+                            <td class="text-center">@(c.FlAtivo ? "S" : "N")</td>
+                            <td>@(c.FormaPagamento?.DsFormaPagamento ?? "-")</td>
+                            <td class="text-center" style="white-space: nowrap;">
+                                @if (sit != ContaAPagar.PAGO && sit != ContaAPagar.CANCELADO)
+                                {
+                                    <form method="post" asp-page-handler="Baixa" class="d-inline" onsubmit="return confirm('Confirmar baixa (pagamento) desta conta hoje?')">
+                                        <input type="hidden" name="id" value="@c.IdContaPagar" />
+                                        <button type="submit" class="btn btn-icon btn-outline-success" title="Dar baixa / Marcar como pago">
+                                            <i class="bi bi-cash-coin"></i>
+                                        </button>
+                                    </form>
+                                }
+                                <button class="btn btn-icon btn-outline-primary" title="Editar"
+                                        data-bs-toggle="modal" data-bs-target="#modalConta"
+                                        onclick="editarConta(@c.IdContaPagar,'@c.DsConta.Replace("'", "\\'")','@(c.NrDocumento?.Replace("'", "\\'"))',@c.IdFornecedor,'@(c.IdFormaPagamento?.ToString())','@(c.DtEmissao?.ToString("yyyy-MM-dd"))','@(c.DtVencimento?.ToString("yyyy-MM-dd"))','@(c.DtPagamento?.ToString("yyyy-MM-dd"))','@c.VlValor.ToString(inv)','@c.VlPago.ToString(inv)','@c.DsStatus','@(c.FlAtivo ? "true" : "false")','@(c.DsObservacao?.Replace("'", "\\'").Replace("\n", " ").Replace("\r", " "))')">
+                                    <i class="bi bi-pencil"></i>
+                                </button>
+                                <form method="post" asp-page-handler="Excluir" class="d-inline" onsubmit="return confirm('Deseja realmente excluir esta conta?')">
+                                    <input type="hidden" name="id" value="@c.IdContaPagar" />
+                                    <button type="submit" class="btn btn-icon btn-outline-danger" title="Excluir">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </form>
+                            </td>
+                        </tr>
+                    }
+                }
+                else
+                {
+                    <tr><td colspan="9" class="text-center text-muted py-4">Nenhuma conta a pagar cadastrada</td></tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Modal Nova/Editar Conta -->
+<div class="modal fade" id="modalConta" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <form method="post">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="modalTitle"><i class="bi bi-cash-stack me-2"></i>Nova Conta a Pagar</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <input type="hidden" asp-for="ContaForm.IdContaPagar" id="formIdConta" />
+                    <div class="row g-3">
+                        <div class="col-md-2">
+                            <label class="form-label">Código</label>
+                            <input type="text" class="form-control bg-light" id="formCodigoDisplay" placeholder="(novo)" readonly />
+                        </div>
+                        <div class="col-md-7">
+                            <label class="form-label">Conta a Pagar *</label>
+                            <input type="text" class="form-control" asp-for="ContaForm.DsConta" id="formDsConta" maxlength="100" placeholder="Ex: Aluguel, fornecedor de produtos, energia" required />
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Documento</label>
+                            <input type="text" class="form-control" asp-for="ContaForm.NrDocumento" id="formNrDocumento" maxlength="20" placeholder="Ex: NF 1234, boleto 9988" />
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label">Fornecedor *</label>
+                            <select class="form-select" asp-for="ContaForm.IdFornecedor" id="formIdFornecedor" required>
+                                <option value="">Selecione um fornecedor</option>
+                                @foreach (var f in Model.Fornecedores)
+                                {
+                                    <option value="@f.IdFornecedor">@f.DsRazaoSocial</option>
+                                }
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Forma de Pagamento</label>
+                            <select class="form-select" asp-for="ContaForm.IdFormaPagamento" id="formIdFormaPagamento">
+                                <option value="">Selecione uma forma</option>
+                                @foreach (var fp in Model.Formas)
+                                {
+                                    <option value="@fp.IdFormaPagamento">@fp.DsFormaPagamento</option>
+                                }
+                            </select>
+                        </div>
+
+                        <div class="col-md-3">
+                            <label class="form-label">Emissão</label>
+                            <input type="date" class="form-control" asp-for="ContaForm.DtEmissao" id="formDtEmissao" />
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Vencimento</label>
+                            <input type="date" class="form-control" asp-for="ContaForm.DtVencimento" id="formDtVencimento" />
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Pagamento</label>
+                            <input type="date" class="form-control" asp-for="ContaForm.DtPagamento" id="formDtPagamento" />
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Status</label>
+                            <select class="form-select" asp-for="ContaForm.DsStatus" id="formDsStatus">
+                                <option value="@ContaAPagar.PENDENTE">Pendente</option>
+                                <option value="@ContaAPagar.PAGO">Pago</option>
+                                <option value="@ContaAPagar.CANCELADO">Cancelado</option>
+                            </select>
+                        </div>
+
+                        <div class="col-md-3">
+                            <label class="form-label">Valor (R$) *</label>
+                            <input type="number" step="0.01" min="0" class="form-control" asp-for="ContaForm.VlValor" id="formVlValor" required />
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Valor pago (R$)</label>
+                            <input type="number" step="0.01" min="0" class="form-control" asp-for="ContaForm.VlPago" id="formVlPago" />
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Ativo</label>
+                            <select class="form-select" asp-for="ContaForm.FlAtivo" id="formFlAtivo">
+                                <option value="true">Sim</option>
+                                <option value="false">Não</option>
+                            </select>
+                        </div>
+
+                        <div class="col-12">
+                            <label class="form-label">Observações</label>
+                            <textarea class="form-control" rows="2" asp-for="ContaForm.DsObservacao" id="formDsObservacao" placeholder="Detalhes da conta, negociacao ou baixa"></textarea>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary"><i class="bi bi-check-lg me-1"></i>Salvar conta</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Token antiforgery para os forms reconstruidos via AJAX (busca) -->
+<form id="formBuscaToken" class="d-none">@Html.AntiForgeryToken()</form>
+
+@section Scripts {
+    <script src="~/Pages/Financeiro/ContasAPagar.cshtml.js" asp-append-version="true"></script>
+}

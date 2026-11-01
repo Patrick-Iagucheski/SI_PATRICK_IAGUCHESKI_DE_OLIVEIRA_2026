@@ -1,17 +1,17 @@
 ﻿@{
     var curr = ViewContext.RouteData.Values["page"]?.ToString() ?? "";
-    string[] gCadastros = { "/Cadastro/Clientes", "/Cadastro/Funcionarios", "/Cadastro/Cargos", "/Cadastro/Servicos", "/Cadastro/Fornecedores", "/Cadastro/Transportadores" };
-    string[] gLocalidades = { "/Cadastro/Paises", "/Cadastro/Estados", "/Cadastro/Cidades" };
-    string[] gEstoque = { "/Cadastro/Produtos", "/Cadastro/Marcas", "/Cadastro/Categorias" };
-    string[] gFinanceiro = { "/Cadastro/FormasPagamento", "/Cadastro/CondicoesPagamento", "/Cadastro/ContasAPagar" };
-    string[] gOperacional = { "/Cadastro/Agendamentos", "/Cadastro/Vendas", "/Cadastro/Venda", "/Cadastro/Compras", "/Cadastro/Compra" };
-    string[] gVendas = { "/Cadastro/Vendas", "/Cadastro/Venda" };
-    string[] gCompras = { "/Cadastro/Compras", "/Cadastro/Compra" };
+    string[] gCadastros = { "/Gerais/Clientes", "/Gerais/Funcionarios", "/Gerais/Cargos", "/Gerais/Servicos", "/Gerais/Fornecedores", "/Gerais/Transportadores" };
+    string[] gLocalidades = { "/Gerais/Paises", "/Gerais/Estados", "/Gerais/Cidades" };
+    string[] gEstoque = { "/Estoque/Produtos", "/Estoque/Marcas", "/Estoque/Categorias" };
+    string[] gFinanceiro = { "/Financeiro/FormasPagamento", "/Financeiro/CondicoesPagamento", "/Financeiro/ContasAPagar" };
+    string[] gOperacional = { "/Operacional/Agendamentos", "/Vendas/Vendas", "/Vendas/Venda", "/Compras/Compras", "/Compras/Compra" };
+    string[] gVendas = { "/Vendas/Vendas", "/Vendas/Venda" };
+    string[] gCompras = { "/Compras/Compras", "/Compras/Compra" };
     string Active(string page) => curr == page ? "active" : "";
     string Open(string[] grupo) => grupo.Contains(curr) ? "" : "collapsed";
 
     // Nome e logo da empresa vem do banco (tela Configuracoes)
-    var empresa = await EmpresaSvc.ObterAsync();
+    var empresa = await EmpresaSvc.GetDadosEmpresa();
 }
 @inject WebAppERP.Infrastructure.EmpresaService EmpresaSvc
 <!DOCTYPE html>
@@ -63,32 +63,32 @@
                     </button>
                     <ul class="sidebar-group-items">
                         <li class="sidebar-item">
-                            <a class="sidebar-link @Active("/Cadastro/Clientes")" asp-page="/Cadastro/Clientes">
+                            <a class="sidebar-link @Active("/Gerais/Clientes")" asp-page="/Gerais/Clientes">
                                 <i class="bi bi-people-fill"></i><span>Clientes</span>
                             </a>
                         </li>
                         <li class="sidebar-item">
-                            <a class="sidebar-link @Active("/Cadastro/Funcionarios")" asp-page="/Cadastro/Funcionarios">
+                            <a class="sidebar-link @Active("/Gerais/Funcionarios")" asp-page="/Gerais/Funcionarios">
                                 <i class="bi bi-person-badge-fill"></i><span>Funcionários</span>
                             </a>
                         </li>
                         <li class="sidebar-item">
-                            <a class="sidebar-link @Active("/Cadastro/Cargos")" asp-page="/Cadastro/Cargos">
+                            <a class="sidebar-link @Active("/Gerais/Cargos")" asp-page="/Gerais/Cargos">
                                 <i class="bi bi-briefcase-fill"></i><span>Cargos</span>
                             </a>
                         </li>
                         <li class="sidebar-item">
-                            <a class="sidebar-link @Active("/Cadastro/Servicos")" asp-page="/Cadastro/Servicos">
+                            <a class="sidebar-link @Active("/Gerais/Servicos")" asp-page="/Gerais/Servicos">
                                 <i class="bi bi-card-checklist"></i><span>Serviços</span>
                             </a>
                         </li>
                         <li class="sidebar-item">
-                            <a class="sidebar-link @Active("/Cadastro/Fornecedores")" asp-page="/Cadastro/Fornecedores">
+                            <a class="sidebar-link @Active("/Gerais/Fornecedores")" asp-page="/Gerais/Fornecedores">
                                 <i class="bi bi-truck"></i><span>Fornecedores</span>
                             </a>
                         </li>
                         <li class="sidebar-item">
-                            <a class="sidebar-link @Active("/Cadastro/Transportadores")" asp-page="/Cadastro/Transportadores">
+                            <a class="sidebar-link @Active("/Gerais/Transportadores")" asp-page="/Gerais/Transportadores">
                                 <i class="bi bi-truck-front-fill"></i><span>Transportadores</span>
                             </a>
                         </li>
@@ -102,17 +102,17 @@
                     </button>
                     <ul class="sidebar-group-items">
                         <li class="sidebar-item">
-                            <a class="sidebar-link @Active("/Cadastro/Paises")" asp-page="/Cadastro/Paises">
+                            <a class="sidebar-link @Active("/Gerais/Paises")" asp-page="/Gerais/Paises">
                                 <i class="bi bi-globe-americas"></i><span>Países</span>
                             </a>
                         </li>
                         <li class="sidebar-item">
-                            <a class="sidebar-link @Active("/Cadastro/Estados")" asp-page="/Cadastro/Estados">
+                            <a class="sidebar-link @Active("/Gerais/Estados")" asp-page="/Gerais/Estados">
                                 <i class="bi bi-map"></i><span>Estados</span>
                             </a>
                         </li>
                         <li class="sidebar-item">
-                            <a class="sidebar-link @Active("/Cadastro/Cidades")" asp-page="/Cadastro/Cidades">
+                            <a class="sidebar-link @Active("/Gerais/Cidades")" asp-page="/Gerais/Cidades">
                                 <i class="bi bi-building"></i><span>Cidades</span>
                             </a>
                         </li>
@@ -126,17 +126,17 @@
                     </button>
                     <ul class="sidebar-group-items">
                         <li class="sidebar-item">
-                            <a class="sidebar-link @Active("/Cadastro/Produtos")" asp-page="/Cadastro/Produtos">
+                            <a class="sidebar-link @Active("/Estoque/Produtos")" asp-page="/Estoque/Produtos">
                                 <i class="bi bi-box-seam"></i><span>Produtos</span>
                             </a>
                         </li>
                         <li class="sidebar-item">
-                            <a class="sidebar-link @Active("/Cadastro/Marcas")" asp-page="/Cadastro/Marcas">
+                            <a class="sidebar-link @Active("/Estoque/Marcas")" asp-page="/Estoque/Marcas">
                                 <i class="bi bi-tags-fill"></i><span>Marcas</span>
                             </a>
                         </li>
                         <li class="sidebar-item">
-                            <a class="sidebar-link @Active("/Cadastro/Categorias")" asp-page="/Cadastro/Categorias">
+                            <a class="sidebar-link @Active("/Estoque/Categorias")" asp-page="/Estoque/Categorias">
                                 <i class="bi bi-collection-fill"></i><span>Categorias</span>
                             </a>
                         </li>
@@ -150,17 +150,17 @@
                     </button>
                     <ul class="sidebar-group-items">
                         <li class="sidebar-item">
-                            <a class="sidebar-link @Active("/Cadastro/FormasPagamento")" asp-page="/Cadastro/FormasPagamento">
+                            <a class="sidebar-link @Active("/Financeiro/FormasPagamento")" asp-page="/Financeiro/FormasPagamento">
                                 <i class="bi bi-credit-card"></i><span>Formas de Pagamento</span>
                             </a>
                         </li>
                         <li class="sidebar-item">
-                            <a class="sidebar-link @Active("/Cadastro/CondicoesPagamento")" asp-page="/Cadastro/CondicoesPagamento">
+                            <a class="sidebar-link @Active("/Financeiro/CondicoesPagamento")" asp-page="/Financeiro/CondicoesPagamento">
                                 <i class="bi bi-list-check"></i><span>Condições de Pagamento</span>
                             </a>
                         </li>
                         <li class="sidebar-item">
-                            <a class="sidebar-link @Active("/Cadastro/ContasAPagar")" asp-page="/Cadastro/ContasAPagar">
+                            <a class="sidebar-link @Active("/Financeiro/ContasAPagar")" asp-page="/Financeiro/ContasAPagar">
                                 <i class="bi bi-cash-stack"></i><span>Contas a Pagar</span>
                             </a>
                         </li>
@@ -174,17 +174,17 @@
                     </button>
                     <ul class="sidebar-group-items">
                         <li class="sidebar-item">
-                            <a class="sidebar-link @Active("/Cadastro/Agendamentos")" asp-page="/Cadastro/Agendamentos">
+                            <a class="sidebar-link @Active("/Operacional/Agendamentos")" asp-page="/Operacional/Agendamentos">
                                 <i class="bi bi-calendar-check-fill"></i><span>Agendamentos</span>
                             </a>
                         </li>
                         <li class="sidebar-item">
-                            <a class="sidebar-link @(gVendas.Contains(curr) ? "active" : "")" asp-page="/Cadastro/Vendas">
+                            <a class="sidebar-link @(gVendas.Contains(curr) ? "active" : "")" asp-page="/Vendas/Vendas">
                                 <i class="bi bi-cart-check-fill"></i><span>Vendas</span>
                             </a>
                         </li>
                         <li class="sidebar-item">
-                            <a class="sidebar-link @(gCompras.Contains(curr) ? "active" : "")" asp-page="/Cadastro/Compras">
+                            <a class="sidebar-link @(gCompras.Contains(curr) ? "active" : "")" asp-page="/Compras/Compras">
                                 <i class="bi bi-cart-plus-fill"></i><span>Compras</span>
                             </a>
                         </li>
@@ -221,7 +221,7 @@
                             </a>
                             <ul class="dropdown-menu dropdown-menu-end">
                                 <li>
-                                    <a class="dropdown-item" asp-page="/Configuracoes" data-abrir-aba
+                                    <a class="dropdown-item" asp-page="/Seguranca/Configuracoes" data-abrir-aba
                                        data-aba-titulo="Configurações" data-aba-icone="bi bi-gear">
                                         <i class="bi bi-gear me-2"></i>Configurações
                                     </a>

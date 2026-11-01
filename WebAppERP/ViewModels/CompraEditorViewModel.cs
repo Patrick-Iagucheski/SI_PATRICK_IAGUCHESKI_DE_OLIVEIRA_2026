@@ -1,27 +1,26 @@
-using WebAppERP.DTOs;
-using WebAppERP.Models;
+﻿using WebAppERP.DTOs.Compras;
 
 namespace WebAppERP.ViewModels;
 
 public class CompraEditorViewModel
 {
-    public OpeCompra Compra { get; set; } = new();
-    public List<OpeCompraItem> Itens { get; set; } = [];
-    public List<OpeCompraPagamento> Pagamentos { get; set; } = [];
-    public CompraCombosDto Combos { get; set; } = new();
+    public Compra Compra { get; set; } = new();
+    public List<CompraItem> Itens { get; set; } = [];
+    public List<CompraPagamento> Pagamentos { get; set; } = [];
+    public CompraCombosDTO Combos { get; set; } = new();
 
     // Titulos ja gerados no Contas a Pagar por esta compra.
-    public List<FinContaPagar> ContasGeradas { get; set; } = [];
+    public List<ContaAPagar> ContasGeradas { get; set; } = [];
 
     // True quando a tela esta editando uma compra ja gravada.
     public bool Edicao { get; set; }
 
     // Compra cancelada nao pode ser editada.
-    public bool Cancelada => Compra.TpStatus == "CANCELADA";
+    public bool Cancelada => Compra.TpStatus == Compra.CANCELADA;
 
     // Compra finalizada com titulo ja movimentado (pago/baixado) fica travada.
     public bool TemTituloMovimentado =>
-        ContasGeradas.Any(c => c.DsStatus == "PAGO" || c.VlPago > 0);
+        ContasGeradas.Any(c => c.DsStatus == ContaAPagar.PAGO || c.VlPago > 0);
 
     public bool SomenteLeitura => Cancelada || TemTituloMovimentado;
 

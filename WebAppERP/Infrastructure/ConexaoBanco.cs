@@ -55,7 +55,7 @@ public class ConexaoBanco
         }
     }
 
-    public string StringConexao()
+    public string GetStringConexao()
     {
         var s = Servidor;
         if (s == null)

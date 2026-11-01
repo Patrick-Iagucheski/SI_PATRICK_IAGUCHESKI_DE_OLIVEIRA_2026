@@ -1,7 +1,7 @@
-@model WebAppERP.ViewModels.CadastroProdutoViewModel
+﻿@model WebAppERP.ViewModels.CadastroProdutoViewModel
 @*
     Componente de cadastro de produto (ViewComponents/CadastroProdutoViewComponent).
-    Precisa de wwwroot/js/cadastro-produto.js na pagina que o usa.
+    Precisa de wwwroot/js/Estoque/CadastroProduto.js na pagina que o usa.
     data-modo="ajax" faz o Salvar gravar por fetch e disparar o evento
     'produto:salvo' (detail: id, nome, unidade, custo).
     Os ids usam o prefixo "prod" para nao colidir com o componente de
@@ -10,10 +10,10 @@
 
 <!-- Modal Novo/Editar Produto -->
 <div class="modal fade" id="modalProduto" tabindex="-1"
-     data-modo="@Model.Modo" data-url-produtos="@Url.Page("/Cadastro/Produtos")">
+     data-modo="@Model.Modo" data-url-produtos="@Url.Page("/Estoque/Produtos")">
     <div class="modal-dialog modal-lg">
         <div class="modal-content">
-            <form method="post" asp-page="/Cadastro/Produtos" enctype="multipart/form-data">
+            <form method="post" asp-page="/Estoque/Produtos" enctype="multipart/form-data">
                 <div class="modal-header">
                     <h5 class="modal-title" id="prodModalTitle"><i class="bi bi-box-seam me-2"></i>Novo Produto</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
@@ -123,7 +123,7 @@
                             <small class="text-muted">A imagem sera enviada apenas ao salvar o produto. Formatos: JPG, PNG, WEBP, GIF (max 500 MB).</small>
                             <div class="mt-2 d-none" id="prodImgPreviewWrap">
                                 @* Sem src no HTML: src vazio dispara onerror ja no carregamento,
-                                   antes de cadastro-produto.js existir. *@
+                                   antes de CadastroProduto.js existir. *@
                                 <img id="prodImgPreview" alt="Pre-visualizacao" class="img-thumbnail d-block mb-2"
                                      style="max-height:120px;" onerror="imagemQuebrada()" />
                                 <span id="prodImgIndisponivel" class="text-muted small d-none">

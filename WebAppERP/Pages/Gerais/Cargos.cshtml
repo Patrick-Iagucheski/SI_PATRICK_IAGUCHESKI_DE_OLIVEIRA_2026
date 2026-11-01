@@ -1,0 +1,152 @@
+﻿@page
+@model WebAppERP.Pages.Gerais.CargosModel
+@{
+    ViewData["Title"] = "Cargos";
+}
+
+<div class="d-flex justify-content-between align-items-start mb-4">
+    <div>
+        <h1 class="page-title">Cargos</h1>
+        <p class="page-subtitle">Gerencie os cargos dos funcionários</p>
+    </div>
+    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#modalCargo" onclick="limparForm()">
+        <i class="bi bi-plus-lg me-1"></i> Novo Cargo
+    </button>
+</div>
+
+<!-- Filtros de busca (todos opcionais e combinaveis) -->
+<div class="card mb-3">
+    <div class="card-body py-3">
+        <div class="row g-2 align-items-end">
+            <div class="col-md-2">
+                <label class="form-label small mb-1">ID</label>
+                <input type="number" class="form-control" id="buscaId" min="1" autocomplete="off" />
+            </div>
+            <div class="col-md-6">
+                <label class="form-label small mb-1">Nome / Descricao das Atividades</label>
+                <input type="text" class="form-control" id="buscaTermo" autocomplete="off" />
+            </div>
+        </div>
+        <div class="d-flex justify-content-between align-items-center mt-3">
+            <div class="form-check mb-0">
+                <input class="form-check-input" type="checkbox" id="buscaInativos" onchange="buscarCargos()" />
+                <label class="form-check-label" for="buscaInativos">Exibir Cargos Inativos</label>
+            </div>
+            <button type="button" class="btn btn-primary" onclick="buscarCargos()">
+                <i class="bi bi-search me-1"></i>Buscar
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Tabela -->
+<div class="table-container">
+    <div class="table-header">
+        <h5><i class="bi bi-briefcase-fill me-2"></i>Lista de Cargos</h5>
+        <span class="text-muted small" id="contadorRegistros">@Model.Cargos.Count registros encontrados</span>
+    </div>
+    <div class="table-responsive">
+        <table class="table" id="tblCargos">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Nome</th>
+                    <th>Descrição das Atividades</th>
+                    <th>Comissão Padrão</th>
+                    <th>Status</th>
+                    <th class="text-center">Ações</th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (Model.Cargos.Any())
+                {
+                    @foreach (var c in Model.Cargos)
+                    {
+                        <tr data-status="@(c.FlAtivo ? "ativo" : "inativo")">
+                            <td>@c.IdCargo</td>
+                            <td><strong>@c.NmCargo</strong></td>
+                            <td>@(string.IsNullOrWhiteSpace(c.DsCargo) ? "-" : c.DsCargo)</td>
+                            <td>@(c.VlComissaoPadrao.HasValue ? $"{c.VlComissaoPadrao.Value.ToString("0.##")}%" : "-")</td>
+                            <td>
+                                @if (c.FlAtivo)
+                                {
+                                    <span class="badge-status badge-ativo">Ativo</span>
+                                }
+                                else
+                                {
+                                    <span class="badge-status badge-inativo">Inativo</span>
+                                }
+                            </td>
+                            <td class="text-center">
+                                <button class="btn btn-icon btn-outline-primary" title="Editar"
+                                        data-bs-toggle="modal" data-bs-target="#modalCargo"
+                                        onclick="editarCargo(@c.IdCargo,'@c.NmCargo.Replace("'", "\\'")','@(c.DsCargo?.Replace("'", "\\'").Replace("\r", " ").Replace("\n", " "))','@(c.VlComissaoPadrao?.ToString("F2", System.Globalization.CultureInfo.InvariantCulture) ?? "")','@c.FlAtivo')">
+                                    <i class="bi bi-pencil"></i>
+                                </button>
+                                <form method="post" asp-page-handler="Excluir" class="d-inline" onsubmit="return confirm('Deseja realmente excluir este cargo?')">
+                                    <input type="hidden" name="id" value="@c.IdCargo" />
+                                    <button type="submit" class="btn btn-icon btn-outline-danger" title="Excluir">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </form>
+                            </td>
+                        </tr>
+                    }
+                }
+                else
+                {
+                    <tr><td colspan="6" class="text-center text-muted py-4">Nenhum cargo cadastrado</td></tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Token antiforgery para as chamadas AJAX -->
+<form id="formTokenAjax" class="d-none">@Html.AntiForgeryToken()</form>
+
+<!-- Modal -->
+<div class="modal fade" id="modalCargo" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form method="post">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="modalTitle"><i class="bi bi-briefcase me-2"></i>Novo Cargo</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <input type="hidden" asp-for="CargoForm.IdCargo" id="cId" />
+                    <div class="row g-3">
+                        <div class="col-12">
+                            <label class="form-label">Nome do Cargo *</label>
+                            <input type="text" class="form-control" asp-for="CargoForm.NmCargo" id="cNome" maxlength="100" required />
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label">Descrição das Atividades</label>
+                            <textarea class="form-control" rows="2" asp-for="CargoForm.DsCargo" id="cDesc" maxlength="300"></textarea>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Comissao Padrao (%)</label>
+                            <input type="number" class="form-control" asp-for="CargoForm.VlComissaoPadrao" id="cComissao" step="0.01" min="0" max="100" />
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Status</label>
+                            <select class="form-select" asp-for="CargoForm.FlAtivo" id="cAtivo">
+                                <option value="true">Ativo</option>
+                                <option value="false">Inativo</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary"><i class="bi bi-check-lg me-1"></i>Salvar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="~/Pages/Gerais/Cargos.cshtml.js" asp-append-version="true"></script>
+}

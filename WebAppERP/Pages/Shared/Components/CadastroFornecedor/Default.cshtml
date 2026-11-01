@@ -1,7 +1,7 @@
-@model WebAppERP.ViewModels.CadastroFornecedorViewModel
+﻿@model WebAppERP.ViewModels.CadastroFornecedorViewModel
 @*
     Componente de cadastro de fornecedor (ViewComponents/CadastroFornecedorViewComponent).
-    Precisa de wwwroot/js/cadastro-fornecedor.js na pagina que o usa.
+    Precisa de wwwroot/js/Gerais/CadastroFornecedor.js na pagina que o usa.
     data-modo="ajax" faz o Salvar gravar por fetch e disparar o evento
     'fornecedor:salvo' (detail: id, razaoSocial, nomeFantasia).
     A cidade usa o componente unico CampoCidade (droplist + cadastro rapido de
@@ -10,10 +10,10 @@
 
 <!-- Modal Novo/Editar Fornecedor -->
 <div class="modal fade" id="modalFornecedor" tabindex="-1"
-     data-modo="@Model.Modo" data-url-fornecedores="@Url.Page("/Cadastro/Fornecedores")">
+     data-modo="@Model.Modo" data-url-fornecedores="@Url.Page("/Gerais/Fornecedores")">
     <div class="modal-dialog modal-lg">
         <div class="modal-content">
-            <form method="post" asp-page="/Cadastro/Fornecedores">
+            <form method="post" asp-page="/Gerais/Fornecedores">
                 <div class="modal-header">
                     <h5 class="modal-title" id="modalTitle"><i class="bi bi-truck me-2"></i>Novo Fornecedor</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
