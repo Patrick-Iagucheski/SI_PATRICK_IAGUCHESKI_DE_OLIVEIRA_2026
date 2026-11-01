@@ -2,36 +2,7 @@
 // (Pages/Shared/Components/CadastroFornecedor/Default.cshtml).
 // Usado pela tela de Fornecedores e pela pesquisa de fornecedor da Compra.
 
-// ===== Mascaras =====
-function mascaraCPF(v) {
-    return v.replace(/\D/g, '').slice(0, 11)
-        .replace(/^(\d{3})(\d)/, '$1.$2')
-        .replace(/^(\d{3})\.(\d{3})(\d)/, '$1.$2.$3')
-        .replace(/\.(\d{3})(\d)/, '.$1-$2');
-}
-function mascaraCNPJ(v) {
-    return v.replace(/\D/g, '').slice(0, 14)
-        .replace(/^(\d{2})(\d)/, '$1.$2')
-        .replace(/^(\d{2})\.(\d{3})(\d)/, '$1.$2.$3')
-        .replace(/\.(\d{3})(\d)/, '.$1/$2')
-        .replace(/(\d{4})(\d)/, '$1-$2');
-}
-function mascaraCEP(v) { return v.replace(/\D/g, '').slice(0, 8).replace(/^(\d{5})(\d)/, '$1-$2'); }
-function mascaraRG(v) {
-    return v.replace(/\D/g, '').slice(0, 9)
-        .replace(/^(\d{2})(\d)/, '$1.$2')
-        .replace(/^(\d{2})\.(\d{3})(\d)/, '$1.$2.$3')
-        .replace(/\.(\d{3})(\d)/, '.$1-$2');
-}
-function mascaraTelefone(v) {
-    v = v.replace(/\D/g, '').slice(0, 11);
-    if (v.length > 10) return v.replace(/^(\d{2})(\d{5})(\d{4}).*/, '($1) $2-$3');
-    return v.replace(/^(\d{2})(\d{4})(\d{0,4}).*/, '($1) $2-$3').trim();
-}
-function aplicarMascara(id, fn) {
-    const el = document.getElementById(id);
-    el?.addEventListener('input', () => { el.value = fn(el.value); });
-}
+// ===== Mascaras (funcoes em wwwroot/js/module.js; no banco salva so numeros) =====
 aplicarMascara('formNrCpf', mascaraCPF);
 aplicarMascara('formNrCNPJ', mascaraCNPJ);
 aplicarMascara('formNrCEP', mascaraCEP);
@@ -39,21 +10,6 @@ aplicarMascara('formNrTelefoneFixo', mascaraTelefone);
 aplicarMascara('formNrCelular', mascaraTelefone);
 aplicarMascara('formNrWhatsApp', mascaraTelefone);
 aplicarMascara('formNrRG', mascaraRG);
-
-// ===== Validacao de CPF / CNPJ =====
-function cpfValido(cpf) {
-    const d = (cpf || '').replace(/\D/g, '');
-    if (d.length !== 11 || /^(\d)\1{10}$/.test(d)) return false;
-    const calc = (q) => { let s = 0; for (let i = 0; i < q; i++) s += parseInt(d[i]) * (q + 1 - i); const r = s % 11; return r < 2 ? 0 : 11 - r; };
-    return calc(9) === parseInt(d[9]) && calc(10) === parseInt(d[10]);
-}
-function cnpjValido(cnpj) {
-    const d = (cnpj || '').replace(/\D/g, '');
-    if (d.length !== 14 || /^(\d)\1{13}$/.test(d)) return false;
-    const p1 = [5,4,3,2,9,8,7,6,5,4,3,2], p2 = [6,5,4,3,2,9,8,7,6,5,4,3,2];
-    const calc = (q, p) => { let s = 0; for (let i = 0; i < q; i++) s += parseInt(d[i]) * p[i]; const r = s % 11; return r < 2 ? 0 : 11 - r; };
-    return calc(12, p1) === parseInt(d[12]) && calc(13, p2) === parseInt(d[13]);
-}
 
 // ===== Tipo de Pessoa: alterna documento e os campos especificos =====
 function toggleTipoPessoa() {
@@ -66,7 +22,7 @@ function toggleTipoPessoa() {
     document.getElementById('wrapCpf').classList.toggle('d-none', tipo !== 'F');
     document.getElementById('wrapDoc').classList.toggle('d-none', !(tipo === 'E' || tipo === 'O'));
     document.getElementById('lblDoc').textContent = tipo === 'E' ? 'Documento Internacional' : 'Documento';
-    document.getElementById('lblRazao').textContent = tipo === 'J' ? 'Razao Social *' : 'Nome / Razao Social *';
+    document.getElementById('lblRazao').textContent = tipo === 'J' ? 'Razão Social *' : 'Nome / Razão Social *';
 
     // Slot A: Inscricao Estadual (J / E / O) ou RG (F)
     document.getElementById('wrapInscEstadual').classList.toggle('d-none', ehF);
@@ -96,19 +52,19 @@ document.querySelector('#modalFornecedor form')?.addEventListener('submit', func
     const cnpj = document.getElementById('formNrCNPJ').value;
     const cpf = document.getElementById('formNrCpf').value;
     const email = document.getElementById('formDsEmail').value.trim();
-    if (tipo === 'J' && cnpj.replace(/\D/g, '') && !cnpjValido(cnpj)) { e.preventDefault(); alert('CNPJ invalido. Verifique os numeros informados.'); return; }
-    if (tipo === 'F' && cpf.replace(/\D/g, '') && !cpfValido(cpf)) { e.preventDefault(); alert('CPF invalido. Verifique os numeros informados.'); return; }
+    if (tipo === 'J' && cnpj.replace(/\D/g, '') && !cnpjValido(cnpj)) { e.preventDefault(); alert('CNPJ inválido. Verifique os números informados.'); return; }
+    if (tipo === 'F' && cpf.replace(/\D/g, '') && !cpfValido(cpf)) { e.preventDefault(); alert('CPF inválido. Verifique os números informados.'); return; }
     if (tipo === 'F') {
         const rg = document.getElementById('formNrRG').value.replace(/\D/g, '');
-        if (rg.length !== 9) { e.preventDefault(); alert('Informe o RG com 9 digitos (Pessoa Fisica).'); return; }
+        if (rg.length !== 9) { e.preventDefault(); alert('Informe o RG com 9 dígitos (Pessoa Física).'); return; }
     }
     if (tipo === 'J') {
         const ie = document.getElementById('formNrInscEstadual').value.replace(/\D/g, '');
-        if (ie && (ie.length < 8 || ie.length > 13)) { e.preventDefault(); alert('Inscricao Estadual deve ter de 8 a 13 digitos.'); return; }
+        if (ie && (ie.length < 8 || ie.length > 13)) { e.preventDefault(); alert('Inscrição Estadual deve ter de 8 a 13 dígitos.'); return; }
         const im = document.getElementById('formNrInscMunicipal').value.trim();
-        if (im && (im.length < 7 || im.length > 15)) { e.preventDefault(); alert('Inscricao Municipal deve ter de 7 a 15 caracteres.'); return; }
+        if (im && (im.length < 7 || im.length > 15)) { e.preventDefault(); alert('Inscrição Municipal deve ter de 7 a 15 caracteres.'); return; }
     }
-    if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { e.preventDefault(); alert('E-mail invalido. Verifique o formato (exemplo: nome@dominio.com).'); return; }
+    if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { e.preventDefault(); alert('E-mail inválido. Verifique o formato (exemplo: nome@dominio.com).'); return; }
 
     // Modo AJAX: grava sem recarregar a tela que abriu o cadastro.
     if (document.getElementById('modalFornecedor').dataset.modo === 'ajax') {

@@ -9,12 +9,6 @@ let resultadosBusca = [];
     });
 });
 
-function statusBadge(ativo) {
-    return ativo
-        ? '<span class="badge-status badge-ativo">Ativo</span>'
-        : '<span class="badge-status badge-inativo">Inativo</span>';
-}
-
 function montarLinha(m, i, token) {
     return '<tr>' +
         '<td>' + m.id + '</td>' +

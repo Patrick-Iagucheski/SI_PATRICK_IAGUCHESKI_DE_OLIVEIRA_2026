@@ -25,9 +25,6 @@ aplicarMascara('buscaDocumento', mascaraCNPJ);
     });
 });
 
-function statusBadge(ativo) {
-    return ativo ? '<span class="badge-status badge-ativo">Ativo</span>' : '<span class="badge-status badge-inativo">Inativo</span>';
-}
 function documentoExibicao(f) {
     if (f.tipoPessoa === 'F') return f.cpf ? mascaraCPF(f.cpf) : '-';
     if (f.tipoPessoa === 'E' || f.tipoPessoa === 'O') return f.documento || '-';

@@ -7,7 +7,6 @@ const SERVICOS = DADOS_TELA.SERVICOS;
 const SOMENTE_LEITURA = DADOS_TELA.SOMENTE_LEITURA;
 let ITENS = DADOS_TELA.ITENS;
 
-function moeda(n) { return (Number(n) || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
 function num(id) { const v = document.getElementById(id).value; return parseFloat(String(v).replace(',', '.')) || 0; }
 
 function onTipoChange() {

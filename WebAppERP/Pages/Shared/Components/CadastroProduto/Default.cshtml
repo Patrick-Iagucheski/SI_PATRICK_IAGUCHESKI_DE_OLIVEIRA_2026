@@ -95,7 +95,7 @@
                             <input type="number" step="0.01" min="0" class="form-control" asp-for="ProdutoForm.VlCusto" id="prodVlCusto" placeholder="0,00" />
                         </div>
                         <div class="col-md-3">
-                            <label class="form-label">Valor Minimo Venda (R$)</label>
+                            <label class="form-label">Valor Mínimo Venda (R$)</label>
                             <input type="number" step="0.01" min="0" class="form-control" asp-for="ProdutoForm.VlVendaMinimo" id="prodVlVendaMinimo" placeholder="0,00" />
                         </div>
                         <div class="col-md-3">
@@ -103,7 +103,7 @@
                             <input type="number" step="0.01" min="0" class="form-control" asp-for="ProdutoForm.VlVenda" id="prodVlVenda" placeholder="0,00" />
                         </div>
                         <div class="col-md-3">
-                            <label class="form-label">Percentual Comissao (%)</label>
+                            <label class="form-label">Percentual Comissão (%)</label>
                             <input type="number" step="0.01" min="0" max="999.99" class="form-control" asp-for="ProdutoForm.PcComissao" id="prodPcComissao" placeholder="0,00" />
                         </div>
 
@@ -121,11 +121,11 @@
                         <div class="col-12">
                             <label class="form-label">Imagem</label>
                             <input type="file" class="form-control" name="ImagemUpload" id="prodImagemUpload" accept="image/*" onchange="previewImagem(event)" />
-                            <small class="text-muted">A imagem sera enviada apenas ao salvar o produto. Formatos: JPG, PNG, WEBP, GIF (max 500 MB).</small>
+                            <small class="text-muted">A imagem será enviada apenas ao salvar o produto. Formatos: JPG, PNG, WEBP, GIF (máx. 500 MB).</small>
                             <div class="mt-2 d-none" id="prodImgPreviewWrap">
                                 @* Sem src no HTML: src vazio dispara onerror ja no carregamento,
                                    antes do script do componente existir. *@
-                                <img id="prodImgPreview" alt="Pre-visualizacao" class="img-thumbnail d-block mb-2"
+                                <img id="prodImgPreview" alt="Pré-visualização" class="img-thumbnail d-block mb-2"
                                      style="max-height:120px;" onerror="imagemQuebrada()" />
                                 <span id="prodImgIndisponivel" class="text-muted small d-none">
                                     <i class="bi bi-image me-1"></i>Imagem atual indisponivel (arquivo nao encontrado).

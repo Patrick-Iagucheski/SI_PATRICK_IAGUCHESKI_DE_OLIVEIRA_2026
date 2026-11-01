@@ -24,7 +24,7 @@ const elPlaca = document.getElementById('formDsPlaca');
 elPlaca?.addEventListener('input', () => { elPlaca.value = mascaraPlaca(elPlaca.value); });
 
 function limparForm() {
-    document.getElementById('modalTitle').innerHTML = '<i class="bi bi-truck-flatbed me-2"></i>Novo Veiculo';
+    document.getElementById('modalTitle').innerHTML = '<i class="bi bi-truck-flatbed me-2"></i>Novo Veículo';
     document.getElementById('formIdVeiculo').value = '0';
     document.getElementById('formDsPlaca').value = '';
     document.getElementById('formNrANTT').value = '';
@@ -32,7 +32,7 @@ function limparForm() {
 }
 
 function editarVeiculo(id, placa, idEstado, antt) {
-    document.getElementById('modalTitle').innerHTML = '<i class="bi bi-pencil me-2"></i>Editar Veiculo';
+    document.getElementById('modalTitle').innerHTML = '<i class="bi bi-pencil me-2"></i>Editar Veículo';
     document.getElementById('formIdVeiculo').value = id;
     document.getElementById('formDsPlaca').value = placa;
     document.getElementById('formIdEstado').value = idEstado;

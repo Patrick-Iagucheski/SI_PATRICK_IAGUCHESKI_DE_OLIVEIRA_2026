@@ -1,16 +1,5 @@
 ﻿// Script da tela Produtos (Pages/Estoque/Produtos.cshtml).
 
-// ===== Helpers de exibicao =====
-function moeda(v) {
-    if (v === null || v === undefined || v === '') return 'R$ 0,00';
-    return 'R$ ' + parseFloat(v).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-}
-function statusBadge(ativo) {
-    return ativo
-        ? '<span class="badge-status badge-ativo">Ativo</span>'
-        : '<span class="badge-status badge-inativo">Inativo</span>';
-}
-
 // ===== Busca de Produtos (filtros na pagina -> atualiza a grid via AJAX) =====
 let resultadosBusca = [];
 
@@ -29,7 +18,7 @@ function montarLinha(p, i, token) {
         '<td>' + (p.marca || '-') + '</td>' +
         '<td>' + (p.categoria || '-') + '</td>' +
         '<td>' + (p.unidade || '-') + '</td>' +
-        '<td class="text-end">' + moeda(p.venda) + '</td>' +
+        '<td class="text-end">R$ ' + moeda(p.venda) + '</td>' +
         '<td class="text-end">' + estoque + '</td>' +
         '<td>' + statusBadge(p.ativo) + '</td>' +
         '<td class="text-center">' +

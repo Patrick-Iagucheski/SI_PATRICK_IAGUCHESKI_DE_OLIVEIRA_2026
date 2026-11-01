@@ -24,10 +24,6 @@ let buscaTimer = null;
 
 // ---------------- Utilitarios ----------------
 
-function moeda(n) {
-    return (Number(n) || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-}
-
 function qtd(n) {
     return (Number(n) || 0).toLocaleString('pt-BR', { minimumFractionDigits: 3, maximumFractionDigits: 4 });
 }

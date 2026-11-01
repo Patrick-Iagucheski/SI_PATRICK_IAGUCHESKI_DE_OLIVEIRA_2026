@@ -12,7 +12,7 @@ using WebAppERP.Infrastructure;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
+// Servicos do sistema (injecao de dependencia).
 builder.Services.AddRazorPages();
 
 // Limite de upload (ex.: imagem do produto): ate 500 MB.
@@ -68,10 +68,10 @@ var app = builder.Build();
 // Mostra no console qual banco esta em uso (ajuda a conferir o servers.json)
 var servidor = app.Services.GetRequiredService<ConexaoBanco>().Servidor;
 app.Logger.LogInformation(servidor == null
-    ? "Banco: DefaultConnection do appsettings.json (Servers/servers.json nao encontrado)"
+    ? "Banco: DefaultConnection do appsettings.json (Servers/servers.json não encontrado)"
     : $"Banco: {servidor.name} -> {servidor.host} / {servidor.database} (Servers/servers.json)");
 
-// Configure the HTTP request pipeline.
+// Pipeline das requisicoes.
 if (!app.Environment.IsDevelopment())
 {
     app.UseExceptionHandler("/Error");

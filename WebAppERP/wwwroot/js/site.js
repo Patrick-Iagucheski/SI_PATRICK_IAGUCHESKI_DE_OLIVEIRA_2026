@@ -1,5 +1,67 @@
-﻿// Please see documentation at https://learn.microsoft.com/aspnet/core/client-side/bundling-and-minification
-// for details on configuring this project to bundle and minify static web assets.
+﻿// Script do layout (Pages/Shared/_Layout.cshtml): menu lateral e abas internas.
+// Funcoes compartilhadas pelas telas (mascaras, validacoes, moeda) ficam em module.js.
+
+// ============================================
+// Menu lateral
+// ============================================
+(function () {
+    // Recolher / expandir secoes (abas)
+    document.querySelectorAll('#sidebarNav .sidebar-group-header').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+            btn.parentElement.classList.toggle('collapsed');
+        });
+    });
+
+    // Busca no menu
+    const menuSearch = document.getElementById('menuSearch');
+    const menuEmpty = document.getElementById('menuSearchEmpty');
+    menuSearch?.addEventListener('input', function () {
+        const q = this.value.trim().toLowerCase();
+        let totalVisivel = 0;
+
+        document.querySelectorAll('#sidebarNav .sidebar-group').forEach(function (grupo) {
+            let algum = false;
+            grupo.querySelectorAll('.sidebar-item').forEach(function (item) {
+                const txt = item.textContent.trim().toLowerCase();
+                const ok = !q || txt.includes(q);
+                item.style.display = ok ? '' : 'none';
+                if (ok) { algum = true; totalVisivel++; }
+            });
+            // ao buscar, abre os grupos com resultado e esconde os vazios
+            if (q) {
+                grupo.style.display = algum ? '' : 'none';
+                grupo.classList.toggle('collapsed', !algum);
+            } else {
+                grupo.style.display = '';
+            }
+        });
+
+        // Dashboard (item solto)
+        document.querySelectorAll('#sidebarNav > .sidebar-item').forEach(function (item) {
+            const txt = item.textContent.trim().toLowerCase();
+            const ok = !q || txt.includes(q);
+            item.style.display = ok ? '' : 'none';
+            if (ok) totalVisivel++;
+        });
+
+        if (menuEmpty) menuEmpty.style.display = (q && totalVisivel === 0) ? '' : 'none';
+    });
+
+    // Toggle da sidebar (botao do topo)
+    document.getElementById('sidebarToggle')?.addEventListener('click', function () {
+        document.getElementById('wrapper').classList.toggle('sidebar-collapsed');
+    });
+
+    // Abre um modal por cima de outro SEM usar data-bs-toggle. Isso e necessario
+    // porque o handler nativo do data-bs-toggle="modal" do Bootstrap FECHA o modal
+    // que ja estava aberto ("avoid conflict when clicking modal toggler while another
+    // one is open"). Ao abrir via JS, o modal de baixo (ex.: Produto/Funcionario)
+    // permanece aberto e preservado enquanto o cadastro rapido fica por cima.
+    window.abrirModalEmpilhado = function (id) {
+        var el = document.getElementById(id);
+        if (el) bootstrap.Modal.getOrCreateInstance(el).show();
+    };
+})();
 
 // ============================================
 // Abas internas

@@ -23,7 +23,6 @@ function badgeSituacao(sit) {
     return '<span class="badge-status ' + (map[sit] || 'badge-agendado') + '">' + sit + '</span>';
 }
 function dataBr(d) { return d ? d.split('-').reverse().join('/') : '-'; }
-function moeda(v) { return 'R$ ' + Number(v || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
 
 function montarLinha(c, i, token) {
     const sit = situacaoConta(c);
@@ -39,8 +38,8 @@ function montarLinha(c, i, token) {
         '<td><strong>' + (c.conta || '') + '</strong>' + docHtml + '</td>' +
         '<td>' + (c.fornecedorNome || '-') + '</td>' +
         '<td>' + dataBr(c.venc) + '</td>' +
-        '<td class="text-end"><strong>' + moeda(c.valor) + '</strong></td>' +
-        '<td class="text-end">' + moeda(c.pago) + '</td>' +
+        '<td class="text-end"><strong>R$ ' + moeda(c.valor) + '</strong></td>' +
+        '<td class="text-end">R$ ' + moeda(c.pago) + '</td>' +
         '<td>' + badgeSituacao(sit) + '</td>' +
         '<td class="text-center">' + (c.ativo ? 'S' : 'N') + '</td>' +
         '<td>' + (c.formaNome || '-') + '</td>' +

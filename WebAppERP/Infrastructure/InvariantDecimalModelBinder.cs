@@ -31,7 +31,7 @@ public class InvariantDecimalModelBinder : IModelBinder
         }
         else
         {
-            bindingContext.ModelState.TryAddModelError(bindingContext.ModelName, "Valor numerico invalido.");
+            bindingContext.ModelState.TryAddModelError(bindingContext.ModelName, "Valor numérico inválido.");
         }
 
         return Task.CompletedTask;

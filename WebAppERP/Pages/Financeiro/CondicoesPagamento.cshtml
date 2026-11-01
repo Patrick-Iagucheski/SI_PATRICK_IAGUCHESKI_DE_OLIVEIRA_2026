@@ -126,7 +126,7 @@
                                         onclick="editarCondicao(@c.IdCondicaoPagamento,'@c.DsCondicao.Replace("'", "\\'")','@c.VlJuro.ToString(inv)','@c.VlMulta.ToString(inv)','@c.VlDesconto.ToString(inv)','@(c.FlAtivo ? "true" : "false")', PARCELAS_MAP[@c.IdCondicaoPagamento])">
                                     <i class="bi bi-pencil"></i>
                                 </button>
-                                <form method="post" asp-page-handler="Excluir" class="d-inline" onsubmit="return confirm('Deseja realmente excluir esta condicao de pagamento?')">
+                                <form method="post" asp-page-handler="Excluir" class="d-inline" onsubmit="return confirm('Deseja realmente excluir esta condição de pagamento?')">
                                     <input type="hidden" name="id" value="@c.IdCondicaoPagamento" />
                                     <button type="submit" class="btn btn-icon btn-outline-danger" title="Excluir">
                                         <i class="bi bi-trash"></i>

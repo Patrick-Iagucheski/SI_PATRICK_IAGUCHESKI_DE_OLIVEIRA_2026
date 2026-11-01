@@ -1,69 +1,11 @@
 ﻿// Script da tela Clientes (Pages/Gerais/Clientes.cshtml).
 
-// ===== Mascaras (somente exibicao; no banco salva so numeros) =====
-function mascaraCPF(v) {
-    return v.replace(/\D/g, '').slice(0, 11)
-        .replace(/^(\d{3})(\d)/, '$1.$2')
-        .replace(/^(\d{3})\.(\d{3})(\d)/, '$1.$2.$3')
-        .replace(/\.(\d{3})(\d)/, '.$1-$2');
-}
-function mascaraCNPJ(v) {
-    return v.replace(/\D/g, '').slice(0, 14)
-        .replace(/^(\d{2})(\d)/, '$1.$2')
-        .replace(/^(\d{2})\.(\d{3})(\d)/, '$1.$2.$3')
-        .replace(/\.(\d{3})(\d)/, '.$1/$2')
-        .replace(/(\d{4})(\d)/, '$1-$2');
-}
-function mascaraCEP(v) {
-    return v.replace(/\D/g, '').slice(0, 8).replace(/^(\d{5})(\d)/, '$1-$2');
-}
-function mascaraTelefone(v) {
-    v = v.replace(/\D/g, '').slice(0, 11);
-    if (v.length > 10)
-        return v.replace(/^(\d{2})(\d{5})(\d{4}).*/, '($1) $2-$3');
-    return v.replace(/^(\d{2})(\d{4})(\d{0,4}).*/, '($1) $2-$3').trim();
-}
-function mascaraRG(v) {
-    return v.replace(/\D/g, '').slice(0, 9)
-        .replace(/^(\d{2})(\d)/, '$1.$2')
-        .replace(/^(\d{2})\.(\d{3})(\d)/, '$1.$2.$3')
-        .replace(/\.(\d{3})(\d)/, '.$1-$2');
-}
-function aplicarMascara(id, fn) {
-    const el = document.getElementById(id);
-    el?.addEventListener('input', () => { el.value = fn(el.value); });
-}
+// ===== Mascaras (funcoes em wwwroot/js/module.js; no banco salva so numeros) =====
 aplicarMascara('formNrCpf', mascaraCPF);
 aplicarMascara('formNrCnpj', mascaraCNPJ);
 aplicarMascara('formNrCEP', mascaraCEP);
 aplicarMascara('formNrTelefone', mascaraTelefone);
 aplicarMascara('formNrRG', mascaraRG);
-
-// ===== Validacao de CPF / CNPJ (digitos verificadores) =====
-function cpfValido(cpf) {
-    const d = (cpf || '').replace(/\D/g, '');
-    if (d.length !== 11 || /^(\d)\1{10}$/.test(d)) return false;
-    const calc = (qtd) => {
-        let s = 0;
-        for (let i = 0; i < qtd; i++) s += parseInt(d[i]) * (qtd + 1 - i);
-        const r = s % 11;
-        return r < 2 ? 0 : 11 - r;
-    };
-    return calc(9) === parseInt(d[9]) && calc(10) === parseInt(d[10]);
-}
-function cnpjValido(cnpj) {
-    const d = (cnpj || '').replace(/\D/g, '');
-    if (d.length !== 14 || /^(\d)\1{13}$/.test(d)) return false;
-    const calc = (qtd, pesos) => {
-        let s = 0;
-        for (let i = 0; i < qtd; i++) s += parseInt(d[i]) * pesos[i];
-        const r = s % 11;
-        return r < 2 ? 0 : 11 - r;
-    };
-    const p1 = [5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2];
-    const p2 = [6, 5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2];
-    return calc(12, p1) === parseInt(d[12]) && calc(13, p2) === parseInt(d[13]);
-}
 
 // ===== Tipo de Pessoa: alterna o documento exibido =====
 function toggleTipoPessoa() {
@@ -77,7 +19,7 @@ function toggleTipoPessoa() {
     wrapCnpj.classList.toggle('d-none', tipo !== 'J');
     wrapDoc.classList.toggle('d-none', tipo !== 'E');
 
-    lblNome.textContent = tipo === 'J' ? 'Razao Social *' : 'Nome Completo *';
+    lblNome.textContent = tipo === 'J' ? 'Razão Social *' : 'Nome Completo *';
 }
 
 // ===== Validacao do formulario antes de enviar =====
@@ -89,17 +31,17 @@ document.querySelector('#modalCliente form')?.addEventListener('submit', functio
 
     if (tipo === 'F' && cpf.replace(/\D/g, '') && !cpfValido(cpf)) {
         e.preventDefault();
-        alert('CPF invalido. Verifique os numeros informados.');
+        alert('CPF inválido. Verifique os números informados.');
         return;
     }
     if (tipo === 'J' && cnpj.replace(/\D/g, '') && !cnpjValido(cnpj)) {
         e.preventDefault();
-        alert('CNPJ invalido. Verifique os numeros informados.');
+        alert('CNPJ inválido. Verifique os números informados.');
         return;
     }
     if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
         e.preventDefault();
-        alert('E-mail invalido. Verifique o formato (exemplo: nome@dominio.com).');
+        alert('E-mail inválido. Verifique o formato (exemplo: nome@dominio.com).');
         return;
     }
 });
@@ -150,12 +92,6 @@ aplicarMascara('buscaDocumento', mascaraCPF);
         if (e.key === 'Enter') { e.preventDefault(); buscarClientes(); }
     });
 });
-
-function statusBadge(ativo) {
-    return ativo
-        ? '<span class="badge-status badge-ativo">Ativo</span>'
-        : '<span class="badge-status badge-inativo">Inativo</span>';
-}
 
 function tipoLabel(t) {
     if (t === 'J') return 'Juridica';

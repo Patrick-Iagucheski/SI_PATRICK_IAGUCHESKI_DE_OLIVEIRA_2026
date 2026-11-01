@@ -8,7 +8,7 @@ document.getElementById('searchInput')?.addEventListener('input', function () {
 });
 
 function limparForm() {
-    document.getElementById('modalTitle').innerHTML = '<i class="bi bi-card-checklist me-2"></i>Novo Servico';
+    document.getElementById('modalTitle').innerHTML = '<i class="bi bi-card-checklist me-2"></i>Novo Serviço';
     document.getElementById('sId').value = '0';
     document.getElementById('sNome').value = '';
     document.getElementById('sDesc').value = '';
@@ -19,7 +19,7 @@ function limparForm() {
 }
 
 function editarServico(id, nome, desc, valor, duracao, cat, ativo) {
-    document.getElementById('modalTitle').innerHTML = '<i class="bi bi-pencil me-2"></i>Editar Servico';
+    document.getElementById('modalTitle').innerHTML = '<i class="bi bi-pencil me-2"></i>Editar Serviço';
     document.getElementById('sId').value = id;
     document.getElementById('sNome').value = nome;
     document.getElementById('sDesc').value = desc;

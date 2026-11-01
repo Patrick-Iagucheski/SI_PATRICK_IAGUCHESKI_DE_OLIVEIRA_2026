@@ -845,3 +845,23 @@ body {
     border-radius: 0.5rem;
     max-width: var(--sidebar-width);
 }
+
+/* ============================================
+   Componente CampoCidade (Pages/Shared/Components/CampoCidade)
+   ============================================ */
+/* Lista suspensa dos campos cidade / estado / pais */
+.autocomplete { position: relative; }
+.autocomplete-lista {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    z-index: 1080;
+    max-height: 240px;
+    overflow-y: auto;
+    box-shadow: 0 .5rem 1rem rgba(0, 0, 0, .15);
+}
+.autocomplete-lista .list-group-item { cursor: pointer; }
+
+/* Resultados da busca no topo dos cadastros rapidos */
+.busca-cadastro-lista { max-height: 220px; overflow-y: auto; }

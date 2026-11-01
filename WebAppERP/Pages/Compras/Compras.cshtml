@@ -86,7 +86,7 @@
                                 @if (c.TpStatus != Compra.CANCELADA)
                                 {
                                     <form method="post" asp-page-handler="Cancelar" class="d-inline"
-                                          onsubmit="return confirm('Deseja cancelar esta compra? O estoque sera estornado e os titulos do Contas a Pagar serao cancelados.')">
+                                          onsubmit="return confirm('Deseja cancelar esta compra? O estoque será estornado e os títulos do Contas a Pagar serão cancelados.')">
                                         <input type="hidden" name="nrNota" value="@c.NrNota" />
                                         <input type="hidden" name="nrSerie" value="@c.NrSerie" />
                                         <input type="hidden" name="nrModelo" value="@c.NrModelo" />

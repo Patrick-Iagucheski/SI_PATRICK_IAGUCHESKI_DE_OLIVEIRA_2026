@@ -1,26 +1,26 @@
 ﻿@page
 @model ErrorModel
 @{
-    ViewData["Title"] = "Error";
+    ViewData["Title"] = "Erro";
 }
 
-<h1 class="text-danger">Error.</h1>
-<h2 class="text-danger">An error occurred while processing your request.</h2>
+@* Pagina mostrada quando acontece um erro inesperado (fora do modo de
+   desenvolvimento). Nao mostra detalhes tecnicos para o usuario; o codigo
+   abaixo serve para localizar o erro no log. *@
+<div class="card border-0 shadow-sm mx-auto mt-4" style="max-width: 560px;">
+    <div class="card-body p-4 text-center">
+        <i class="bi bi-exclamation-octagon text-danger" style="font-size: 3rem;"></i>
+        <h4 class="mt-3 mb-2">Não foi possível concluir a operação</h4>
+        <p class="text-muted mb-3">
+            Aconteceu um erro inesperado. Nenhuma informação foi perdida além do que estava
+            sendo feito agora. Volte e tente novamente; se o erro continuar, avise o suporte.
+        </p>
 
-@if (Model.ShowRequestId)
-{
-    <p>
-        <strong>Request ID:</strong> <code>@Model.RequestId</code>
-    </p>
-}
+        @if (Model.ShowRequestId)
+        {
+            <p class="small text-muted mb-3">Código do erro: <code>@Model.RequestId</code></p>
+        }
 
-<h3>Development Mode</h3>
-<p>
-    Swapping to the <strong>Development</strong> environment displays detailed information about the error that occurred.
-</p>
-<p>
-    <strong>The Development environment shouldn't be enabled for deployed applications.</strong>
-    It can result in displaying sensitive information from exceptions to end users.
-    For local debugging, enable the <strong>Development</strong> environment by setting the <strong>ASPNETCORE_ENVIRONMENT</strong> environment variable to <strong>Development</strong>
-    and restarting the app.
-</p>
+        <a class="btn btn-primary" href="javascript:history.back()"><i class="bi bi-arrow-left me-1"></i>Voltar</a>
+    </div>
+</div>

@@ -7,39 +7,14 @@ document.getElementById('searchInput')?.addEventListener('input', function () {
     });
 });
 
-// ===== Mascaras (somente exibicao; no banco salva so numeros) =====
-function mascaraCPF(v) {
-    return v.replace(/\D/g, '').slice(0, 11)
-        .replace(/^(\d{3})(\d)/, '$1.$2')
-        .replace(/^(\d{3})\.(\d{3})(\d)/, '$1.$2.$3')
-        .replace(/\.(\d{3})(\d)/, '.$1-$2');
-}
-function mascaraCEP(v) {
-    return v.replace(/\D/g, '').slice(0, 8).replace(/^(\d{5})(\d)/, '$1-$2');
-}
-function mascaraTelefone(v) {
-    v = v.replace(/\D/g, '').slice(0, 11);
-    if (v.length > 10)
-        return v.replace(/^(\d{2})(\d{5})(\d{4}).*/, '($1) $2-$3');
-    return v.replace(/^(\d{2})(\d{4})(\d{0,4}).*/, '($1) $2-$3').trim();
-}
-function mascaraRG(v) {
-    return v.replace(/\D/g, '').slice(0, 9)
-        .replace(/^(\d{2})(\d)/, '$1.$2')
-        .replace(/^(\d{2})\.(\d{3})(\d)/, '$1.$2.$3')
-        .replace(/\.(\d{3})(\d)/, '.$1-$2');
-}
-function aplicarMascara(id, fn) {
-    const el = document.getElementById(id);
-    el?.addEventListener('input', () => { el.value = fn(el.value); });
-}
+// ===== Mascaras (funcoes em wwwroot/js/module.js; no banco salva so numeros) =====
 aplicarMascara('fCpf', mascaraCPF);
 aplicarMascara('fCep', mascaraCEP);
 aplicarMascara('fTel', mascaraTelefone);
 aplicarMascara('fRg', mascaraRG);
 
 function limparForm() {
-    document.getElementById('modalTitle').innerHTML = '<i class="bi bi-person-badge me-2"></i>Novo Funcionario';
+    document.getElementById('modalTitle').innerHTML = '<i class="bi bi-person-badge me-2"></i>Novo Funcionário';
     ['fId','fNome','fApelido','fCpf','fRg','fSexo','fTel','fEmail','fEnd','fBairro','fNumero','fComplemento','fCep','fNasc','fAdm','fDem','fCargo','fSal','fCom','fObs','fCodigoDisplay'].forEach(id => {
         document.getElementById(id).value = '';
     });
@@ -49,7 +24,7 @@ function limparForm() {
 }
 
 function editarFunc(id,nome,cpf,tel,email,end,bairro,cidade,cep,nasc,adm,dem,idCargo,sal,com,obs,ativo,apelido,rg,numero,complemento,sexo) {
-    document.getElementById('modalTitle').innerHTML = '<i class="bi bi-pencil me-2"></i>Editar Funcionario';
+    document.getElementById('modalTitle').innerHTML = '<i class="bi bi-pencil me-2"></i>Editar Funcionário';
     document.getElementById('fId').value = id;
     document.getElementById('fCodigoDisplay').value = id;
     document.getElementById('fNome').value = nome;
@@ -143,12 +118,6 @@ aplicarMascara('buscaCpf', mascaraCPF);
         if (e.key === 'Enter') { e.preventDefault(); buscarFuncionarios(); }
     });
 });
-
-function statusBadge(ativo) {
-    return ativo
-        ? '<span class="badge-status badge-ativo">Ativo</span>'
-        : '<span class="badge-status badge-inativo">Inativo</span>';
-}
 
 function montarLinha(f, i, token) {
     const adm = f.adm ? f.adm.split('-').reverse().join('/') : '';

@@ -70,7 +70,7 @@ function coletarParcelasCondicao() {
 
 // ===== Abertura do modal =====
 function limparFormCondicao() {
-    document.getElementById('condModalTitle').innerHTML = '<i class="bi bi-list-check me-2"></i>Nova Condicao de Pagamento';
+    document.getElementById('condModalTitle').innerHTML = '<i class="bi bi-list-check me-2"></i>Nova Condição de Pagamento';
     document.getElementById('condIdCondicao').value = '0';
     document.getElementById('condCodigoDisplay').value = '';
     document.getElementById('condDsCondicao').value = '';
@@ -85,7 +85,7 @@ function limparFormCondicao() {
 
 // parcelas: [{ nrDiasVencimento, idFormaPagamento, vlPercentual }]
 function editarCondicao(id, nome, juro, multa, desc, ativo, parcelas) {
-    document.getElementById('condModalTitle').innerHTML = '<i class="bi bi-pencil me-2"></i>Editar Condicao de Pagamento';
+    document.getElementById('condModalTitle').innerHTML = '<i class="bi bi-pencil me-2"></i>Editar Condição de Pagamento';
     document.getElementById('condIdCondicao').value = id;
     document.getElementById('condCodigoDisplay').value = id;
     document.getElementById('condDsCondicao').value = nome;

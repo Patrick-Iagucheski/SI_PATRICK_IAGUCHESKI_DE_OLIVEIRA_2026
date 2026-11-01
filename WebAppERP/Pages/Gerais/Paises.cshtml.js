@@ -15,7 +15,7 @@ document.getElementById('searchInput')?.addEventListener('input', aplicarBusca);
 document.getElementById('buscaId')?.addEventListener('input', aplicarBusca);
 
 function limparForm() {
-    document.getElementById('modalTitle').innerHTML = '<i class="bi bi-globe-americas me-2"></i>Novo Pais';
+    document.getElementById('modalTitle').innerHTML = '<i class="bi bi-globe-americas me-2"></i>Novo País';
     document.getElementById('formCodigoDisplay').value = ''; 
     document.getElementById('formIdPais').value = '0';
     document.getElementById('formNmPais').value = '';
@@ -25,7 +25,7 @@ function limparForm() {
 }
 
 function editarPais(id, nome, sigla, ddi, moeda) {
-    document.getElementById('modalTitle').innerHTML = '<i class="bi bi-pencil me-2"></i>Editar Pais';
+    document.getElementById('modalTitle').innerHTML = '<i class="bi bi-pencil me-2"></i>Editar País';
     document.getElementById('formCodigoDisplay').value = id;
     document.getElementById('formIdPais').value = id;
     document.getElementById('formNmPais').value = nome;
