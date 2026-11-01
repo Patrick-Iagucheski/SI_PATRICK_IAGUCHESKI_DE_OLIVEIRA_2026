@@ -16,7 +16,7 @@ document.getElementById('buscaId')?.addEventListener('input', aplicarBusca);
 
 function limparForm() {
     document.getElementById('modalTitle').innerHTML = '<i class="bi bi-globe-americas me-2"></i>Novo Pais';
-    document.getElementById('formCodigoDisplay').value = '';
+    document.getElementById('formCodigoDisplay').value = ''; 
     document.getElementById('formIdPais').value = '0';
     document.getElementById('formNmPais').value = '';
     document.getElementById('formSgPais').value = '';
