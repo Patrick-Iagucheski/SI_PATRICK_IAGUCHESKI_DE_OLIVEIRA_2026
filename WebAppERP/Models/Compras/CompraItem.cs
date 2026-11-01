@@ -11,6 +11,10 @@ namespace WebAppERP.Models.Compras;
 [Table("tbCmpComprasItens")]
 public class CompraItem
 {
+    // Tipos de item (TpItem)
+    public const string PRODUTO = "PRODUTO";
+    public const string SERVICO = "SERVICO";
+
     [Column("nrNota")]
     public int NrNota { get; set; }
 
@@ -32,7 +36,7 @@ public class CompraItem
     // PRODUTO | SERVICO
     [Column("tpItem")]
     [Required, MaxLength(10)]
-    public string TpItem { get; set; } = "PRODUTO";
+    public string TpItem { get; set; } = PRODUTO;
 
     [Column("idProduto")]
     public int? IdProduto { get; set; }

@@ -3,7 +3,7 @@
 // Item enviado pela tela. Os totais sao recalculados no servidor por seguranca.
 public class CompraItemDTO
 {
-    public string TpItem { get; set; } = "PRODUTO"; // PRODUTO | SERVICO
+    public string TpItem { get; set; } = CompraItem.PRODUTO; // PRODUTO | SERVICO
     public int? IdProduto { get; set; }
     public int? IdServico { get; set; }
     // Saiu da tela (pedido do professor). So vem preenchida em item antigo que

@@ -1,15 +1,15 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
-using Microsoft.EntityFrameworkCore;
 using WebAppERP.Business.Vendas;
 
 namespace WebAppERP.Pages.Vendas;
 
+// Lista de vendas: so conversa com a tela. As regras ficam em VendaBusiness.
 public class VendasModel : PageModel
 {
     private readonly VendaBusiness _business;
 
-    public VendasModel(VendaBusiness repo) => _business = repo;
+    public VendasModel(VendaBusiness business) => _business = business;
 
     public List<Venda> Vendas { get; set; } = [];
 
@@ -20,22 +20,28 @@ public class VendasModel : PageModel
 
     public async Task<IActionResult> OnPostCancelar(int id)
     {
-        await _business.Cancelar(id);
+        try
+        {
+            await _business.Cancelar(id);
+            TempData["Sucesso"] = "Venda cancelada. O estoque dos produtos foi devolvido.";
+        }
+        catch (ValidacaoException ex)
+        {
+            TempData["Erro"] = ex.MensagemCompleta;
+        }
         return RedirectToPage();
     }
 
     public async Task<IActionResult> OnPostExcluir(int id)
     {
-        // O repositorio ja remove os itens antes da venda e estorna o estoque.
-        // O catch cobre qualquer FK futura que passe a apontar para tbVenVendas.
         try
         {
             await _business.Excluir(id);
             TempData["Sucesso"] = "Venda excluída com sucesso.";
         }
-        catch (DbUpdateException)
+        catch (ValidacaoException ex)
         {
-            TempData["Erro"] = "Não é possível excluir: existem registros vinculados a esta venda.";
+            TempData["Erro"] = ex.MensagemCompleta;
         }
         return RedirectToPage();
     }

@@ -3,7 +3,7 @@
 // Item enviado pela tela (totais sao recalculados no servidor por seguranca).
 public class VendaItemDTO
 {
-    public string TpItem { get; set; } = "SERVICO"; // SERVICO | PRODUTO
+    public string TpItem { get; set; } = VendaItem.SERVICO; // SERVICO | PRODUTO
     public int? IdServico { get; set; }
     public int? IdProduto { get; set; }
     public decimal QtItem { get; set; } = 1;

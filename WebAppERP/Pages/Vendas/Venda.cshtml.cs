@@ -7,11 +7,12 @@ using WebAppERP.ViewModels;
 
 namespace WebAppERP.Pages.Vendas;
 
+// Tela de Venda (inclusao e edicao): so conversa com a tela. As regras ficam em VendaBusiness.
 public class VendaModel : PageModel
 {
     private readonly VendaBusiness _business;
 
-    public VendaModel(VendaBusiness repo) => _business = repo;
+    public VendaModel(VendaBusiness business) => _business = business;
 
     private static readonly JsonSerializerOptions JsonOpts = new() { PropertyNameCaseInsensitive = true };
 
@@ -74,11 +75,20 @@ public class VendaModel : PageModel
             Itens = itens
         };
 
-        var (ok, erro, _) = await _business.Salvar(input);
-        if (ok) return RedirectToPage("Vendas");
+        try
+        {
+            await _business.Salvar(input);
+            TempData["Sucesso"] = TpStatus == Venda.FINALIZADA
+                ? "Venda finalizada. Estoque atualizado."
+                : "Venda salva com sucesso.";
+            return RedirectToPage("Vendas");
+        }
+        catch (ValidacaoException ex)
+        {
+            Erro = ex.MensagemCompleta;
+        }
 
         // Em caso de erro, recarrega combos e reexibe a tela com os dados digitados.
-        Erro = erro;
         Vm.Combos = await _business.GetCombos();
         Vm.Venda = new Venda
         {

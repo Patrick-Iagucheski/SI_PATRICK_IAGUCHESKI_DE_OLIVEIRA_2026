@@ -1,4 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using WebAppERP.Business.Financeiro;
 using WebAppERP.Data;
 using WebAppERP.DTOs.Compras;
 
@@ -7,11 +8,19 @@ namespace WebAppERP.Business.Compras;
 // Regras de negocio da compra. Toda a gravacao definitiva acontece dentro
 // de uma unica transacao: compra + itens + parcelas + contas a pagar +
 // estoque. Se qualquer etapa falhar, nada e gravado (rollback).
+// Regra nao atendida lanca ValidacaoException; a tela mostra a mensagem.
 public class CompraBusiness
 {
     private readonly AppDbContext _db;
+    private readonly CondicaoPagamentoBusiness _condicao;
+    private readonly FormaPagamentoBusiness _forma;
 
-    public CompraBusiness(AppDbContext db) => _db = db;
+    public CompraBusiness(AppDbContext db, CondicaoPagamentoBusiness condicao, FormaPagamentoBusiness forma)
+    {
+        _db = db;
+        _condicao = condicao;
+        _forma = forma;
+    }
 
     // Tolerancia de arredondamento na conferencia das parcelas (1 centavo).
     private const decimal ToleranciaParcelas = 0.01m;
@@ -66,16 +75,17 @@ public class CompraBusiness
 
     // Validacao da chave de uma compra NOVA, feita pela tela antes de liberar
     // os demais campos: chave completa, fornecedor ativo e chave ainda nao usada.
-    public async Task<(bool ok, string? erro, string? nomeFornecedor)> ValidarChaveNova(CompraChaveDTO chave)
+    // Devolve a razao social do fornecedor.
+    public async Task<string> ValidarChaveNova(CompraChaveDTO chave)
     {
         if (chave.NrModelo <= 0)
-            return (false, "Informe o modelo da nota.", null);
+            throw new ValidacaoException("Informe o modelo da nota.");
         if (chave.NrSerie < 0)
-            return (false, "Informe a série da nota.", null);
+            throw new ValidacaoException("Informe a série da nota.");
         if (chave.NrNota <= 0)
-            return (false, "Informe o número da nota.", null);
+            throw new ValidacaoException("Informe o número da nota.");
         if (chave.IdFornecedor <= 0)
-            return (false, "Informe o fornecedor.", null);
+            throw new ValidacaoException("Informe o fornecedor.");
 
         var fornecedor = await _db.Fornecedores
             .Where(f => f.IdFornecedor == chave.IdFornecedor)
@@ -83,50 +93,39 @@ public class CompraBusiness
             .FirstOrDefaultAsync();
 
         if (fornecedor == null)
-            return (false, "Fornecedor informado não existe.", null);
+            throw new ValidacaoException("Fornecedor informado não existe.");
         if (!fornecedor.FlAtivo)
-            return (false, "Fornecedor informado está inativo.", null);
+            throw new ValidacaoException("Fornecedor informado está inativo.");
 
-        var existente = await _db.Compras
-            .Where(c => c.NrNota == chave.NrNota
-                     && c.NrSerie == chave.NrSerie
-                     && c.NrModelo == chave.NrModelo
-                     && c.IdFornecedor == chave.IdFornecedor)
-            .Select(c => c.TpStatus)
-            .FirstOrDefaultAsync();
-
+        var existente = await GetSituacao(chave);
         if (existente != null)
-            return (false, $"Já existe uma compra ({existente}) com modelo {chave.NrModelo}, série {chave.NrSerie}, "
-                         + $"número {chave.NrNota} para este fornecedor.", fornecedor.DsRazaoSocial);
+            throw new ValidacaoException($"Já existe uma compra ({existente}) com modelo {chave.NrModelo}, série {chave.NrSerie}, "
+                                       + $"número {chave.NrNota} para este fornecedor.");
 
-        return (true, null, fornecedor.DsRazaoSocial);
+        return fornecedor.DsRazaoSocial ?? string.Empty;
     }
 
+    // Condicoes e formas de pagamento ativas para os combos do bloco Pagamento.
     public async Task<CompraCombosDTO> GetCombos() => new()
     {
-        Fornecedores = await _db.Fornecedores.Where(f => f.FlAtivo).OrderBy(f => f.DsRazaoSocial).ToListAsync(),
-        Transportadores = await _db.Transportadores.OrderBy(t => t.DsRazaoSocial).ToListAsync(),
-        Produtos = await _db.Produtos.Where(p => p.FlAtivo).OrderBy(p => p.DsProduto).ToListAsync(),
-        Servicos = await _db.Servicos.Where(s => s.FlAtivo).OrderBy(s => s.DsServico).ToListAsync(),
-        Condicoes = await _db.CondicoesPagamento.Where(c => c.FlAtivo).OrderBy(c => c.DsCondicao).ToListAsync(),
-        Formas = await _db.FormasPagamento.Where(f => f.FlAtivo).OrderBy(f => f.DsFormaPagamento).ToListAsync()
+        Condicoes = await _condicao.Listar(somenteAtivas: true),
+        Formas = await _forma.Listar(somenteAtivas: true)
     };
 
     // ============================================================
     // Gravacao
     // ============================================================
 
-    // Grava a compra. TpStatus RASCUNHO nao gera Contas a Pagar nem estoque;
-    // FINALIZADA grava tudo de forma atomica (compra + itens + parcelas +
-    // contas a pagar + estoque).
-    public async Task<(bool ok, string? erro, CompraChaveDTO chave)> Salvar(CompraDTO input)
+    // Grava a compra e devolve a chave gravada. TpStatus RASCUNHO nao gera
+    // Contas a Pagar nem estoque; FINALIZADA grava tudo de forma atomica
+    // (compra + itens + parcelas + contas a pagar + estoque).
+    public async Task<CompraChaveDTO> Salvar(CompraDTO input)
     {
         var chave = input.GetChave();
         var finalizar = input.TpStatus == Compra.FINALIZADA;
 
         // ---------- 1. Validacao do cabecalho ----------
-        var (cabecalhoOk, erroCabecalho) = await ValidarCabecalho(input);
-        if (!cabecalhoOk) return (false, erroCabecalho, chave);
+        await ValidarCabecalho(input);
 
         // A chave identifica a compra: alterar qualquer parte dela seria
         // criar outra compra. Exige cancelar e lancar uma nova.
@@ -135,10 +134,12 @@ public class CompraBusiness
             var orig = input.ChaveOriginal;
             if (orig.NrNota != chave.NrNota || orig.NrSerie != chave.NrSerie
                 || orig.NrModelo != chave.NrModelo || orig.IdFornecedor != chave.IdFornecedor)
-                return (false, "Modelo, série, número e fornecedor identificam a compra e não podem ser alterados. "
-                             + "Cancele esta compra e lance uma nova.", orig);
+                throw new ValidacaoException("Modelo, série, número e fornecedor identificam a compra e não podem ser alterados.",
+                                             "Cancele esta compra e lance uma nova.");
         }
 
+        // Qualquer ValidacaoException daqui em diante descarta a transacao
+        // (rollback no dispose): nada do que foi ajustado e gravado.
         await using var tx = await _db.Database.BeginTransactionAsync();
 
         // ---------- 2. Situacao atual ----------
@@ -153,27 +154,26 @@ public class CompraBusiness
         // Inclusao sobre chave ja existente: a PK barraria, mas a mensagem
         // amigavel vem daqui. O catch de DbUpdateException cobre a corrida.
         if (existente == null && input.ChaveOriginal is { Preenchida: true })
-            return (false, "Compra não encontrada para edição.", chave);
+            throw new ValidacaoException("Compra não encontrada para edição.");
 
         if (existente != null && input.ChaveOriginal is not { Preenchida: true })
-            return (false, $"Já existe uma compra com modelo {chave.NrModelo}, série {chave.NrSerie}, "
-                         + $"número {chave.NrNota} para este fornecedor.", chave);
+            throw new ValidacaoException($"Já existe uma compra com modelo {chave.NrModelo}, série {chave.NrSerie}, "
+                                       + $"número {chave.NrNota} para este fornecedor.");
 
         if (existente is { TpStatus: Compra.CANCELADA })
-            return (false, "Compra cancelada não pode ser editada.", chave);
+            throw new ValidacaoException("Compra cancelada não pode ser editada.");
 
         // ---------- 3. Estorno do que a versao anterior gerou ----------
         var contasAnteriores = await GetContasGeradas(chave);
 
         if (contasAnteriores.Any(c => c.DsStatus == ContaAPagar.PAGO || c.VlPago > 0))
-            return (false, "Esta compra possui título já pago/baixado no Contas a Pagar. "
-                         + "Estorne o pagamento antes de alterar a compra.", chave);
+            throw new ValidacaoException("Esta compra possui título já pago/baixado no Contas a Pagar.",
+                                         "Estorne o pagamento antes de alterar a compra.");
 
         if (existente is { TpStatus: Compra.FINALIZADA })
         {
             // Devolve o estoque que a versao anterior deu entrada.
-            var (estornoOk, erroEstorno) = await AjustarEstoque(existente.Itens, -1, validar: true);
-            if (!estornoOk) return (false, erroEstorno, chave);
+            await AjustarEstoque(existente.Itens, -1, validar: true);
 
             // Os titulos serao regerados a partir das novas parcelas.
             if (contasAnteriores.Count > 0)
@@ -181,34 +181,31 @@ public class CompraBusiness
         }
 
         // ---------- 4. Itens (recalculados no servidor) ----------
-        var (itensOk, erroItens, novosItens, totalProdutos) = MontarItens(input, chave);
-        if (!itensOk) return (false, erroItens, chave);
+        var (novosItens, totalProdutos) = MontarItens(input, chave);
 
         var custoAdicional = input.VlFrete + input.VlSeguro + input.VlOutrasDespesas;
         var totalCompra = totalProdutos + custoAdicional;
         RatearCustoAdicional(novosItens, custoAdicional);
 
         // ---------- 5. Parcelas ----------
-        var (parcelasOk, erroParcelas, novasParcelas) = MontarParcelas(input, chave);
-        if (!parcelasOk) return (false, erroParcelas, chave);
+        var novasParcelas = MontarParcelas(input, chave);
 
         // ---------- 6. Regras exclusivas da finalizacao ----------
         if (finalizar)
         {
             if (novosItens.Count == 0)
-                return (false, "Adicione ao menos um produto/serviço para finalizar a compra.", chave);
+                throw new ValidacaoException("Adicione ao menos um produto/serviço para finalizar a compra.");
 
             if (novasParcelas.Count == 0)
-                return (false, "Informe ao menos uma parcela de pagamento para finalizar a compra.", chave);
+                throw new ValidacaoException("Informe ao menos uma parcela de pagamento para finalizar a compra.");
 
             var somaParcelas = novasParcelas.Sum(p => p.VlParcela);
             if (Math.Abs(somaParcelas - totalCompra) > ToleranciaParcelas)
-                return (false, $"A soma das parcelas (R$ {somaParcelas:N2}) é diferente do total da compra "
-                             + $"(R$ {totalCompra:N2}). Ajuste os pagamentos.", chave);
+                throw new ValidacaoException($"A soma das parcelas (R$ {somaParcelas:N2}) é diferente do total da compra "
+                                           + $"(R$ {totalCompra:N2}).", "Ajuste os pagamentos.");
 
             // Entrada no estoque dos produtos, recalculando o custo medio.
-            var (estoqueOk, erroEstoque) = await AjustarEstoque(novosItens, +1);
-            if (!estoqueOk) return (false, erroEstoque, chave);
+            await AjustarEstoque(novosItens, +1);
         }
 
         // ---------- 7. Persistencia do cabecalho ----------
@@ -279,14 +276,14 @@ public class CompraBusiness
             // Violacao da PK composta: outra sessao gravou a mesma
             // Modelo + Serie + Numero + Fornecedor no meio do caminho.
             if (ex.InnerException?.Message.Contains("PK_tbCmpCompras") == true)
-                return (false, $"Já existe uma compra com modelo {chave.NrModelo}, série {chave.NrSerie}, "
-                             + $"número {chave.NrNota} para este fornecedor.", chave);
+                throw new ValidacaoException($"Já existe uma compra com modelo {chave.NrModelo}, série {chave.NrSerie}, "
+                                           + $"número {chave.NrNota} para este fornecedor.");
 
-            return (false, "Não foi possível gravar a compra. Nenhuma alteração foi aplicada. "
-                         + "Verifique os dados informados e tente novamente.", chave);
+            throw new ValidacaoException("Não foi possível gravar a compra. Nenhuma alteração foi aplicada.",
+                                         "Verifique os dados informados e tente novamente.");
         }
 
-        return (true, null, chave);
+        return chave;
     }
 
     // ============================================================
@@ -294,30 +291,30 @@ public class CompraBusiness
     // ============================================================
 
     // Cancela a compra estornando o estoque e cancelando os titulos gerados.
-    public async Task<(bool ok, string? erro)> Cancelar(CompraChaveDTO chave)
+    public async Task Cancelar(CompraChaveDTO chave)
     {
         var compra = await _db.Compras
             .Include(c => c.Itens)
             .FirstOrDefaultAsync(c => c.NrNota == chave.NrNota
                                    && c.NrSerie == chave.NrSerie
                                    && c.NrModelo == chave.NrModelo
-                                   && c.IdFornecedor == chave.IdFornecedor);
+                                   && c.IdFornecedor == chave.IdFornecedor)
+            ?? throw new ValidacaoException("Compra não encontrada.");
 
-        if (compra == null) return (false, "Compra não encontrada.");
-        if (compra.TpStatus == Compra.CANCELADA) return (true, null);
+        if (compra.TpStatus == Compra.CANCELADA)
+            return;
 
         var contas = await GetContasGeradas(chave);
         if (contas.Any(c => c.DsStatus == ContaAPagar.PAGO || c.VlPago > 0))
-            return (false, "Não é possível cancelar: existe título já pago/baixado no Contas a Pagar. "
-                         + "Estorne o pagamento primeiro.");
+            throw new ValidacaoException("Não é possível cancelar: existe título já pago/baixado no Contas a Pagar.",
+                                         "Estorne o pagamento primeiro.");
 
         await using var tx = await _db.Database.BeginTransactionAsync();
 
         if (compra.TpStatus == Compra.FINALIZADA)
         {
             // Devolve o estoque que a compra deu entrada.
-            var (ok, erro) = await AjustarEstoque(compra.Itens, -1, validar: true);
-            if (!ok) return (false, erro);
+            await AjustarEstoque(compra.Itens, -1, validar: true);
 
             // Titulos sao cancelados (nao excluidos) para preservar o historico.
             foreach (var conta in contas)
@@ -333,11 +330,10 @@ public class CompraBusiness
 
         await _db.SaveChangesAsync();
         await tx.CommitAsync();
-        return (true, null);
     }
 
     // Exclusao definitiva. So permitida enquanto a compra nao gerou financeiro.
-    public async Task<(bool ok, string? erro)> Excluir(CompraChaveDTO chave)
+    public async Task Excluir(CompraChaveDTO chave)
     {
         var compra = await _db.Compras
             .Include(c => c.Itens)
@@ -345,16 +341,15 @@ public class CompraBusiness
             .FirstOrDefaultAsync(c => c.NrNota == chave.NrNota
                                    && c.NrSerie == chave.NrSerie
                                    && c.NrModelo == chave.NrModelo
-                                   && c.IdFornecedor == chave.IdFornecedor);
-
-        if (compra == null) return (false, "Compra não encontrada.");
+                                   && c.IdFornecedor == chave.IdFornecedor)
+            ?? throw new ValidacaoException("Compra não encontrada.");
 
         if (compra.TpStatus == Compra.FINALIZADA)
-            return (false, "Compra finalizada não pode ser excluída. Utilize o cancelamento.");
+            throw new ValidacaoException("Compra finalizada não pode ser excluída.", "Utilize o cancelamento.");
 
         var contas = await GetContasGeradas(chave);
         if (contas.Count > 0)
-            return (false, "Não é possível excluir: existem títulos no Contas a Pagar vinculados a esta compra.");
+            throw new ValidacaoException("Não é possível excluir: existem títulos no Contas a Pagar vinculados a esta compra.");
 
         await using var tx = await _db.Database.BeginTransactionAsync();
 
@@ -364,45 +359,43 @@ public class CompraBusiness
 
         await _db.SaveChangesAsync();
         await tx.CommitAsync();
-        return (true, null);
     }
 
     // ============================================================
     // Apoio
     // ============================================================
 
-    private async Task<(bool ok, string? erro)> ValidarCabecalho(CompraDTO input)
+    private async Task ValidarCabecalho(CompraDTO input)
     {
         if (input.NrModelo <= 0)
-            return (false, "Informe o modelo da nota.");
+            throw new ValidacaoException("Informe o modelo da nota.");
         if (input.NrSerie < 0)
-            return (false, "Informe a série da nota.");
+            throw new ValidacaoException("Informe a série da nota.");
         if (input.NrNota <= 0)
-            return (false, "Informe o número da nota.");
+            throw new ValidacaoException("Informe o número da nota.");
         if (input.IdFornecedor <= 0)
-            return (false, "Selecione o fornecedor.");
+            throw new ValidacaoException("Selecione o fornecedor.");
         if (input.DtEmissao == null)
-            return (false, "Informe a data de emissão.");
+            throw new ValidacaoException("Informe a data de emissão.");
 
         if (input.DtEmissao > DateOnly.FromDateTime(DateTime.Today))
-            return (false, "A data de emissão não pode ser posterior à data atual.");
+            throw new ValidacaoException("A data de emissão não pode ser posterior à data atual.");
 
         if (input.DtChegada != null && input.DtChegada < input.DtEmissao)
-            return (false, "A data de chegada não pode ser anterior à data de emissão.");
+            throw new ValidacaoException("A data de chegada não pode ser anterior à data de emissão.");
 
         // So se informa a chegada depois que a mercadoria chegou.
         if (input.DtChegada > DateOnly.FromDateTime(DateTime.Today))
-            return (false, "A data de chegada não pode ser posterior à data atual.");
+            throw new ValidacaoException("A data de chegada não pode ser posterior à data atual.");
 
         if (input.VlFrete < 0 || input.VlSeguro < 0 || input.VlOutrasDespesas < 0)
-            return (false, "Frete, seguro e outros gastos não podem ser negativos.");
+            throw new ValidacaoException("Frete, seguro e outros gastos não podem ser negativos.");
 
         var fornecedor = await _db.Fornecedores.AsNoTracking()
             .Where(f => f.IdFornecedor == input.IdFornecedor)
             .Select(f => new { f.IdCondicaoPagamento })
-            .FirstOrDefaultAsync();
-        if (fornecedor == null)
-            return (false, "Fornecedor informado não existe.");
+            .FirstOrDefaultAsync()
+            ?? throw new ValidacaoException("Fornecedor informado não existe.");
 
         // Fornecedor com condicao de pagamento no cadastro: a compra usa sempre a
         // dele (a tela trava o campo; aqui vale mesmo que o POST venha diferente).
@@ -415,21 +408,18 @@ public class CompraBusiness
 
         if (input.IdTransportador is > 0
             && !await _db.Transportadores.AnyAsync(t => t.IdTransportador == input.IdTransportador))
-            return (false, "Transportadora informada não existe.");
+            throw new ValidacaoException("Transportadora informada não existe.");
 
         if (input.IdCondicaoPagamento is > 0
             && !await _db.CondicoesPagamento.AnyAsync(c => c.IdCondicaoPagamento == input.IdCondicaoPagamento))
-            return (false, "Condição de pagamento informada não existe.");
+            throw new ValidacaoException("Condição de pagamento informada não existe.");
 
         if (input.TpStatus != Compra.RASCUNHO && input.TpStatus != Compra.FINALIZADA)
-            return (false, "Situação da compra inválida.");
-
-        return (true, null);
+            throw new ValidacaoException("Situação da compra inválida.");
     }
 
     // Recalcula os itens no servidor. O total enviado pela tela e ignorado.
-    private (bool ok, string? erro, List<CompraItem> itens, decimal total) MontarItens(
-        CompraDTO input, CompraChaveDTO chave)
+    private static (List<CompraItem> itens, decimal total) MontarItens(CompraDTO input, CompraChaveDTO chave)
     {
         var itens = new List<CompraItem>();
         decimal total = 0;
@@ -439,26 +429,26 @@ public class CompraBusiness
         {
             seq++;
 
-            var produto = dto.TpItem == "PRODUTO";
+            var produto = dto.TpItem == CompraItem.PRODUTO;
             if (produto && dto.IdProduto is not > 0)
-                return (false, $"Item {seq}: selecione o produto.", [], 0);
+                throw new ValidacaoException($"Item {seq}: selecione o produto.");
             if (!produto && dto.IdServico is not > 0)
-                return (false, $"Item {seq}: selecione o serviço.", [], 0);
+                throw new ValidacaoException($"Item {seq}: selecione o serviço.");
 
             if (dto.QtItem <= 0)
-                return (false, $"Item {seq}: a quantidade deve ser maior que zero.", [], 0);
+                throw new ValidacaoException($"Item {seq}: a quantidade deve ser maior que zero.");
             if (dto.VlUnitario < 0)
-                return (false, $"Item {seq}: o preço unitário não pode ser negativo.", [], 0);
+                throw new ValidacaoException($"Item {seq}: o preço unitário não pode ser negativo.");
             if (dto.VlDesconto < 0)
-                return (false, $"Item {seq}: o desconto não pode ser negativo.", [], 0);
+                throw new ValidacaoException($"Item {seq}: o desconto não pode ser negativo.");
 
             // Total do item = Quantidade x Preco Unitario - Desconto.
             var bruto = Math.Round(dto.QtItem * dto.VlUnitario, 2, MidpointRounding.AwayFromZero);
             var totalItem = bruto - dto.VlDesconto;
 
             if (totalItem < 0)
-                return (false, $"Item {seq}: o desconto (R$ {dto.VlDesconto:N2}) é maior que o valor do item "
-                             + $"(R$ {bruto:N2}) e deixaria o total negativo.", [], 0);
+                throw new ValidacaoException($"Item {seq}: o desconto (R$ {dto.VlDesconto:N2}) é maior que o valor do item "
+                                           + $"(R$ {bruto:N2}) e deixaria o total negativo.");
 
             total += totalItem;
 
@@ -469,7 +459,7 @@ public class CompraBusiness
                 NrModelo = chave.NrModelo,
                 IdFornecedor = chave.IdFornecedor,
                 NrItem = seq,
-                TpItem = produto ? "PRODUTO" : "SERVICO",
+                TpItem = produto ? CompraItem.PRODUTO : CompraItem.SERVICO,
                 IdProduto = produto ? dto.IdProduto : null,
                 IdServico = produto ? null : dto.IdServico,
                 IdClassificacaoConta = dto.IdClassificacaoConta,
@@ -481,7 +471,7 @@ public class CompraBusiness
             });
         }
 
-        return (true, null, itens, total);
+        return (itens, total);
     }
 
     // Rateia o custo adicional (frete + seguro + outros) entre os PRODUTOS,
@@ -490,7 +480,7 @@ public class CompraBusiness
     // Mesma conta feita pela tela em calcRateio().
     private static void RatearCustoAdicional(List<CompraItem> itens, decimal custoAdicional)
     {
-        var produtos = itens.Where(i => i.TpItem == "PRODUTO").ToList();
+        var produtos = itens.Where(i => i.TpItem == CompraItem.PRODUTO).ToList();
         var baseRateio = produtos.Sum(i => i.VlTotal);
         decimal acumulado = 0;
 
@@ -511,15 +501,14 @@ public class CompraBusiness
 
         foreach (var item in itens)
         {
-            if (item.TpItem != "PRODUTO") item.VlRateio = 0;
+            if (item.TpItem != CompraItem.PRODUTO) item.VlRateio = 0;
             // 2 casas decimais, igual a tela: 5 arredonda para cima, abaixo de 5 para baixo.
             item.VlCustoUnitario = Math.Round((item.VlTotal + item.VlRateio) / item.QtItem, 2,
                                               MidpointRounding.AwayFromZero);
         }
     }
 
-    private (bool ok, string? erro, List<CompraPagamento> parcelas) MontarParcelas(
-        CompraDTO input, CompraChaveDTO chave)
+    private static List<CompraPagamento> MontarParcelas(CompraDTO input, CompraChaveDTO chave)
     {
         var parcelas = new List<CompraPagamento>();
         var seq = 0;
@@ -529,11 +518,11 @@ public class CompraBusiness
             seq++;
 
             if (dto.IdFormaPagamento <= 0)
-                return (false, $"Parcela {seq}: selecione a forma de pagamento.", []);
+                throw new ValidacaoException($"Parcela {seq}: selecione a forma de pagamento.");
             if (dto.VlParcela <= 0)
-                return (false, $"Parcela {seq}: o valor deve ser maior que zero.", []);
+                throw new ValidacaoException($"Parcela {seq}: o valor deve ser maior que zero.");
             if (dto.DtVencimento == null)
-                return (false, $"Parcela {seq}: informe a data de vencimento.", []);
+                throw new ValidacaoException($"Parcela {seq}: informe a data de vencimento.");
 
             parcelas.Add(new CompraPagamento
             {
@@ -549,7 +538,7 @@ public class CompraBusiness
             });
         }
 
-        return (true, null, parcelas);
+        return parcelas;
     }
 
     // Um titulo no Contas a Pagar por parcela da compra, mantendo o vinculo
@@ -594,10 +583,9 @@ public class CompraBusiness
     // (entrada pela compra) ou -1 (estorno). validar=true impede que o estorno
     // deixe saldo negativo. Mesmo mecanismo de saldo usado por VendaBusiness,
     // com o sinal invertido.
-    private async Task<(bool ok, string? erro)> AjustarEstoque(
-        IEnumerable<CompraItem> itens, int sinal, bool validar = false)
+    private async Task AjustarEstoque(IEnumerable<CompraItem> itens, int sinal, bool validar = false)
     {
-        foreach (var item in itens.Where(i => i.TpItem == "PRODUTO" && i.IdProduto != null))
+        foreach (var item in itens.Where(i => i.TpItem == CompraItem.PRODUTO && i.IdProduto != null))
         {
             var prod = await _db.Produtos.FindAsync(item.IdProduto);
             if (prod == null) continue;
@@ -606,9 +594,9 @@ public class CompraBusiness
             var novo = atual + sinal * item.QtItem;
 
             if (validar && novo < 0)
-                return (false, $"Não é possível estornar a entrada de '{prod.DsProduto}': o saldo ficaria negativo "
-                             + $"(atual: {atual:N4}, estorno: {item.QtItem:N4}). "
-                             + "Provavelmente o produto já foi vendido/consumido.");
+                throw new ValidacaoException($"Não é possível estornar a entrada de '{prod.DsProduto}': o saldo ficaria negativo "
+                                           + $"(atual: {atual:N4}, estorno: {item.QtItem:N4}).",
+                                             "Provavelmente o produto já foi vendido/consumido.");
 
             // O custo medio usa o saldo ANTERIOR ao movimento, por isso e
             // calculado antes de gravar o novo saldo.
@@ -616,8 +604,6 @@ public class CompraBusiness
                            ?? prod.VlCusto;
             prod.QtSaldo = novo;
         }
-
-        return (true, null);
     }
 
     // Custo medio ponderado, conforme definido em aula:

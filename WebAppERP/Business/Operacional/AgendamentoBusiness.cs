@@ -36,6 +36,15 @@ public class AgendamentoBusiness
             .OrderBy(a => a.HrInicio)
             .ToListAsync();
 
+    // Agendamentos que podem originar uma venda: os mais recentes, sem os cancelados.
+    public async Task<List<Agendamento>> ListarParaVenda() =>
+        await _db.Agendamentos
+            .Include(a => a.Cliente)
+            .Where(a => a.TpStatus != Agendamento.CANCELADO)
+            .OrderByDescending(a => a.DtAgendamento).ThenByDescending(a => a.HrInicio)
+            .Take(100)
+            .ToListAsync();
+
     // ============================================================
     // Gravacao
     // ============================================================

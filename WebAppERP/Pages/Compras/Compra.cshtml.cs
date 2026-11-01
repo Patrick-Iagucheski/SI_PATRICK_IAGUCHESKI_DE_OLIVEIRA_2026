@@ -164,10 +164,10 @@ public class CompraModel : PageModel
     public async Task<IActionResult> OnPost()
     {
         var input = MontarDados();
-        var (ok, erro, chave) = await _business.Salvar(input);
-
-        if (ok)
+        try
         {
+            var chave = await _business.Salvar(input);
+
             TempData["Sucesso"] = TpStatus == Compra.FINALIZADA
                 ? "Compra finalizada. Estoque atualizado e títulos gerados no Contas a Pagar."
                 : "Rascunho da compra salvo com sucesso.";
@@ -180,14 +180,17 @@ public class CompraModel : PageModel
                 idFornecedor = chave.IdFornecedor
             });
         }
+        catch (ValidacaoException ex)
+        {
+            Erro = ex.MensagemCompleta;
+        }
 
         // Em caso de erro, recarrega os combos e reexibe a tela com os dados digitados.
-        Erro = erro;
         Vm.Combos = await _business.GetCombos();
         Vm.Edicao = OrigNrNota > 0;
 
         // Numa inclusao, a chave so volta travada se ainda estiver livre.
-        ChaveValidada = Vm.Edicao || (await _business.ValidarChaveNova(input.GetChave())).ok;
+        ChaveValidada = Vm.Edicao || await ChaveLivre(input.GetChave());
         if (ChaveValidada) CondicaoFornecedor = await GetCondicaoFornecedor(IdFornecedor);
         Vm.Compra = new Compra
         {
@@ -211,6 +214,20 @@ public class CompraModel : PageModel
         return Page();
     }
 
+    // Chave de compra nova ainda disponivel (fornecedor ativo e nota nao lancada).
+    private async Task<bool> ChaveLivre(CompraChaveDTO chave)
+    {
+        try
+        {
+            await _business.ValidarChaveNova(chave);
+            return true;
+        }
+        catch (ValidacaoException)
+        {
+            return false;
+        }
+    }
+
     // ============================================================
     // Rascunho gravado desde a validacao da chave
     // ============================================================
@@ -222,20 +239,27 @@ public class CompraModel : PageModel
     public async Task<IActionResult> OnPostIniciarRascunho()
     {
         var chave = new CompraChaveDTO { NrNota = NrNota, NrSerie = NrSerie, NrModelo = NrModelo, IdFornecedor = IdFornecedor };
-        var (ok, erro, nomeFornecedor) = await _business.ValidarChaveNova(chave);
-        if (!ok) return new JsonResult(new { ok, erro, fornecedor = nomeFornecedor });
-
-        var (salvo, erroSalvar, _) = await _business.Salvar(new CompraDTO
+        string nomeFornecedor;
+        try
         {
-            NrNota = NrNota,
-            NrSerie = NrSerie,
-            NrModelo = NrModelo,
-            IdFornecedor = IdFornecedor,
-            DtEmissao = DateOnly.FromDateTime(DateTime.Today),
-            IdCondicaoPagamento = await GetCondicaoFornecedor(IdFornecedor),
-            TpStatus = Compra.RASCUNHO
-        });
-        if (!salvo) return new JsonResult(new { ok = false, erro = erroSalvar, fornecedor = nomeFornecedor });
+            nomeFornecedor = await _business.ValidarChaveNova(chave);
+            await _business.Salvar(new CompraDTO
+            {
+                NrNota = NrNota,
+                NrSerie = NrSerie,
+                NrModelo = NrModelo,
+                IdFornecedor = IdFornecedor,
+                DtEmissao = DateOnly.FromDateTime(DateTime.Today),
+                IdCondicaoPagamento = await GetCondicaoFornecedor(IdFornecedor),
+                TpStatus = Compra.RASCUNHO
+            });
+        }
+        catch (ValidacaoException ex)
+        {
+            // O nome do fornecedor volta mesmo no erro, para a tela mostrar de quem e a nota.
+            var fornecedor = IdFornecedor > 0 ? await _fornecedor.GetFornecedor(IdFornecedor) : null;
+            return new JsonResult(new { ok = false, erro = ex.MensagemCompleta, fornecedor = fornecedor?.DsRazaoSocial });
+        }
 
         return new JsonResult(new
         {
@@ -261,8 +285,15 @@ public class CompraModel : PageModel
             return new JsonResult(new { ok = false, erro = "Só compras em rascunho são salvas automaticamente." });
 
         TpStatus = Compra.RASCUNHO;
-        var (ok, erro, _) = await _business.Salvar(MontarDados());
-        return new JsonResult(new { ok, erro, hora = DateTime.Now.ToString("HH:mm:ss") });
+        try
+        {
+            await _business.Salvar(MontarDados());
+            return new JsonResult(new { ok = true, erro = (string?)null, hora = DateTime.Now.ToString("HH:mm:ss") });
+        }
+        catch (ValidacaoException ex)
+        {
+            return new JsonResult(new { ok = false, erro = ex.MensagemCompleta });
+        }
     }
 
     // ============================================================

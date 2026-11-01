@@ -50,14 +50,16 @@ function adicionarItem() {
     } else {
         const id = parseInt(document.getElementById('itServico').value) || 0;
         const s = SERVICOS.find(x => x.id === id);
-        if (!s) { alert('Selecione um servico.'); return; }
+        if (!s) { alert('Selecione um serviço.'); return; }
         item = { tpItem: 'SERVICO', idServico: id, idProduto: null, descricao: s.nome };
     }
     const qt = num('itQt');
     if (qt <= 0) { alert('Informe a quantidade.'); return; }
     const vlUnit = num('itVlUnit');
     const desc = num('itDesc');
+    if (desc < 0) { alert('O desconto não pode ser negativo.'); return; }
     const total = qt * vlUnit - desc;
+    if (total < 0) { alert('O desconto é maior que o valor do item.'); return; }
     item.qtItem = qt; item.vlUnitario = vlUnit; item.vlDesconto = desc; item.vlTotal = total > 0 ? total : 0;
 
     // Validacao de estoque (produto): considera o que ja esta no carrinho.
@@ -66,7 +68,7 @@ function adicionarItem() {
         const noCarrinho = ITENS.filter(i => i.tpItem === 'PRODUTO' && i.idProduto === item.idProduto)
                                 .reduce((a, b) => a + b.qtItem, 0);
         if (noCarrinho + qt > p.saldo) {
-            if (!confirm('Quantidade acima do saldo em estoque (' + moeda(p.saldo) + '). A venda nao podera ser FINALIZADA assim. Adicionar mesmo assim?')) return;
+            if (!confirm('Quantidade acima do saldo em estoque (' + moeda(p.saldo) + '). A venda não poderá ser FINALIZADA assim. Adicionar mesmo assim?')) return;
         }
     }
 
@@ -138,8 +140,9 @@ function calcTotais() {
 
 function salvar(status) {
     const func = document.getElementById('IdFuncionario');
-    if (!func.value) { alert('Selecione o funcionario responsavel.'); func.focus(); return; }
+    if (!func.value) { alert('Selecione o funcionário responsável.'); func.focus(); return; }
     if (status === 'FINALIZADA' && ITENS.length === 0) { alert('Adicione ao menos um item para finalizar.'); return; }
+    if (status === 'FINALIZADA' && !document.getElementById('IdFormaPagamento').value) { alert('Selecione a forma de pagamento para finalizar a venda.'); return; }
     document.getElementById('TpStatus').value = status;
     document.getElementById('ItensJson').value = JSON.stringify(ITENS.map(i => ({
         TpItem: i.tpItem, IdServico: i.idServico, IdProduto: i.idProduto,

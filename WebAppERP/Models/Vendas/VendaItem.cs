@@ -6,6 +6,10 @@ namespace WebAppERP.Models.Vendas;
 [Table("tbVenVendasItens")]
 public class VendaItem
 {
+    // Tipos de item (TpItem)
+    public const string PRODUTO = "PRODUTO";
+    public const string SERVICO = "SERVICO";
+
     [Key]
     [Column("idVendaItem")]
     public int IdVendaItem { get; set; }
@@ -18,7 +22,7 @@ public class VendaItem
 
     [Column("tpItem")]
     [Required, MaxLength(10)]
-    public string TpItem { get; set; } = "SERVICO"; // SERVICO | PRODUTO
+    public string TpItem { get; set; } = SERVICO;
 
     [Column("idServico")]
     public int? IdServico { get; set; }
