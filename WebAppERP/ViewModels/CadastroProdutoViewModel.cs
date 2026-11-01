@@ -14,4 +14,7 @@ public class CadastroProdutoViewModel
     // "ajax": Salvar grava por fetch e dispara o evento 'produto:salvo',
     //         para telas que so precisam do produto novo (ex.: Compra).
     public string Modo { get; set; } = "post";
+
+    // O script do componente entra so na primeira vez que ele aparece na pagina.
+    public bool IncluirScript { get; set; }
 }

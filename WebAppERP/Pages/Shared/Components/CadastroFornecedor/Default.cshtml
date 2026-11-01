@@ -1,7 +1,8 @@
 ﻿@model WebAppERP.ViewModels.CadastroFornecedorViewModel
 @*
     Componente de cadastro de fornecedor (ViewComponents/CadastroFornecedorViewComponent).
-    Precisa de wwwroot/js/Gerais/CadastroFornecedor.js na pagina que o usa.
+    Traz o proprio script (Default.cshtml.js, nesta pasta), incluido uma vez por
+    pagina: a tela que usa o componente so precisa do Component.InvokeAsync.
     data-modo="ajax" faz o Salvar gravar por fetch e disparar o evento
     'fornecedor:salvo' (detail: id, razaoSocial, nomeFantasia).
     A cidade usa o componente unico CampoCidade (droplist + cadastro rapido de
@@ -228,3 +229,8 @@
    Condicoes de Pagamento), aberto pelo + do campo Condicao de Pagamento.
    Fica fora do modal do fornecedor: modal dentro de modal nao abre direito. *@
 @await Component.InvokeAsync("CadastroCondicaoPagamento", new { modo = "ajax" })
+
+@if (Model.IncluirScript)
+{
+    <script src="~/Pages/Shared/Components/CadastroFornecedor/Default.cshtml.js" asp-append-version="true"></script>
+}

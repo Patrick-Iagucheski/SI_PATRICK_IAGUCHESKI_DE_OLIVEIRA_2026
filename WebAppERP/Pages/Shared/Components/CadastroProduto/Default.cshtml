@@ -1,7 +1,8 @@
 ﻿@model WebAppERP.ViewModels.CadastroProdutoViewModel
 @*
     Componente de cadastro de produto (ViewComponents/CadastroProdutoViewComponent).
-    Precisa de wwwroot/js/Estoque/CadastroProduto.js na pagina que o usa.
+    Traz o proprio script (Default.cshtml.js, nesta pasta), incluido uma vez por
+    pagina: a tela que usa o componente so precisa do Component.InvokeAsync.
     data-modo="ajax" faz o Salvar gravar por fetch e disparar o evento
     'produto:salvo' (detail: id, nome, unidade, custo).
     Os ids usam o prefixo "prod" para nao colidir com o componente de
@@ -123,7 +124,7 @@
                             <small class="text-muted">A imagem sera enviada apenas ao salvar o produto. Formatos: JPG, PNG, WEBP, GIF (max 500 MB).</small>
                             <div class="mt-2 d-none" id="prodImgPreviewWrap">
                                 @* Sem src no HTML: src vazio dispara onerror ja no carregamento,
-                                   antes de CadastroProduto.js existir. *@
+                                   antes do script do componente existir. *@
                                 <img id="prodImgPreview" alt="Pre-visualizacao" class="img-thumbnail d-block mb-2"
                                      style="max-height:120px;" onerror="imagemQuebrada()" />
                                 <span id="prodImgIndisponivel" class="text-muted small d-none">
@@ -204,3 +205,8 @@
         </div>
     </div>
 </div>
+
+@if (Model.IncluirScript)
+{
+    <script src="~/Pages/Shared/Components/CadastroProduto/Default.cshtml.js" asp-append-version="true"></script>
+}

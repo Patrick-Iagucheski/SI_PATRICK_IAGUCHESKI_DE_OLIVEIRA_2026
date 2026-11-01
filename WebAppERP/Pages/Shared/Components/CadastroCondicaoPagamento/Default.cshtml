@@ -2,7 +2,7 @@
 @*
     Componente de cadastro de condicao de pagamento
     (ViewComponents/CadastroCondicaoPagamentoViewComponent).
-    Traz o proprio script (CadastroCondicaoPagamento.js), incluido uma vez por pagina.
+    Traz o proprio script (Default.cshtml.js, nesta pasta), incluido uma vez por pagina.
     data-modo="ajax" faz o Salvar gravar por fetch e disparar o evento
     'condicao:salva' (detail: id, nome, ativo).
     Os ids usam o prefixo "cond" para nao colidir com o componente de
@@ -104,5 +104,5 @@
 
 @if (Model.IncluirScript)
 {
-    <script src="~/js/Financeiro/CadastroCondicaoPagamento.js" asp-append-version="true"></script>
+    <script src="~/Pages/Shared/Components/CadastroCondicaoPagamento/Default.cshtml.js" asp-append-version="true"></script>
 }

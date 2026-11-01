@@ -6,7 +6,7 @@ namespace WebAppERP.ViewComponents;
 
 // Modal de cadastro de condicao de pagamento (com a grade de parcelas),
 // reaproveitado pela tela de Condicoes de Pagamento e pelo + do cadastro de
-// fornecedor. Traz o proprio script (wwwroot/js/Financeiro/CadastroCondicaoPagamento.js).
+// fornecedor. Traz o proprio script (Default.cshtml.js, na mesma pasta da view).
 // View: Pages/Shared/Components/CadastroCondicaoPagamento/Default.cshtml.
 // A gravacao fica em CondicaoPagamentoBusiness (chamado por CondicoesPagamentoModel).
 public class CadastroCondicaoPagamentoViewComponent : ViewComponent

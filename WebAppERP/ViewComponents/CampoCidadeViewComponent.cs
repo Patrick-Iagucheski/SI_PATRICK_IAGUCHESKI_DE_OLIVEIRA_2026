@@ -9,7 +9,7 @@ namespace WebAppERP.ViewComponents;
 // Traz tudo junto: o campo com lista suspensa (droplist), o cadastro rapido
 // de cidade/estado/pais (com busca no topo) e o script.
 // View: Pages/Shared/Components/CampoCidade/Default.cshtml.
-// Script: wwwroot/js/Gerais/CadastroLocalidade.js. Handlers: Pages/Gerais/Localidades.
+// Script: Default.cshtml.js, na mesma pasta da view. Handlers: Pages/Gerais/Localidades.
 public class CampoCidadeViewComponent : ViewComponent
 {
     private const string ChaveModaisIncluidos = "CampoCidade.ModaisIncluidos";

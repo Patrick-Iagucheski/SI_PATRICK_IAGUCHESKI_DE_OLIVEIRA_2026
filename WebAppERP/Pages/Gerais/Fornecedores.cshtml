@@ -153,7 +153,6 @@
 <form id="formTokenAjax" class="d-none">@Html.AntiForgeryToken()</form>
 
 @section Scripts {
-    <script src="~/js/Gerais/CadastroFornecedor.js" asp-append-version="true"></script>
     <script type="application/json" id="dadosTela">
     {
         "dadosIniciais": @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.Fornecedores.Select(f => new {

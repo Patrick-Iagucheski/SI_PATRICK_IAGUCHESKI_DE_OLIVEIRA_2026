@@ -15,4 +15,7 @@ public class CadastroFornecedorViewModel
     // "ajax": Salvar grava por fetch e dispara o evento 'fornecedor:salvo',
     //         para telas que so precisam do fornecedor novo (ex.: Compra).
     public string Modo { get; set; } = "post";
+
+    // O script do componente entra so na primeira vez que ele aparece na pagina.
+    public bool IncluirScript { get; set; }
 }

@@ -570,14 +570,7 @@ else if (!ro)
 }
 
 @section Scripts {
-    @if (!chaveTravada)
-    {
-        <script src="~/js/Gerais/CadastroFornecedor.js" asp-append-version="true"></script>
-    }
-    @if (!ro)
-    {
-        <script src="~/js/Estoque/CadastroProduto.js" asp-append-version="true"></script>
-    }
+    @* Os scripts dos cadastros de fornecedor e produto vem com os proprios componentes. *@
     <script type="application/json" id="dadosTela">
     {
         "FORMAS": @Json.Serialize(formasJs),
