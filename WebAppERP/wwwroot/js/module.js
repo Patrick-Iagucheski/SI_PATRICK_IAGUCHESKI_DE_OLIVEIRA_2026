@@ -186,7 +186,7 @@ document.addEventListener('show.bs.modal', e => {
 // Buscar (que chama a funcao devolvida) ou no Enter dos campos; o checkbox de
 // inativos filtra na hora. Atualiza o contador e mostra "Nenhum registro
 // encontrado" quando o filtro esconde tudo.
-//   seletor: linhas a filtrar (ex.: '#tblPaises tbody tr' ou '.servico-card')
+//   seletor: linhas a filtrar (ex.: '#tblPaises tbody tr')
 //   campos.texto: id do campo de texto (procura em qualquer parte da linha)
 //   campos.codigo: id do campo de codigo (compara com data-id da linha ou, sem
 //                  ele, com a 1a coluna)

@@ -60,9 +60,18 @@
         </h1>
         <p class="page-subtitle">Registro de entrada de produtos e serviços adquiridos</p>
     </div>
-    <a class="btn btn-secondary" asp-page="/Compras/Compras">
-        <i class="bi bi-arrow-left me-1"></i> Voltar
-    </a>
+    <div class="d-flex gap-2">
+        @if (salvarSozinho)
+        {
+            <button type="button" class="btn btn-outline-primary" id="btnAtualizar" onclick="atualizarDados()"
+                    title="Salva o rascunho e recarrega fornecedor, transportadora, condições, formas e produtos/serviços">
+                <i class="bi bi-arrow-clockwise me-1"></i> Atualizar
+            </button>
+        }
+        <a class="btn btn-secondary" asp-page="/Compras/Compras">
+            <i class="bi bi-arrow-left me-1"></i> Voltar
+        </a>
+    </div>
 </div>
 
 @if (!string.IsNullOrEmpty(Model.Erro))

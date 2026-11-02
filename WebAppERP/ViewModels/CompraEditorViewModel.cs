@@ -15,17 +15,13 @@ public class CompraEditorViewModel
     // True quando a tela esta editando uma compra ja gravada.
     public bool Edicao { get; set; }
 
-    // Compra cancelada nao pode ser editada.
-    public bool Cancelada => Compra.TpStatus == Compra.CANCELADA;
+    // So rascunho e editavel: finalizada ou cancelada abre so para consulta.
+    public bool SomenteLeitura => Compra.TpStatus is Compra.FINALIZADA or Compra.CANCELADA;
 
-    // Compra finalizada com titulo ja movimentado (pago/baixado) fica travada.
-    public bool TemTituloMovimentado =>
-        ContasGeradas.Any(c => c.DsStatus == ContaAPagar.PAGO || c.VlPago > 0);
-
-    public bool SomenteLeitura => Cancelada || TemTituloMovimentado;
-
-    public string MotivoBloqueio =>
-        Cancelada ? "Esta compra está CANCELADA e não pode ser editada."
-        : TemTituloMovimentado ? "Esta compra possui título já pago/baixado no Contas a Pagar e não pode ser alterada."
-        : string.Empty;
+    public string MotivoBloqueio => Compra.TpStatus switch
+    {
+        Compra.FINALIZADA => "Esta compra está FINALIZADA: apenas visualização. Para corrigir, cancele a compra e lance uma nova.",
+        Compra.CANCELADA => "Esta compra está CANCELADA: apenas visualização.",
+        _ => string.Empty
+    };
 }

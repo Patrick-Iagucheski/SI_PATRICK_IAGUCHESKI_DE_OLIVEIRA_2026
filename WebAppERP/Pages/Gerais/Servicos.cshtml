@@ -42,74 +42,75 @@
     </div>
 </div>
 
-<!-- Cards de Servicos -->
-<div class="row g-3 mb-4" id="servicosContainer">
-    @if (Model.Servicos.Any())
-    {
-        @foreach (var s in Model.Servicos)
-        {
-            var badgeCat = s.DsCategoria?.ToLower() switch
-            {
-                "corte" => "bg-primary bg-opacity-10 text-primary",
-                "barba" => "bg-success bg-opacity-10 text-success",
-                "combo" => "bg-warning bg-opacity-10 text-warning",
-                "tratamento" => "bg-info bg-opacity-10 text-info",
-                _ => "bg-secondary bg-opacity-10 text-secondary"
-            };
-            <div class="col-xl-3 col-md-6 servico-card" data-id="@s.IdServico" data-status="@(s.FlAtivo ? "ativo" : "inativo")">
-                <div class="card h-100">
-                    <div class="card-body">
-                        <div class="d-flex justify-content-between align-items-start mb-2">
-                            <span class="badge @badgeCat">@(s.DsCategoria ?? "Geral")</span>
-                            @if (s.FlAtivo)
-                            {
-                                <span class="badge-status badge-ativo">Ativo</span>
-                            }
-                            else
-                            {
-                                <span class="badge-status badge-inativo">Inativo</span>
-                            }
-                        </div>
-                        <h6 class="fw-bold mt-2">@s.DsServico</h6>
-                        <p class="text-muted small mb-2">@(s.DsDescricao ?? "Sem descricao")</p>
-                        <div class="d-flex justify-content-between align-items-center">
-                            <div>
-                                <span class="fw-bold text-primary fs-5">R$ @s.VlServico.ToString("N2")</span>
-                                @if (s.NrDuracaoMin.HasValue)
+<!-- Tabela -->
+<div class="table-container">
+    <div class="table-header">
+        <h5><i class="bi bi-card-checklist me-2"></i>Lista de Serviços</h5>
+        <span class="text-muted small" id="contadorRegistros">@Model.Servicos.Count registros encontrados</span>
+    </div>
+    <div class="table-responsive">
+        <table class="table" id="tblServicos">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Serviço</th>
+                    <th>Categoria</th>
+                    <th class="text-end">Valor</th>
+                    <th>Duração</th>
+                    <th>Status</th>
+                    <th class="text-center">Ações</th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (Model.Servicos.Any())
+                {
+                    @foreach (var s in Model.Servicos)
+                    {
+                        <tr data-id="@s.IdServico" data-status="@(s.FlAtivo ? "ativo" : "inativo")">
+                            <td>@s.IdServico</td>
+                            <td>
+                                <strong>@s.DsServico</strong>
+                                @if (!string.IsNullOrEmpty(s.DsDescricao))
                                 {
-                                    <span class="text-muted small ms-2"><i class="bi bi-clock"></i> @s.NrDuracaoMin min</span>
+                                    <div class="text-muted small">@s.DsDescricao</div>
                                 }
-                            </div>
-                            <div>
-                                <button class="btn btn-icon btn-outline-primary btn-sm" title="Editar"
+                            </td>
+                            <td>@(s.DsCategoria ?? "-")</td>
+                            <td class="text-end"><strong>R$ @s.VlServico.ToString("N2")</strong></td>
+                            <td>@(s.NrDuracaoMin.HasValue ? $"{s.NrDuracaoMin} min" : "-")</td>
+                            <td>
+                                @if (s.FlAtivo)
+                                {
+                                    <span class="badge-status badge-ativo">Ativo</span>
+                                }
+                                else
+                                {
+                                    <span class="badge-status badge-inativo">Inativo</span>
+                                }
+                            </td>
+                            <td class="text-center">
+                                <button class="btn btn-icon btn-outline-primary" title="Editar"
                                         data-bs-toggle="modal" data-bs-target="#modalServico"
                                         onclick="editarServico(@s.IdServico,'@s.DsServico.Replace("'", "\\'")','@s.DsDescricao?.Replace("'", "\\'")','@s.VlServico.ToString("F2", inv)','@(s.NrDuracaoMin?.ToString() ?? "")','@s.DsCategoria','@s.FlAtivo')">
                                     <i class="bi bi-pencil"></i>
                                 </button>
-                                <form method="post" asp-page-handler="Excluir" class="d-inline" onsubmit="return confirm('Deseja excluir este servico?')">
+                                <form method="post" asp-page-handler="Excluir" class="d-inline" onsubmit="return confirm('Deseja realmente excluir este serviço?')">
                                     <input type="hidden" name="id" value="@s.IdServico" />
-                                    <button type="submit" class="btn btn-icon btn-outline-danger btn-sm" title="Excluir">
+                                    <button type="submit" class="btn btn-icon btn-outline-danger" title="Excluir">
                                         <i class="bi bi-trash"></i>
                                     </button>
                                 </form>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        }
-    }
-    else
-    {
-        <div class="col-12">
-            <div class="card">
-                <div class="card-body text-center text-muted py-5">
-                    <i class="bi bi-card-checklist fs-1 d-block mb-2"></i>
-                    Nenhum servico cadastrado. Clique em "Novo Servico" para comecar.
-                </div>
-            </div>
-        </div>
-    }
+                            </td>
+                        </tr>
+                    }
+                }
+                else
+                {
+                    <tr><td colspan="7" class="text-center text-muted py-4">Nenhum serviço cadastrado</td></tr>
+                }
+            </tbody>
+        </table>
+    </div>
 </div>
 
 <!-- Modal -->

@@ -86,11 +86,11 @@
                             <td class="text-end"><strong>R$ @c.VlTotalCompra.ToString("N2")</strong></td>
                             <td><span class="badge-status @badge">@c.TpStatus</span></td>
                             <td class="text-center" style="white-space: nowrap;">
-                                <a class="btn btn-icon btn-outline-primary" title="Abrir / Editar"
+                                <a class="btn btn-icon btn-outline-primary" title="@(c.TpStatus == Compra.RASCUNHO ? "Editar" : "Visualizar")"
                                    asp-page="/Compras/Compra"
                                    asp-route-nrNota="@c.NrNota" asp-route-nrSerie="@c.NrSerie"
                                    asp-route-nrModelo="@c.NrModelo" asp-route-idFornecedor="@c.IdFornecedor">
-                                    <i class="bi bi-pencil"></i>
+                                    <i class="bi @(c.TpStatus == Compra.RASCUNHO ? "bi-pencil" : "bi-eye")"></i>
                                 </a>
                                 @if (c.TpStatus != Compra.CANCELADA)
                                 {

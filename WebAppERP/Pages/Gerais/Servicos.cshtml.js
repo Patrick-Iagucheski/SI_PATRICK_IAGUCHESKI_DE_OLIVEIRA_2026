@@ -1,7 +1,9 @@
 ﻿// Script da tela Serviços (Pages/Gerais/Servicos.cshtml).
 
 // Filtro da lista (funcao em wwwroot/js/module.js): filtra no botao Buscar ou no Enter.
-const aplicarBusca = filtrarTabela('.servico-card', { texto: 'buscaTexto', codigo: 'buscaId', inativos: 'buscaInativos' });
+const aplicarBusca = filtrarTabela('#tblServicos tbody tr', {
+    texto: 'buscaTexto', codigo: 'buscaId', inativos: 'buscaInativos', contador: 'contadorRegistros'
+});
 
 function limparForm() {
     document.getElementById('modalTitle').innerHTML = '<i class="bi bi-card-checklist me-2"></i>Novo Serviço';

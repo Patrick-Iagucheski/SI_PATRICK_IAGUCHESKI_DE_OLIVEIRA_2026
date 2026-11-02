@@ -160,25 +160,14 @@ public class CompraBusiness
             throw new ValidacaoException($"Já existe uma compra com modelo {chave.NrModelo}, série {chave.NrSerie}, "
                                        + $"número {chave.NrNota} para este fornecedor.");
 
+        // ---------- 3. So rascunho pode ser alterado ----------
+        // Finalizada ou cancelada fica so para consulta. Para corrigir uma
+        // finalizada, cancela-se (estorna estoque e titulos) e lanca-se de novo.
         if (existente is { TpStatus: Compra.CANCELADA })
-            throw new ValidacaoException("Compra cancelada não pode ser editada.");
-
-        // ---------- 3. Estorno do que a versao anterior gerou ----------
-        var contasAnteriores = await GetContasGeradas(chave);
-
-        if (contasAnteriores.Any(c => c.DsStatus == ContaAPagar.PAGO || c.VlPago > 0))
-            throw new ValidacaoException("Esta compra possui título já pago/baixado no Contas a Pagar.",
-                                         "Estorne o pagamento antes de alterar a compra.");
-
+            throw new ValidacaoException("Compra cancelada não pode ser alterada.");
         if (existente is { TpStatus: Compra.FINALIZADA })
-        {
-            // Devolve o estoque que a versao anterior deu entrada.
-            await AjustarEstoque(existente.Itens, -1, validar: true);
-
-            // Os titulos serao regerados a partir das novas parcelas.
-            if (contasAnteriores.Count > 0)
-                _db.ContasAPagar.RemoveRange(contasAnteriores);
-        }
+            throw new ValidacaoException("Compra finalizada não pode ser alterada.",
+                                         "Para corrigir, cancele a compra e lance uma nova.");
 
         // ---------- 4. Itens (recalculados no servidor) ----------
         var (novosItens, totalProdutos) = MontarItens(input, chave);

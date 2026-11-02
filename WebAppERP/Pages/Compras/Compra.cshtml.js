@@ -845,6 +845,38 @@ async function autoSalvar() {
     }
 }
 
+// Botao Atualizar (so em rascunho): grava o rascunho na hora e recarrega a
+// tela, trazendo o que mudou nos outros cadastros (condicao de pagamento do
+// fornecedor, nomes, condicoes, formas, descricao dos produtos/servicos).
+// Itens e parcelas ja lancados estao no rascunho, entao nada se perde; se a
+// gravacao falhar, a tela nao recarrega e mostra o motivo.
+async function atualizarDados() {
+    const btn = document.getElementById('btnAtualizar');
+    btn.disabled = true;
+    clearTimeout(autoSalvarTimer);
+    autoSalvarTimer = null;
+    while (autoSalvarEmAndamento) await new Promise(r => setTimeout(r, 100));
+
+    let erro = validarDatas();
+    if (!erro) {
+        try {
+            const resp = await fetch('?handler=AutoSalvar', { method: 'POST', body: dadosRascunho() });
+            const r = await resp.json();
+            if (!r.ok) erro = r.erro;
+        } catch {
+            erro = 'Não foi possível salvar o rascunho. Verifique a conexão.';
+        }
+    }
+    if (erro) {
+        exibirErro(secaoDoCampo('NrNota'), erro);
+        btn.disabled = false;
+        return;
+    }
+
+    enviandoFormulario = true;   // o pagehide nao grava de novo ao recarregar
+    location.reload();
+}
+
 // Saindo da tela (Voltar, fechar a aba) com alteracao ainda esperando o
 // atraso: o navegador envia mesmo com a pagina sendo descarregada.
 window.addEventListener('pagehide', () => {
