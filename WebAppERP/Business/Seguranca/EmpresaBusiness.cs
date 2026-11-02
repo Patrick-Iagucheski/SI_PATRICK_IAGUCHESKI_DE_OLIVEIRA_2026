@@ -1,5 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using WebAppERP.Data;
+using WebAppERP.Infrastructure;
 
 namespace WebAppERP.Business.Seguranca;
 
@@ -9,16 +10,15 @@ namespace WebAppERP.Business.Seguranca;
 public class EmpresaBusiness
 {
     private readonly AppDbContext _db;
-    private readonly IWebHostEnvironment _env;
+    private readonly ArquivoService _arquivo;
 
-    private static readonly string[] ExtensoesPermitidas = [".jpg", ".jpeg", ".png", ".webp", ".gif"];
     private const long TamanhoMaxLogo = 5L * 1024 * 1024; // 5 MB
     private const string PastaLogo = "uploads/empresa";
 
-    public EmpresaBusiness(AppDbContext db, IWebHostEnvironment env)
+    public EmpresaBusiness(AppDbContext db, ArquivoService arquivo)
     {
         _db = db;
-        _env = env;
+        _arquivo = arquivo;
     }
 
     // ============================================================
@@ -44,14 +44,7 @@ public class EmpresaBusiness
             throw new ValidacaoException("O nome da empresa deve ter no máximo 100 caracteres.");
 
         var temLogoNova = logo is { Length: > 0 };
-        if (temLogoNova)
-        {
-            var ext = Path.GetExtension(logo!.FileName).ToLowerInvariant();
-            if (!ExtensoesPermitidas.Contains(ext))
-                throw new ValidacaoException("Formato de imagem inválido. Use JPG, PNG, WEBP ou GIF.");
-            if (logo.Length > TamanhoMaxLogo)
-                throw new ValidacaoException("A logo deve ter no máximo 5 MB.");
-        }
+        _arquivo.ValidarImagem(logo, TamanhoMaxLogo, "A logo");
 
         var empresa = await _db.Empresa.OrderBy(e => e.IdEmpresa).FirstOrDefaultAsync();
         if (empresa == null)
@@ -71,7 +64,7 @@ public class EmpresaBusiness
         string? novaLogo = null;
         if (temLogoNova)
         {
-            novaLogo = await GravarLogo(logo!);
+            novaLogo = await _arquivo.Gravar(logo!, PastaLogo);
             empresa.DsLogo = novaLogo;
         }
         else if (removerLogo)
@@ -87,41 +80,14 @@ public class EmpresaBusiness
         catch
         {
             // Banco recusou: a logo nova nao fica perdida no disco.
-            RemoverLogo(novaLogo);
+            _arquivo.Remover(novaLogo, PastaLogo);
             throw;
         }
 
+        // Remover so apaga logos enviadas (nunca a logo padrao em images/).
         if (logoAntiga != empresa.DsLogo)
-            RemoverLogo(logoAntiga);
+            _arquivo.Remover(logoAntiga, PastaLogo);
 
         return empresa;
-    }
-
-    // ============================================================
-    // Logo (wwwroot/uploads/empresa)
-    // ============================================================
-
-    private async Task<string> GravarLogo(IFormFile logo)
-    {
-        var ext = Path.GetExtension(logo.FileName).ToLowerInvariant();
-        var pasta = Path.Combine(_env.WebRootPath, PastaLogo.Replace('/', Path.DirectorySeparatorChar));
-        Directory.CreateDirectory(pasta);
-        // Nome novo a cada envio: o navegador nao mostra a logo antiga do cache.
-        var nomeArquivo = $"{Guid.NewGuid():N}{ext}";
-        using (var stream = File.Create(Path.Combine(pasta, nomeArquivo)))
-            await logo.CopyToAsync(stream);
-
-        return $"/{PastaLogo}/{nomeArquivo}";
-    }
-
-    // So apaga arquivos da pasta de logos enviadas (nunca a logo padrao em images/).
-    private void RemoverLogo(string? caminhoRelativo)
-    {
-        if (string.IsNullOrEmpty(caminhoRelativo) || !caminhoRelativo.StartsWith($"/{PastaLogo}/")) return;
-        var fisico = Path.Combine(_env.WebRootPath, caminhoRelativo.TrimStart('/').Replace('/', Path.DirectorySeparatorChar));
-        if (File.Exists(fisico))
-        {
-            try { File.Delete(fisico); } catch { /* ignora falha de exclusao */ }
-        }
     }
 }

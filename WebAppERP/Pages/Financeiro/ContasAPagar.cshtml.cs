@@ -6,7 +6,7 @@ using WebAppERP.Business.Gerais;
 namespace WebAppERP.Pages.Financeiro;
 
 // Tela de Contas a Pagar: so conversa com a tela. As regras ficam em ContaAPagarBusiness.
-public class ContasAPagarModel : PageModel
+public class ContasAPagarModel : PaginaBase
 {
     private readonly ContaAPagarBusiness _conta;
     private readonly FornecedorBusiness _fornecedor;
@@ -52,49 +52,15 @@ public class ContasAPagarModel : PageModel
         }
     }
 
-    public async Task<IActionResult> OnPost()
-    {
-        try
-        {
-            var nova = ContaForm.IdContaPagar == 0;
-            await _conta.Salvar(ContaForm);
-            TempData["Sucesso"] = nova ? "Conta a pagar cadastrada com sucesso." : "Conta a pagar atualizada com sucesso.";
-        }
-        catch (ValidacaoException ex)
-        {
-            TempData["Erro"] = ex.MensagemCompleta;
-        }
-        return RedirectToPage();
-    }
+    public Task<IActionResult> OnPost() =>
+        Executar(() => _conta.Salvar(ContaForm), ContaForm.IdContaPagar == 0 ? "Conta a pagar cadastrada com sucesso." : "Conta a pagar atualizada com sucesso.");
 
     // Baixa financeira: marca como pago na data de hoje.
-    public async Task<IActionResult> OnPostBaixa(int id)
-    {
-        try
-        {
-            await _conta.Baixar(id);
-            TempData["Sucesso"] = "Baixa realizada com sucesso.";
-        }
-        catch (ValidacaoException ex)
-        {
-            TempData["Erro"] = ex.MensagemCompleta;
-        }
-        return RedirectToPage();
-    }
+    public Task<IActionResult> OnPostBaixa(int id) =>
+        Executar(() => _conta.Baixar(id), "Baixa realizada com sucesso.");
 
-    public async Task<IActionResult> OnPostExcluir(int id)
-    {
-        try
-        {
-            await _conta.Excluir(id);
-            TempData["Sucesso"] = "Conta a pagar excluída com sucesso.";
-        }
-        catch (ValidacaoException ex)
-        {
-            TempData["Erro"] = ex.MensagemCompleta;
-        }
-        return RedirectToPage();
-    }
+    public Task<IActionResult> OnPostExcluir(int id) =>
+        Executar(() => _conta.Excluir(id), "Conta a pagar excluída com sucesso.");
 
     // ============================================================
     // Busca de contas a pagar via AJAX (filtros da pagina)

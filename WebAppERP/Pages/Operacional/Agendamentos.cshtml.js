@@ -1,11 +1,7 @@
 ﻿// Script da tela Agendamentos (Pages/Operacional/Agendamentos.cshtml).
 
-document.getElementById('searchInput')?.addEventListener('input', function () {
-    const filter = this.value.toLowerCase();
-    document.querySelectorAll('#tblAgendamentos tbody tr').forEach(row => {
-        row.style.display = row.textContent.toLowerCase().includes(filter) ? '' : 'none';
-    });
-});
+// Filtro rapido da lista (funcao em wwwroot/js/module.js).
+filtrarTabela('#tblAgendamentos tbody tr', { texto: 'searchInput' });
 
 function limparForm() {
     document.getElementById('aId').value = '0';

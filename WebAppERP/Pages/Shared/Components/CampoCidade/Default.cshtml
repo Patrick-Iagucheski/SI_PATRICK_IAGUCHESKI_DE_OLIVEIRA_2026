@@ -1,5 +1,4 @@
 ﻿@model WebAppERP.ViewModels.CampoCidadeViewModel
-@inject Microsoft.AspNetCore.Antiforgery.IAntiforgery Antiforgery
 @*
     Componente unico de cidade (ViewComponents/CampoCidadeViewComponent).
     Uso na tela:
@@ -28,11 +27,7 @@
 {
     <!-- Cadastro rapido de cidade / estado / pais. O script move este bloco para
          o fim do <body>: modal dentro de outro modal nao abre direito no Bootstrap. -->
-    @* Token em data-token, e nao @Html.AntiForgeryToken(): dentro de um <form>
-       o helper reaproveita o token do proprio form, e este bloco e movido
-       para o <body> (levaria o token do form junto). *@
-    <div id="localidadeModais" data-url-localidades="@Url.Page("/Gerais/Localidades")"
-         data-token="@Antiforgery.GetAndStoreTokens(Context).RequestToken">
+    <div id="localidadeModais" data-url-localidades="@Url.Page("/Gerais/Localidades")">
 
         <!-- Modal de Cadastro Rapido de Cidade -->
         <div class="modal fade" id="modalCidadeRapido" tabindex="-1">

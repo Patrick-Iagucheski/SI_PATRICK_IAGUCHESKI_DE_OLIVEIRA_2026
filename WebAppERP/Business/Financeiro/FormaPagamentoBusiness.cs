@@ -65,16 +65,15 @@ public class FormaPagamentoBusiness
         return registro;
     }
 
-    // Ativa/inativa e devolve a nova situacao (null se nao existe).
-    public async Task<bool?> AlterarSituacao(int id)
+    // Ativa/inativa e devolve a mensagem de sucesso.
+    public async Task<string> AlterarSituacao(int id)
     {
-        var forma = await _db.FormasPagamento.FindAsync(id);
-        if (forma == null)
-            return null;
+        var forma = await _db.FormasPagamento.FindAsync(id)
+            ?? throw new ValidacaoException("Forma de pagamento não encontrada.", "Ela pode ter sido excluída por outra pessoa.");
 
         forma.FlAtivo = !forma.FlAtivo;
         await _db.SaveChangesAsync();
-        return forma.FlAtivo;
+        return forma.FlAtivo ? "Forma de pagamento ativada." : "Forma de pagamento inativada.";
     }
 
     public async Task Excluir(int id)

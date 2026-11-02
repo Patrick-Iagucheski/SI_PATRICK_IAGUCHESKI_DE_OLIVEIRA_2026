@@ -1,16 +1,7 @@
 ﻿// Script da tela Formas de Pagamento (Pages/Financeiro/FormasPagamento.cshtml).
 
-function aplicarFiltros() {
-    const texto = document.getElementById('searchInput').value.toLowerCase();
-    const status = document.getElementById('filterStatus').value;
-    document.querySelectorAll('#tblFormas tbody tr').forEach(row => {
-        const matchTexto = row.textContent.toLowerCase().includes(texto);
-        const matchStatus = !status || row.getAttribute('data-status') === status;
-        row.style.display = (matchTexto && matchStatus) ? '' : 'none';
-    });
-}
-document.getElementById('searchInput')?.addEventListener('input', aplicarFiltros);
-document.getElementById('filterStatus')?.addEventListener('change', aplicarFiltros);
+// Filtro rapido da lista por texto e situacao (funcao em wwwroot/js/module.js).
+filtrarTabela('#tblFormas tbody tr', { texto: 'searchInput', atributos: { status: 'filterStatus' } });
 
 function limparForm() {
     document.getElementById('modalTitle').innerHTML = '<i class="bi bi-credit-card me-2"></i>Nova Forma de Pagamento';

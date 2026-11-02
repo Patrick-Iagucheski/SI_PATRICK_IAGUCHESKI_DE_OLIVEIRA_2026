@@ -9,7 +9,7 @@ let resultadosBusca = [];
     });
 });
 
-function montarLinha(p, i, token) {
+function montarLinha(p, i) {
     const estoque = (p.estoque !== null && p.estoque !== undefined)
         ? parseFloat(p.estoque).toLocaleString('pt-BR', { maximumFractionDigits: 2 }) : '0';
     return '<tr>' +
@@ -24,7 +24,7 @@ function montarLinha(p, i, token) {
         '<td class="text-center">' +
             '<button class="btn btn-icon btn-outline-primary" title="Editar" onclick="abrirEdicao(' + i + ')"><i class="bi bi-pencil"></i></button> ' +
             '<form method="post" action="?handler=Excluir" class="d-inline" onsubmit="return confirm(\'Deseja realmente excluir este produto?\')">' +
-                '<input type="hidden" name="__RequestVerificationToken" value="' + token + '">' +
+                campoToken() +
                 '<input type="hidden" name="id" value="' + p.id + '">' +
                 '<button type="submit" class="btn btn-icon btn-outline-danger" title="Excluir"><i class="bi bi-trash"></i></button>' +
             '</form>' +
@@ -55,9 +55,7 @@ async function buscarProdutos() {
             tbody.innerHTML = '<tr><td colspan="9" class="text-center text-muted py-4">Nenhum produto encontrado</td></tr>';
             return;
         }
-
-        const token = document.querySelector('#formTokenAjax input[name="__RequestVerificationToken"]').value;
-        tbody.innerHTML = resultadosBusca.map((p, i) => montarLinha(p, i, token)).join('');
+        tbody.innerHTML = resultadosBusca.map((p, i) => montarLinha(p, i)).join('');
     } catch (e) {
         tbody.innerHTML = '<tr><td colspan="9" class="text-center text-danger py-4">Erro ao buscar. Tente novamente.</td></tr>';
     }

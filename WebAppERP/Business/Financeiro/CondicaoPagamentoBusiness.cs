@@ -130,17 +130,16 @@ public class CondicaoPagamentoBusiness
         return registro;
     }
 
-    // Ativa/inativa e devolve a nova situacao (null se nao existe).
-    public async Task<bool?> AlterarSituacao(int id)
+    // Ativa/inativa e devolve a mensagem de sucesso.
+    public async Task<string> AlterarSituacao(int id)
     {
-        var condicao = await _db.CondicoesPagamento.FindAsync(id);
-        if (condicao == null)
-            return null;
+        var condicao = await _db.CondicoesPagamento.FindAsync(id)
+            ?? throw new ValidacaoException("Condição de pagamento não encontrada.", "Ela pode ter sido excluída por outra pessoa.");
 
         condicao.FlAtivo = !condicao.FlAtivo;
         condicao.DtEdicao = DateTime.Now;
         await _db.SaveChangesAsync();
-        return condicao.FlAtivo;
+        return condicao.FlAtivo ? "Condição de pagamento ativada." : "Condição de pagamento inativada.";
     }
 
     public async Task Excluir(int id)

@@ -5,7 +5,7 @@ using WebAppERP.Business.Gerais;
 namespace WebAppERP.Pages.Gerais;
 
 // Tela de Fornecedores: so conversa com a tela. As regras ficam em FornecedorBusiness.
-public class FornecedoresModel : PageModel
+public class FornecedoresModel : PaginaBase
 {
     private readonly FornecedorBusiness _fornecedor;
 
@@ -24,57 +24,30 @@ public class FornecedoresModel : PageModel
         Fornecedores = await _fornecedor.Listar();
     }
 
-    public async Task<IActionResult> OnPost()
-    {
-        try
-        {
-            await _fornecedor.Salvar(FornecedorForm);
-            return RedirectToPage();
-        }
-        catch (ValidacaoException ex)
-        {
-            // Recarrega a pagina mantendo a mensagem de erro amigavel.
-            TempData["ErroFornecedor"] = ex.MensagemCompleta;
-            await OnGet();
-            return Page();
-        }
-    }
+    // No erro, recarrega a tela e reabre o cadastro com o que foi digitado.
+    public Task<IActionResult> OnPost() =>
+        ExecutarOuReexibir(() => _fornecedor.Salvar(FornecedorForm),
+            FornecedorForm.IdFornecedor == 0 ? "Fornecedor cadastrado com sucesso." : "Fornecedor atualizado com sucesso.",
+            "ErroFornecedor", OnGet);
 
     // Cadastro pelo componente em modo AJAX (ex.: botao + da pesquisa de
     // fornecedor na Compra). Mesmas regras do OnPost, mas responde JSON
     // para a tela de origem nao ser recarregada.
-    public async Task<IActionResult> OnPostSalvarAjax()
-    {
-        try
+    public Task<IActionResult> OnPostSalvarAjax() =>
+        ExecutarJson(async () =>
         {
             var fornecedor = await _fornecedor.Salvar(FornecedorForm);
-            return new JsonResult(new
+            return new
             {
                 sucesso = true,
                 id = fornecedor.IdFornecedor,
                 razaoSocial = fornecedor.DsRazaoSocial,
                 nomeFantasia = fornecedor.DsNomeFantasia
-            });
-        }
-        catch (ValidacaoException ex)
-        {
-            return new JsonResult(new { sucesso = false, mensagem = ex.MensagemCompleta });
-        }
-    }
+            };
+        });
 
-    public async Task<IActionResult> OnPostExcluir(int id)
-    {
-        try
-        {
-            await _fornecedor.Excluir(id);
-            TempData["Sucesso"] = "Fornecedor excluído com sucesso.";
-        }
-        catch (ValidacaoException ex)
-        {
-            TempData["Erro"] = ex.MensagemCompleta;
-        }
-        return RedirectToPage();
-    }
+    public Task<IActionResult> OnPostExcluir(int id) =>
+        Executar(() => _fornecedor.Excluir(id), "Fornecedor excluído com sucesso.");
 
     // ============================================================
     // Busca de fornecedores via AJAX (filtros da pagina)

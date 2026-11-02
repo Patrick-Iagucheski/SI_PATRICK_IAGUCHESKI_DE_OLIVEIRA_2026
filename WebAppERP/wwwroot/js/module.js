@@ -82,8 +82,86 @@ function cnpjValido(cnpj) {
 }
 
 // ============================================================
+// Chamadas ao servidor (AJAX)
+// ============================================================
+
+// Token de seguranca (antiforgery) da pagina. O _Layout coloca uma vez no
+// <head>; todo POST feito por JavaScript manda ele junto.
+function tokenAntiforgery() {
+    return document.querySelector('meta[name="token-antiforgery"]')?.content || '';
+}
+
+// Campo escondido com o token, para formularios montados em JavaScript
+// (ex.: botoes Excluir/Ativar das grades preenchidas pela busca).
+function campoToken() {
+    return '<input type="hidden" name="__RequestVerificationToken" value="' + tokenAntiforgery() + '">';
+}
+
+// POST com corpo JSON e o token. Devolve a resposta ja convertida
+// (padrao das telas: { sucesso: true, ... } ou { sucesso: false, mensagem }).
+async function postJson(url, dados) {
+    const resp = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'RequestVerificationToken': tokenAntiforgery() },
+        body: JSON.stringify(dados)
+    });
+    return await resp.json();
+}
+
+// Caixa de erro pequena, usada dentro dos modais.
+function alertaErro(msg) {
+    return '<div class="alert alert-danger py-1 px-2 small mb-2">' + msg + '</div>';
+}
+
+// ============================================================
+// Listagens
+// ============================================================
+
+// Filtro local das listagens: esconde as linhas que nao batem com os campos
+// de filtro e ja liga os eventos dos campos. Devolve a funcao que aplica o
+// filtro (para um botao "Buscar", por exemplo).
+//   seletor: linhas a filtrar (ex.: '#tblPaises tbody tr' ou '.servico-card')
+//   campos.texto: id do campo de texto (procura em qualquer parte da linha)
+//   campos.codigo: id do campo de codigo (compara com a 1a coluna)
+//   campos.atributos: { atributo: idDoCampo } compara com data-<atributo> da linha
+// Linhas de aviso ("Nenhum registro...", com td[colspan]) ficam sempre visiveis.
+function filtrarTabela(seletor, campos) {
+    const campo = id => id ? document.getElementById(id) : null;
+    const texto = campo(campos.texto);
+    const codigo = campo(campos.codigo);
+    const atributos = Object.entries(campos.atributos || {}).map(([attr, id]) => [attr, campo(id)]);
+
+    function aplicar() {
+        const t = (texto?.value || '').toLowerCase();
+        const c = (codigo?.value || '').trim();
+        document.querySelectorAll(seletor).forEach(linha => {
+            if (linha.querySelector('td[colspan]')) return;
+            const ok = (!t || linha.textContent.toLowerCase().includes(t))
+                && (!c || linha.querySelector('td')?.textContent.trim() === c)
+                && atributos.every(([attr, el]) => !el?.value || linha.getAttribute('data-' + attr) === el.value);
+            linha.style.display = ok ? '' : 'none';
+        });
+    }
+
+    texto?.addEventListener('input', aplicar);
+    codigo?.addEventListener('input', aplicar);
+    atributos.forEach(([, el]) => el?.addEventListener('change', aplicar));
+    return aplicar;
+}
+
+// ============================================================
 // Formatacao
 // ============================================================
+
+// Texto seguro para montar HTML: o conteudo nao vira tag.
+function escaparHtml(s) {
+    return String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
+// Data ISO (2026-11-01 ou 2026-11-01T00:00:00) no formato brasileiro (01/11/2026).
+function dataBr(d, vazio = '-') {
+    return d ? String(d).split('T')[0].split('-').reverse().join('/') : vazio;
+}
 
 // Valor com 2 casas no padrao brasileiro, sem o "R$" (ex.: 1.234,50).
 // Vazio ou invalido vira 0,00.

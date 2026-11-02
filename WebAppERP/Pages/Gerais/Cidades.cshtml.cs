@@ -5,7 +5,7 @@ using WebAppERP.Business.Gerais;
 namespace WebAppERP.Pages.Gerais;
 
 // Tela de Cidades: so conversa com a tela. As regras ficam em CidadeBusiness.
-public class CidadesModel : PageModel
+public class CidadesModel : PaginaBase
 {
     private readonly CidadeBusiness _cidade;
     private readonly EstadoBusiness _estado;
@@ -28,32 +28,9 @@ public class CidadesModel : PageModel
         Estados = await _estado.Listar();
     }
 
-    public async Task<IActionResult> OnPost()
-    {
-        try
-        {
-            var nova = CidadeForm.IdCidade == 0;
-            await _cidade.Salvar(CidadeForm);
-            TempData["Sucesso"] = nova ? "Cidade cadastrada com sucesso." : "Cidade atualizada com sucesso.";
-        }
-        catch (ValidacaoException ex)
-        {
-            TempData["Erro"] = ex.MensagemCompleta;
-        }
-        return RedirectToPage();
-    }
+    public Task<IActionResult> OnPost() =>
+        Executar(() => _cidade.Salvar(CidadeForm), CidadeForm.IdCidade == 0 ? "Cidade cadastrada com sucesso." : "Cidade atualizada com sucesso.");
 
-    public async Task<IActionResult> OnPostExcluir(int id)
-    {
-        try
-        {
-            await _cidade.Excluir(id);
-            TempData["Sucesso"] = "Cidade excluída com sucesso.";
-        }
-        catch (ValidacaoException ex)
-        {
-            TempData["Erro"] = ex.MensagemCompleta;
-        }
-        return RedirectToPage();
-    }
+    public Task<IActionResult> OnPostExcluir(int id) =>
+        Executar(() => _cidade.Excluir(id), "Cidade excluída com sucesso.");
 }

@@ -6,7 +6,7 @@ using WebAppERP.Business.Compras;
 namespace WebAppERP.Pages.Compras;
 
 // Lista de compras: so conversa com a tela. As regras ficam em CompraBusiness.
-public class ComprasModel : PageModel
+public class ComprasModel : PaginaBase
 {
     private readonly CompraBusiness _business;
 
@@ -27,31 +27,9 @@ public class ComprasModel : PageModel
         IdFornecedor = idFornecedor
     };
 
-    public async Task<IActionResult> OnPostCancelar(int nrNota, int nrSerie, int nrModelo, int idFornecedor)
-    {
-        try
-        {
-            await _business.Cancelar(GetChave(nrNota, nrSerie, nrModelo, idFornecedor));
-            TempData["Sucesso"] = "Compra cancelada. Estoque estornado e títulos cancelados.";
-        }
-        catch (ValidacaoException ex)
-        {
-            TempData["Erro"] = ex.MensagemCompleta;
-        }
-        return RedirectToPage();
-    }
+    public Task<IActionResult> OnPostCancelar(int nrNota, int nrSerie, int nrModelo, int idFornecedor) =>
+        Executar(() => _business.Cancelar(GetChave(nrNota, nrSerie, nrModelo, idFornecedor)), "Compra cancelada. Estoque estornado e títulos cancelados.");
 
-    public async Task<IActionResult> OnPostExcluir(int nrNota, int nrSerie, int nrModelo, int idFornecedor)
-    {
-        try
-        {
-            await _business.Excluir(GetChave(nrNota, nrSerie, nrModelo, idFornecedor));
-            TempData["Sucesso"] = "Compra excluída com sucesso.";
-        }
-        catch (ValidacaoException ex)
-        {
-            TempData["Erro"] = ex.MensagemCompleta;
-        }
-        return RedirectToPage();
-    }
+    public Task<IActionResult> OnPostExcluir(int nrNota, int nrSerie, int nrModelo, int idFornecedor) =>
+        Executar(() => _business.Excluir(GetChave(nrNota, nrSerie, nrModelo, idFornecedor)), "Compra excluída com sucesso.");
 }

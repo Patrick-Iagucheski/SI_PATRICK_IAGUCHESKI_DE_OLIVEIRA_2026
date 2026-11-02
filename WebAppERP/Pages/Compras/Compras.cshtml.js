@@ -1,15 +1,5 @@
 ﻿// Script da tela Compras (Pages/Compras/Compras.cshtml).
 
-function aplicarFiltros() {
-    const texto = document.getElementById('searchInput').value.toLowerCase();
-    const status = document.getElementById('filterStatus').value;
-    document.querySelectorAll('#tblCompras tbody tr').forEach(row => {
-        if (!row.hasAttribute('data-status')) return;
-        const matchTexto = row.textContent.toLowerCase().includes(texto);
-        const matchStatus = !status || row.getAttribute('data-status') === status;
-        row.style.display = (matchTexto && matchStatus) ? '' : 'none';
-    });
-}
-document.getElementById('searchInput')?.addEventListener('input', aplicarFiltros);
-document.getElementById('filterStatus')?.addEventListener('change', aplicarFiltros);
+// Filtro rapido da lista por texto e situacao (funcao em wwwroot/js/module.js).
+filtrarTabela('#tblCompras tbody tr', { texto: 'searchInput', atributos: { status: 'filterStatus' } });
 

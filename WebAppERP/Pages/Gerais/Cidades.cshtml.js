@@ -1,22 +1,7 @@
 ﻿// Script da tela Cidades (Pages/Gerais/Cidades.cshtml).
 
-function aplicarBusca() {
-    const id = document.getElementById('buscaId').value.trim();
-    const texto = document.getElementById('searchInput').value.toLowerCase();
-    const uf = document.getElementById('filterEstado').value;
-    document.querySelectorAll('#tblCidades tbody tr').forEach(row => {
-        if (row.querySelector('td[colspan]')) return;
-        const rowId = row.querySelector('td')?.textContent.trim();
-        const matchId = !id || rowId === id;
-        const matchTexto = row.textContent.toLowerCase().includes(texto);
-        const matchUf = !uf || row.getAttribute('data-uf') === uf;
-        row.style.display = (matchId && matchTexto && matchUf) ? '' : 'none';
-    });
-}
-
-document.getElementById('searchInput')?.addEventListener('input', aplicarBusca);
-document.getElementById('buscaId')?.addEventListener('input', aplicarBusca);
-document.getElementById('filterEstado')?.addEventListener('change', aplicarBusca);
+// Filtro rapido por codigo, texto e UF (funcao em wwwroot/js/module.js); o botao Buscar chama aplicarBusca().
+const aplicarBusca = filtrarTabela('#tblCidades tbody tr', { texto: 'searchInput', codigo: 'buscaId', atributos: { uf: 'filterEstado' } });
 
 function limparForm() {
     document.getElementById('modalTitle').innerHTML = '<i class="bi bi-building me-2"></i>Nova Cidade';

@@ -18,23 +18,6 @@
 function urlLocalidades(handler) {
     return document.getElementById('localidadeModais').dataset.urlLocalidades + '?handler=' + handler;
 }
-function tokenLocalidade() {
-    return document.getElementById('localidadeModais').dataset.token;
-}
-function alertaLocalidade(m) {
-    return '<div class="alert alert-danger py-1 px-2 small mb-2">' + m + '</div>';
-}
-function escaparHtmlLocalidade(s) {
-    return String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-}
-async function postJsonLocalidade(url, body) {
-    const resp = await fetch(url, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'RequestVerificationToken': tokenLocalidade() },
-        body: JSON.stringify(body)
-    });
-    return await resp.json();
-}
 
 // Qual handler cada tipo de campo consulta. Cidade e estado exibem a UF junto
 // ("Curitiba / PR"); pais so o nome.
@@ -119,7 +102,7 @@ function iniciarDroplist(campo) {
             regs.forEach(reg => {
                 const item = document.createElement('div');
                 item.className = 'list-group-item list-group-item-action';
-                item.innerHTML = escaparHtmlLocalidade(reg.nome) + (reg.detalhe ? ' <span class="text-muted small">- ' + escaparHtmlLocalidade(reg.detalhe) + '</span>' : '');
+                item.innerHTML = escaparHtml(reg.nome) + (reg.detalhe ? ' <span class="text-muted small">- ' + escaparHtml(reg.detalhe) + '</span>' : '');
                 // mousedown (antes do blur do campo) para o clique nao se perder.
                 item.addEventListener('mousedown', e => { e.preventDefault(); escolher(reg); });
                 lista.appendChild(item);
@@ -197,7 +180,7 @@ document.addEventListener('focusin', e => {
             regs.forEach(reg => {
                 const item = document.createElement('div');
                 item.className = 'list-group-item d-flex justify-content-between align-items-center';
-                item.innerHTML = '<span>' + escaparHtmlLocalidade(reg.nome) + (reg.detalhe ? ' - ' + escaparHtmlLocalidade(reg.detalhe) : '') + '</span>' +
+                item.innerHTML = '<span>' + escaparHtml(reg.nome) + (reg.detalhe ? ' - ' + escaparHtml(reg.detalhe) : '') + '</span>' +
                     '<button type="button" class="btn btn-sm btn-outline-primary">Selecionar</button>';
                 item.querySelector('button').addEventListener('click', () => {
                     b.aplicar(reg);
@@ -231,18 +214,18 @@ async function salvarCidadeRapido() {
     const msg = document.getElementById('cidMsg');
     const btn = document.getElementById('btnSalvarCidadeRapido');
     msg.innerHTML = '';
-    if (!nome) { msg.innerHTML = alertaLocalidade('Informe o nome da cidade.'); return; }
-    if (!idEstado) { msg.innerHTML = alertaLocalidade('Selecione o estado.'); return; }
+    if (!nome) { msg.innerHTML = alertaErro('Informe o nome da cidade.'); return; }
+    if (!idEstado) { msg.innerHTML = alertaErro('Selecione o estado.'); return; }
     btn.disabled = true;
     try {
-        const data = await postJsonLocalidade(urlLocalidades('CidadeRapido'), { nmCidade: nome, idEstado: parseInt(idEstado) });
-        if (!data.sucesso) { msg.innerHTML = alertaLocalidade(data.mensagem); return; }
+        const data = await postJson(urlLocalidades('CidadeRapido'), { nmCidade: nome, idEstado: parseInt(idEstado) });
+        if (!data.sucesso) { msg.innerHTML = alertaErro(data.mensagem); return; }
         definirCidade(campoCidadeAtivo, data.id, data.nome + ' / ' + data.uf);
         document.getElementById('cidNome').value = '';
         document.getElementById('cidEstado').value = '';
         document.getElementById('cidEstadoNome').value = '';
         bootstrap.Modal.getInstance(document.getElementById('modalCidadeRapido')).hide();
-    } catch (e) { msg.innerHTML = alertaLocalidade('Erro ao salvar a cidade. Tente novamente.'); }
+    } catch (e) { msg.innerHTML = alertaErro('Erro ao salvar a cidade. Tente novamente.'); }
     finally { btn.disabled = false; }
 }
 
@@ -254,13 +237,13 @@ async function salvarEstadoRapido() {
     const msg = document.getElementById('estMsg');
     const btn = document.getElementById('btnSalvarEstadoRapido');
     msg.innerHTML = '';
-    if (!nome) { msg.innerHTML = alertaLocalidade('Informe o nome do estado.'); return; }
-    if (uf.length !== 2) { msg.innerHTML = alertaLocalidade('Informe a UF (2 letras).'); return; }
-    if (!idPais) { msg.innerHTML = alertaLocalidade('Selecione o pais.'); return; }
+    if (!nome) { msg.innerHTML = alertaErro('Informe o nome do estado.'); return; }
+    if (uf.length !== 2) { msg.innerHTML = alertaErro('Informe a UF (2 letras).'); return; }
+    if (!idPais) { msg.innerHTML = alertaErro('Selecione o pais.'); return; }
     btn.disabled = true;
     try {
-        const data = await postJsonLocalidade(urlLocalidades('EstadoRapido'), { sgUF: uf, nmEstado: nome, idPais: parseInt(idPais) });
-        if (!data.sucesso) { msg.innerHTML = alertaLocalidade(data.mensagem); return; }
+        const data = await postJson(urlLocalidades('EstadoRapido'), { sgUF: uf, nmEstado: nome, idPais: parseInt(idPais) });
+        if (!data.sucesso) { msg.innerHTML = alertaErro(data.mensagem); return; }
         document.getElementById('cidEstado').value = data.id;
         document.getElementById('cidEstadoNome').value = data.nome + ' / ' + data.uf;
         document.getElementById('estNome').value = '';
@@ -268,7 +251,7 @@ async function salvarEstadoRapido() {
         document.getElementById('estPais').value = '';
         document.getElementById('estPaisNome').value = '';
         bootstrap.Modal.getInstance(document.getElementById('modalEstadoRapido')).hide();
-    } catch (e) { msg.innerHTML = alertaLocalidade('Erro ao salvar o estado. Tente novamente.'); }
+    } catch (e) { msg.innerHTML = alertaErro('Erro ao salvar o estado. Tente novamente.'); }
     finally { btn.disabled = false; }
 }
 
@@ -281,12 +264,12 @@ async function salvarPaisRapido() {
     const msg = document.getElementById('paisMsg');
     const btn = document.getElementById('btnSalvarPaisRapido');
     msg.innerHTML = '';
-    if (!nome) { msg.innerHTML = alertaLocalidade('Informe o nome do pais.'); return; }
-    if (!sigla) { msg.innerHTML = alertaLocalidade('Informe a sigla do pais.'); return; }
+    if (!nome) { msg.innerHTML = alertaErro('Informe o nome do pais.'); return; }
+    if (!sigla) { msg.innerHTML = alertaErro('Informe a sigla do pais.'); return; }
     btn.disabled = true;
     try {
-        const data = await postJsonLocalidade(urlLocalidades('PaisRapido'), { nmPais: nome, sgPais: sigla, nrDDI: ddi || null, dsMoeda: moeda || null });
-        if (!data.sucesso) { msg.innerHTML = alertaLocalidade(data.mensagem); return; }
+        const data = await postJson(urlLocalidades('PaisRapido'), { nmPais: nome, sgPais: sigla, nrDDI: ddi || null, dsMoeda: moeda || null });
+        if (!data.sucesso) { msg.innerHTML = alertaErro(data.mensagem); return; }
         document.getElementById('estPais').value = data.id;
         document.getElementById('estPaisNome').value = data.nome;
         document.getElementById('paisNome').value = '';
@@ -294,6 +277,6 @@ async function salvarPaisRapido() {
         document.getElementById('paisDDI').value = '';
         document.getElementById('paisMoeda').value = '';
         bootstrap.Modal.getInstance(document.getElementById('modalPaisRapido')).hide();
-    } catch (e) { msg.innerHTML = alertaLocalidade('Erro ao salvar o pais. Tente novamente.'); }
+    } catch (e) { msg.innerHTML = alertaErro('Erro ao salvar o pais. Tente novamente.'); }
     finally { btn.disabled = false; }
 }

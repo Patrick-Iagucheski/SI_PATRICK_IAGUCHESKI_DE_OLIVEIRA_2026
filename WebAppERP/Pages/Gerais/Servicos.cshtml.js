@@ -1,11 +1,7 @@
 ﻿// Script da tela Serviços (Pages/Gerais/Servicos.cshtml).
 
-document.getElementById('searchInput')?.addEventListener('input', function () {
-    const filter = this.value.toLowerCase();
-    document.querySelectorAll('.servico-card').forEach(card => {
-        card.style.display = card.textContent.toLowerCase().includes(filter) ? '' : 'none';
-    });
-});
+// Filtro rapido da lista (funcao em wwwroot/js/module.js).
+filtrarTabela('.servico-card', { texto: 'searchInput' });
 
 function limparForm() {
     document.getElementById('modalTitle').innerHTML = '<i class="bi bi-card-checklist me-2"></i>Novo Serviço';

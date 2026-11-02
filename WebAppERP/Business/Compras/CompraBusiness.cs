@@ -430,26 +430,8 @@ public class CompraBusiness
             seq++;
 
             var produto = dto.TpItem == CompraItem.PRODUTO;
-            if (produto && dto.IdProduto is not > 0)
-                throw new ValidacaoException($"Item {seq}: selecione o produto.");
-            if (!produto && dto.IdServico is not > 0)
-                throw new ValidacaoException($"Item {seq}: selecione o serviço.");
-
-            if (dto.QtItem <= 0)
-                throw new ValidacaoException($"Item {seq}: a quantidade deve ser maior que zero.");
-            if (dto.VlUnitario < 0)
-                throw new ValidacaoException($"Item {seq}: o preço unitário não pode ser negativo.");
-            if (dto.VlDesconto < 0)
-                throw new ValidacaoException($"Item {seq}: o desconto não pode ser negativo.");
-
-            // Total do item = Quantidade x Preco Unitario - Desconto.
-            var bruto = Math.Round(dto.QtItem * dto.VlUnitario, 2, MidpointRounding.AwayFromZero);
-            var totalItem = bruto - dto.VlDesconto;
-
-            if (totalItem < 0)
-                throw new ValidacaoException($"Item {seq}: o desconto (R$ {dto.VlDesconto:N2}) é maior que o valor do item "
-                                           + $"(R$ {bruto:N2}) e deixaria o total negativo.");
-
+            var totalItem = Module.CalcularTotalItem(seq, produto, dto.IdProduto, dto.IdServico,
+                                                     dto.QtItem, dto.VlUnitario, dto.VlDesconto);
             total += totalItem;
 
             itens.Add(new CompraItem

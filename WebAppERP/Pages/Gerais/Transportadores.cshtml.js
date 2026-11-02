@@ -1,11 +1,7 @@
 ﻿// Script da tela Transportadores (Pages/Gerais/Transportadores.cshtml).
 
-document.getElementById('searchInput')?.addEventListener('input', function () {
-    const filter = this.value.toLowerCase();
-    document.querySelectorAll('#tblTransportadores tbody tr').forEach(row => {
-        row.style.display = row.textContent.toLowerCase().includes(filter) ? '' : 'none';
-    });
-});
+// Filtro rapido da lista (funcao em wwwroot/js/module.js).
+filtrarTabela('#tblTransportadores tbody tr', { texto: 'searchInput' });
 
 // Mascara dinamica CPF (<= 11 digitos) ou CNPJ (> 11 digitos)
 function mascaraCpfCnpj(v) {

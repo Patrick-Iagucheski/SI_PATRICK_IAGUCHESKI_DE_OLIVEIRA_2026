@@ -10,9 +10,8 @@ namespace WebAppERP.ViewComponents;
 // de cidade/estado/pais (com busca no topo) e o script.
 // View: Pages/Shared/Components/CampoCidade/Default.cshtml.
 // Script: Default.cshtml.js, na mesma pasta da view. Handlers: Pages/Gerais/Localidades.
-public class CampoCidadeViewComponent : ViewComponent
+public class CampoCidadeViewComponent : ComponenteBase
 {
-    private const string ChaveModaisIncluidos = "CampoCidade.ModaisIncluidos";
     private readonly CidadeBusiness _cidade;
 
     public CampoCidadeViewComponent(CidadeBusiness cidade) => _cidade = cidade;
@@ -24,12 +23,8 @@ public class CampoCidadeViewComponent : ViewComponent
         if (idCidade is int idc)
             vm.NomeCidade = await _cidade.GetNomeComUf(idc);
 
-        // Modais e script so na primeira chamada da requisicao.
-        if (!HttpContext.Items.ContainsKey(ChaveModaisIncluidos))
-        {
-            HttpContext.Items[ChaveModaisIncluidos] = true;
-            vm.IncluirModais = true;
-        }
+        // Modais e script so na primeira vez que o componente aparece na pagina.
+        vm.IncluirModais = PrimeiraVezNaPagina();
 
         return View(vm);
     }

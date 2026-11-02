@@ -5,7 +5,7 @@ using WebAppERP.Business.Gerais;
 namespace WebAppERP.Pages.Gerais;
 
 // Tela de Clientes: so conversa com a tela. As regras ficam em ClienteBusiness.
-public class ClientesModel : PageModel
+public class ClientesModel : PaginaBase
 {
     private readonly ClienteBusiness _cliente;
 
@@ -22,35 +22,14 @@ public class ClientesModel : PageModel
         Clientes = await _cliente.Listar();
     }
 
-    public async Task<IActionResult> OnPost()
-    {
-        try
-        {
-            await _cliente.Salvar(ClienteForm);
-            return RedirectToPage();
-        }
-        catch (ValidacaoException ex)
-        {
-            // Recarrega a pagina mantendo a mensagem de erro amigavel.
-            TempData["ErroCliente"] = ex.MensagemCompleta;
-            await OnGet();
-            return Page();
-        }
-    }
+    // No erro, recarrega a tela e reabre o cadastro com o que foi digitado.
+    public Task<IActionResult> OnPost() =>
+        ExecutarOuReexibir(() => _cliente.Salvar(ClienteForm),
+            ClienteForm.IdCliente == 0 ? "Cliente cadastrado com sucesso." : "Cliente atualizado com sucesso.",
+            "ErroCliente", OnGet);
 
-    public async Task<IActionResult> OnPostExcluir(int id)
-    {
-        try
-        {
-            await _cliente.Excluir(id);
-            TempData["Sucesso"] = "Cliente excluído com sucesso.";
-        }
-        catch (ValidacaoException ex)
-        {
-            TempData["Erro"] = ex.MensagemCompleta;
-        }
-        return RedirectToPage();
-    }
+    public Task<IActionResult> OnPostExcluir(int id) =>
+        Executar(() => _cliente.Excluir(id), "Cliente excluído com sucesso.");
 
     // Busca de clientes via AJAX (filtros da pagina)
     // Pesquisa por: codigo, nome, documento (CPF/CNPJ/outro) ou e-mail

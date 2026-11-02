@@ -9,9 +9,8 @@ namespace WebAppERP.ViewComponents;
 // fornecedor. Traz o proprio script (Default.cshtml.js, na mesma pasta da view).
 // View: Pages/Shared/Components/CadastroCondicaoPagamento/Default.cshtml.
 // A gravacao fica em CondicaoPagamentoBusiness (chamado por CondicoesPagamentoModel).
-public class CadastroCondicaoPagamentoViewComponent : ViewComponent
+public class CadastroCondicaoPagamentoViewComponent : ComponenteBase
 {
-    private const string ChaveScriptIncluido = "CadastroCondicaoPagamento.ScriptIncluido";
     private readonly FormaPagamentoBusiness _forma;
 
     public CadastroCondicaoPagamentoViewComponent(FormaPagamentoBusiness forma) => _forma = forma;
@@ -25,11 +24,8 @@ public class CadastroCondicaoPagamentoViewComponent : ViewComponent
             Formas = await _forma.Listar(somenteAtivas: true)
         };
 
-        if (!HttpContext.Items.ContainsKey(ChaveScriptIncluido))
-        {
-            HttpContext.Items[ChaveScriptIncluido] = true;
-            vm.IncluirScript = true;
-        }
+        // O script entra so na primeira vez que o componente aparece na pagina.
+        vm.IncluirScript = PrimeiraVezNaPagina();
 
         return View(vm);
     }

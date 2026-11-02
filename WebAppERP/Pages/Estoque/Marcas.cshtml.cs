@@ -5,7 +5,7 @@ using WebAppERP.Business.Estoque;
 namespace WebAppERP.Pages.Estoque;
 
 // Tela de Marcas: so conversa com a tela. As regras ficam em MarcaBusiness.
-public class MarcasModel : PageModel
+public class MarcasModel : PaginaBase
 {
     private readonly MarcaBusiness _marca;
 
@@ -34,32 +34,9 @@ public class MarcasModel : PageModel
         }));
     }
 
-    public async Task<IActionResult> OnPost()
-    {
-        try
-        {
-            var nova = MarcaForm.IdMarca == 0;
-            await _marca.Salvar(MarcaForm);
-            TempData["Sucesso"] = nova ? "Marca cadastrada com sucesso." : "Marca atualizada com sucesso.";
-        }
-        catch (ValidacaoException ex)
-        {
-            TempData["Erro"] = ex.MensagemCompleta;
-        }
-        return RedirectToPage();
-    }
+    public Task<IActionResult> OnPost() =>
+        Executar(() => _marca.Salvar(MarcaForm), MarcaForm.IdMarca == 0 ? "Marca cadastrada com sucesso." : "Marca atualizada com sucesso.");
 
-    public async Task<IActionResult> OnPostExcluir(int id)
-    {
-        try
-        {
-            await _marca.Excluir(id);
-            TempData["Sucesso"] = "Marca excluída com sucesso.";
-        }
-        catch (ValidacaoException ex)
-        {
-            TempData["Erro"] = ex.MensagemCompleta;
-        }
-        return RedirectToPage();
-    }
+    public Task<IActionResult> OnPostExcluir(int id) =>
+        Executar(() => _marca.Excluir(id), "Marca excluída com sucesso.");
 }

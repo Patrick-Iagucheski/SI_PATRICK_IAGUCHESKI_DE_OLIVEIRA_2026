@@ -5,7 +5,7 @@ using WebAppERP.Business.Estoque;
 namespace WebAppERP.Pages.Estoque;
 
 // Tela de Produtos: so conversa com a tela. As regras (e a imagem) ficam em ProdutoBusiness.
-public class ProdutosModel : PageModel
+public class ProdutosModel : PaginaBase
 {
     private readonly ProdutoBusiness _produto;
     private readonly MarcaBusiness _marca;
@@ -35,57 +35,28 @@ public class ProdutosModel : PageModel
         Produtos = await _produto.Listar();
     }
 
-    public async Task<IActionResult> OnPost()
-    {
-        try
-        {
-            var novo = ProdutoForm.IdProduto == 0;
-            await _produto.Salvar(ProdutoForm, ImagemUpload);
-            TempData["Sucesso"] = novo ? "Produto cadastrado com sucesso." : "Produto atualizado com sucesso.";
-        }
-        catch (ValidacaoException ex)
-        {
-            TempData["Erro"] = ex.MensagemCompleta;
-        }
-        return RedirectToPage();
-    }
+    public Task<IActionResult> OnPost() =>
+        Executar(() => _produto.Salvar(ProdutoForm, ImagemUpload), ProdutoForm.IdProduto == 0 ? "Produto cadastrado com sucesso." : "Produto atualizado com sucesso.");
 
     // Cadastro pelo componente em modo AJAX (ex.: botao + da pesquisa de
     // produto na Compra). Mesmas regras do OnPost, mas responde JSON
     // para a tela de origem nao ser recarregada.
-    public async Task<IActionResult> OnPostSalvarAjax()
-    {
-        try
+    public Task<IActionResult> OnPostSalvarAjax() =>
+        ExecutarJson(async () =>
         {
             var produto = await _produto.Salvar(ProdutoForm, ImagemUpload);
-            return new JsonResult(new
+            return new
             {
                 sucesso = true,
                 id = produto.IdProduto,
                 nome = produto.DsProduto,
                 unidade = produto.SgUnidade,
                 custo = produto.VlCusto
-            });
-        }
-        catch (ValidacaoException ex)
-        {
-            return new JsonResult(new { sucesso = false, mensagem = ex.MensagemCompleta });
-        }
-    }
+            };
+        });
 
-    public async Task<IActionResult> OnPostExcluir(int id)
-    {
-        try
-        {
-            await _produto.Excluir(id);
-            TempData["Sucesso"] = "Produto excluído com sucesso.";
-        }
-        catch (ValidacaoException ex)
-        {
-            TempData["Erro"] = ex.MensagemCompleta;
-        }
-        return RedirectToPage();
-    }
+    public Task<IActionResult> OnPostExcluir(int id) =>
+        Executar(() => _produto.Excluir(id), "Produto excluído com sucesso.");
 
     // ============================================================
     // Cadastro rapido de Marca via AJAX (sem sair da tela de Produtos)
@@ -95,18 +66,12 @@ public class ProdutosModel : PageModel
         public string NmMarca { get; set; } = string.Empty;
     }
 
-    public async Task<IActionResult> OnPostMarcaRapido([FromBody] MarcaRapidoDto dto)
-    {
-        try
+    public Task<IActionResult> OnPostMarcaRapido([FromBody] MarcaRapidoDto dto) =>
+        ExecutarJson(async () =>
         {
             var marca = await _marca.Salvar(new Marca { NmMarca = dto?.NmMarca ?? string.Empty, FlAtivo = true });
-            return new JsonResult(new { sucesso = true, id = marca.IdMarca, nome = marca.NmMarca });
-        }
-        catch (ValidacaoException ex)
-        {
-            return new JsonResult(new { sucesso = false, mensagem = ex.MensagemCompleta });
-        }
-    }
+            return new { sucesso = true, id = marca.IdMarca, nome = marca.NmMarca };
+        });
 
     // ============================================================
     // Cadastro rapido de Categoria via AJAX (mesmo padrao da Marca)
@@ -116,18 +81,12 @@ public class ProdutosModel : PageModel
         public string NmCategoria { get; set; } = string.Empty;
     }
 
-    public async Task<IActionResult> OnPostCategoriaRapido([FromBody] CategoriaRapidoDto dto)
-    {
-        try
+    public Task<IActionResult> OnPostCategoriaRapido([FromBody] CategoriaRapidoDto dto) =>
+        ExecutarJson(async () =>
         {
             var categoria = await _categoria.Salvar(new Categoria { NmCategoria = dto?.NmCategoria ?? string.Empty, FlAtivo = true });
-            return new JsonResult(new { sucesso = true, id = categoria.IdCategoria, nome = categoria.NmCategoria });
-        }
-        catch (ValidacaoException ex)
-        {
-            return new JsonResult(new { sucesso = false, mensagem = ex.MensagemCompleta });
-        }
-    }
+            return new { sucesso = true, id = categoria.IdCategoria, nome = categoria.NmCategoria };
+        });
 
     // ============================================================
     // Busca de produtos via AJAX (filtros da pagina)

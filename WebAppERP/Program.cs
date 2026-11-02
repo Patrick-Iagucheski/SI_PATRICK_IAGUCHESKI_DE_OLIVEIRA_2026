@@ -33,6 +33,7 @@ builder.Services.Configure<Microsoft.AspNetCore.Mvc.MvcOptions>(options =>
 // Conexao com o banco: servidor selecionado em Servers/servers.json.
 // As opcoes sao montadas a cada requisicao, entao editar o arquivo ja troca o banco.
 builder.Services.AddSingleton<ConexaoBanco>();
+builder.Services.AddSingleton<ArquivoService>();
 builder.Services.AddDbContext<AppDbContext>((sp, options) =>
     options.UseSqlServer(sp.GetRequiredService<ConexaoBanco>().GetStringConexao()));
 

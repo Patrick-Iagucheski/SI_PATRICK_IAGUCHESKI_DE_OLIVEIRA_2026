@@ -22,14 +22,13 @@ function badgeSituacao(sit) {
     const map = { 'PAGO': 'badge-concluido', 'VENCIDA': 'badge-cancelado', 'CANCELADO': 'badge-inativo' };
     return '<span class="badge-status ' + (map[sit] || 'badge-agendado') + '">' + sit + '</span>';
 }
-function dataBr(d) { return d ? d.split('-').reverse().join('/') : '-'; }
 
-function montarLinha(c, i, token) {
+function montarLinha(c, i) {
     const sit = situacaoConta(c);
     const docHtml = c.documento ? '<div class="text-muted small">Doc: ' + c.documento + '</div>' : '';
     const baixaHtml = (sit !== 'PAGO' && sit !== 'CANCELADO')
         ? '<form method="post" action="?handler=Baixa" class="d-inline" onsubmit="return confirm(\'Confirmar baixa (pagamento) desta conta hoje?\')">' +
-              '<input type="hidden" name="__RequestVerificationToken" value="' + token + '">' +
+              campoToken() +
               '<input type="hidden" name="id" value="' + c.id + '">' +
               '<button type="submit" class="btn btn-icon btn-outline-success" title="Dar baixa / Marcar como pago"><i class="bi bi-cash-coin"></i></button>' +
           '</form> '
@@ -47,7 +46,7 @@ function montarLinha(c, i, token) {
             baixaHtml +
             '<button class="btn btn-icon btn-outline-primary" title="Editar" onclick="abrirEdicao(' + i + ')"><i class="bi bi-pencil"></i></button> ' +
             '<form method="post" action="?handler=Excluir" class="d-inline" onsubmit="return confirm(\'Deseja realmente excluir esta conta?\')">' +
-                '<input type="hidden" name="__RequestVerificationToken" value="' + token + '">' +
+                campoToken() +
                 '<input type="hidden" name="id" value="' + c.id + '">' +
                 '<button type="submit" class="btn btn-icon btn-outline-danger" title="Excluir"><i class="bi bi-trash"></i></button>' +
             '</form>' +
@@ -82,9 +81,7 @@ async function buscarContas() {
             tbody.innerHTML = '<tr><td colspan="9" class="text-center text-muted py-4">Nenhuma conta a pagar encontrada</td></tr>';
             return;
         }
-
-        const token = document.querySelector('#formBuscaToken input[name="__RequestVerificationToken"]').value;
-        tbody.innerHTML = resultadosBusca.map((c, i) => montarLinha(c, i, token)).join('');
+        tbody.innerHTML = resultadosBusca.map((c, i) => montarLinha(c, i)).join('');
     } catch (e) {
         tbody.innerHTML = '<tr><td colspan="9" class="text-center text-danger py-4">Erro ao buscar. Tente novamente.</td></tr>';
     }

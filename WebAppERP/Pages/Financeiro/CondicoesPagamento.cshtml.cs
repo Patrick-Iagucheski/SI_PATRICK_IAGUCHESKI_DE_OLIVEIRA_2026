@@ -7,7 +7,7 @@ namespace WebAppERP.Pages.Financeiro;
 
 // Tela de Condicoes de Pagamento: so conversa com a tela. As regras ficam em
 // CondicaoPagamentoBusiness.
-public class CondicoesPagamentoModel : PageModel
+public class CondicoesPagamentoModel : PaginaBase
 {
     private readonly CondicaoPagamentoBusiness _condicao;
 
@@ -49,65 +49,33 @@ public class CondicoesPagamentoModel : PageModel
             })
             .ToList();
 
-    public async Task<IActionResult> OnPost()
-    {
-        try
-        {
-            await _condicao.Salvar(CondicaoForm, ParcelasDaTela());
-            return RedirectToPage();
-        }
-        catch (ValidacaoException ex)
-        {
-            // Recarrega a pagina mantendo a mensagem de erro amigavel.
-            TempData["ErroCondicao"] = ex.MensagemCompleta;
-            await OnGet();
-            return Page();
-        }
-    }
+    // No erro, recarrega a tela e reabre o cadastro com o que foi digitado.
+    public Task<IActionResult> OnPost() =>
+        ExecutarOuReexibir(() => _condicao.Salvar(CondicaoForm, ParcelasDaTela()),
+            CondicaoForm.IdCondicaoPagamento == 0 ? "Condição de pagamento cadastrada com sucesso." : "Condição de pagamento atualizada com sucesso.",
+            "ErroCondicao", OnGet);
 
     // Cadastro pelo componente em modo AJAX (ex.: botao + da condicao no
     // cadastro de fornecedor e na Compra). Mesmas regras do OnPost, mas
     // responde JSON para a tela de origem nao ser recarregada.
-    public async Task<IActionResult> OnPostSalvarAjax()
-    {
-        try
+    public Task<IActionResult> OnPostSalvarAjax() =>
+        ExecutarJson(async () =>
         {
             var condicao = await _condicao.Salvar(CondicaoForm, ParcelasDaTela());
-            return new JsonResult(new
+            return new
             {
                 sucesso = true,
                 id = condicao.IdCondicaoPagamento,
                 nome = condicao.DsCondicao,
                 ativo = condicao.FlAtivo
-            });
-        }
-        catch (ValidacaoException ex)
-        {
-            return new JsonResult(new { sucesso = false, mensagem = ex.MensagemCompleta });
-        }
-    }
+            };
+        });
 
-    public async Task<IActionResult> OnPostAlterarSituacao(int id)
-    {
-        var ativa = await _condicao.AlterarSituacao(id);
-        if (ativa != null)
-            TempData["Sucesso"] = ativa.Value ? "Condição de pagamento ativada." : "Condição de pagamento inativada.";
-        return RedirectToPage();
-    }
+    public Task<IActionResult> OnPostAlterarSituacao(int id) =>
+        ExecutarComMensagem(() => _condicao.AlterarSituacao(id));
 
-    public async Task<IActionResult> OnPostExcluir(int id)
-    {
-        try
-        {
-            await _condicao.Excluir(id);
-            TempData["Sucesso"] = "Condição de pagamento excluída com sucesso.";
-        }
-        catch (ValidacaoException ex)
-        {
-            TempData["Erro"] = ex.MensagemCompleta;
-        }
-        return RedirectToPage();
-    }
+    public Task<IActionResult> OnPostExcluir(int id) =>
+        Executar(() => _condicao.Excluir(id), "Condição de pagamento excluída com sucesso.");
 
     // ============================================================
     // Busca de condicoes de pagamento via AJAX (filtros da pagina)

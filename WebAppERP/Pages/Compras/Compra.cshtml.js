@@ -43,10 +43,6 @@ function texto(id) {
     return el ? el.value.trim() : '';
 }
 
-function escapar(s) {
-    return String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-}
-
 function nomeForma(id) {
     const f = FORMAS.find(x => x.id === id);
     return f ? f.nome : '-';
@@ -106,7 +102,7 @@ async function executarBusca() {
             const tr = document.createElement('tr');
             tr.innerHTML =
                 '<td><strong>' + reg.id + '</strong></td>' +
-                '<td>' + escapar(reg.nome) + (reg.fantasia ? ' <span class="text-muted small">(' + escapar(reg.fantasia) + ')</span>' : '') + '</td>' +
+                '<td>' + escaparHtml(reg.nome) + (reg.fantasia ? ' <span class="text-muted small">(' + escaparHtml(reg.fantasia) + ')</span>' : '') + '</td>' +
                 '<td class="text-center"><button type="button" class="btn btn-icon btn-outline-primary" title="Selecionar"><i class="bi bi-check-lg"></i></button></td>';
             tr.querySelector('button').addEventListener('click', () => selecionarBusca(reg));
             body.appendChild(tr);
@@ -335,9 +331,9 @@ function renderItens() {
         const tr = document.createElement('tr');
         tr.innerHTML =
             '<td>' + (idx + 1) + '</td>' +
-            '<td><strong>' + escapar(it.descricao) + '</strong>' +
+            '<td><strong>' + escaparHtml(it.descricao) + '</strong>' +
                 '<div class="text-muted small"><span class="badge-status ' + badge + '">' + it.tpItem + '</span> Cód. ' + it.codigo + '</div></td>' +
-            '<td class="text-center">' + escapar(it.sgUnidade || '-') + '</td>' +
+            '<td class="text-center">' + escaparHtml(it.sgUnidade || '-') + '</td>' +
             '<td class="text-end">' + qtd(it.qtItem) + '</td>' +
             '<td class="text-end">R$ ' + moeda(it.vlUnitario) + '</td>' +
             '<td class="text-end">R$ ' + moeda(it.vlDesconto) + percDesc + '</td>' +
@@ -499,8 +495,8 @@ function renderPagamentos() {
         const tr = document.createElement('tr');
         tr.innerHTML =
             '<td>' + (idx + 1) + '</td>' +
-            '<td>' + escapar(p.condicaoNome || nomeCondicao(p.idCondicaoPagamento)) + '</td>' +
-            '<td>' + escapar(p.formaNome || nomeForma(p.idFormaPagamento)) + '</td>' +
+            '<td>' + escaparHtml(p.condicaoNome || nomeCondicao(p.idCondicaoPagamento)) + '</td>' +
+            '<td>' + escaparHtml(p.formaNome || nomeForma(p.idFormaPagamento)) + '</td>' +
             '<td class="text-end"><strong>R$ ' + moeda(p.vlParcela) + '</strong></td>' +
             '<td>' + vencBr + '</td>' +
             acoes;
@@ -631,7 +627,7 @@ async function validarChave() {
     if (!texto('IdFornecedor')) { alert('Informe o fornecedor.'); document.getElementById('IdFornecedor').focus(); return; }
 
     const dados = new FormData();
-    dados.append('__RequestVerificationToken', document.querySelector('#formCompra input[name="__RequestVerificationToken"]').value);
+    dados.append('__RequestVerificationToken', tokenAntiforgery());
     CAMPOS_CHAVE.forEach(id => dados.append(id, texto(id)));
 
     const btn = document.getElementById('btnValidarChave');
@@ -650,7 +646,7 @@ async function validarChave() {
     if (r.fornecedor) document.getElementById('nomeFornecedor').value = r.fornecedor;
 
     if (!r.ok) {
-        mensagemChave('<i class="bi bi-x-circle me-1"></i>' + escapar(r.erro), 'text-danger');
+        mensagemChave('<i class="bi bi-x-circle me-1"></i>' + escaparHtml(r.erro), 'text-danger');
         btn.disabled = false;
         return;
     }
@@ -836,7 +832,7 @@ async function autoSalvar() {
         const resp = await fetch('?handler=AutoSalvar', { method: 'POST', body: dadosRascunho() });
         const r = await resp.json();
         if (r.ok) statusAutoSalvar('<i class="bi bi-cloud-check me-1"></i>Rascunho salvo às ' + r.hora, 'text-success');
-        else statusAutoSalvar('<i class="bi bi-exclamation-triangle me-1"></i>Rascunho não salvo: ' + escapar(r.erro), 'text-danger');
+        else statusAutoSalvar('<i class="bi bi-exclamation-triangle me-1"></i>Rascunho não salvo: ' + escaparHtml(r.erro), 'text-danger');
     } catch {
         statusAutoSalvar('<i class="bi bi-exclamation-triangle me-1"></i>Não foi possível salvar o rascunho. Verifique a conexão.', 'text-danger');
     } finally {

@@ -1,11 +1,7 @@
 ﻿// Script da tela Funcionários (Pages/Gerais/Funcionarios.cshtml).
 
-document.getElementById('searchInput')?.addEventListener('input', function () {
-    const filter = this.value.toLowerCase();
-    document.querySelectorAll('#tblFuncionarios tbody tr').forEach(row => {
-        row.style.display = row.textContent.toLowerCase().includes(filter) ? '' : 'none';
-    });
-});
+// Filtro rapido da lista (funcao em wwwroot/js/module.js).
+filtrarTabela('#tblFuncionarios tbody tr', { texto: 'searchInput' });
 
 // ===== Mascaras (funcoes em wwwroot/js/module.js; no banco salva so numeros) =====
 aplicarMascara('fCpf', mascaraCPF);
@@ -60,31 +56,20 @@ async function salvarCargoRapido() {
     msg.innerHTML = '';
 
     if (!nome) {
-        msg.innerHTML = '<div class="alert alert-danger py-1 px-2 small mb-2">Informe o nome do cargo.</div>';
+        msg.innerHTML = alertaErro('Informe o nome do cargo.');
         return;
     }
 
-    const token = document.querySelector('#formCargoRapidoToken input[name="__RequestVerificationToken"]').value;
-
     btn.disabled = true;
     try {
-        const resp = await fetch('?handler=CargoRapido', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'RequestVerificationToken': token
-            },
-            body: JSON.stringify({
-                nmCargo: nome,
-                dsCargo: desc || null,
-                vlComissaoPadrao: comissao ? parseFloat(comissao) : null
-            })
+        const data = await postJson('?handler=CargoRapido', {
+            nmCargo: nome,
+            dsCargo: desc || null,
+            vlComissaoPadrao: comissao ? parseFloat(comissao) : null
         });
 
-        const data = await resp.json();
-
         if (!data.sucesso) {
-            msg.innerHTML = '<div class="alert alert-danger py-1 px-2 small mb-2">' + data.mensagem + '</div>';
+            msg.innerHTML = alertaErro(data.mensagem);
             return;
         }
 
@@ -119,8 +104,8 @@ aplicarMascara('buscaCpf', mascaraCPF);
     });
 });
 
-function montarLinha(f, i, token) {
-    const adm = f.adm ? f.adm.split('-').reverse().join('/') : '';
+function montarLinha(f, i) {
+    const adm = dataBr(f.adm, '');
     const com = (f.com !== null && f.com !== undefined) ? f.com + '%' : '-';
     return '<tr>' +
         '<td>' + f.id + '</td>' +
@@ -134,7 +119,7 @@ function montarLinha(f, i, token) {
         '<td class="text-center">' +
             '<button class="btn btn-icon btn-outline-primary" title="Editar" onclick="abrirEdicao(' + i + ')"><i class="bi bi-pencil"></i></button> ' +
             '<form method="post" action="?handler=Excluir" class="d-inline" onsubmit="return confirm(\'Deseja realmente excluir este funcionario?\')">' +
-                '<input type="hidden" name="__RequestVerificationToken" value="' + token + '">' +
+                campoToken() +
                 '<input type="hidden" name="id" value="' + f.id + '">' +
                 '<button type="submit" class="btn btn-icon btn-outline-danger" title="Excluir"><i class="bi bi-trash"></i></button>' +
             '</form>' +
@@ -169,9 +154,7 @@ async function buscarFuncionarios() {
             tbody.innerHTML = '<tr><td colspan="9" class="text-center text-muted py-4">Nenhum funcionário encontrado</td></tr>';
             return;
         }
-
-        const token = document.querySelector('#formCargoRapidoToken input[name="__RequestVerificationToken"]').value;
-        tbody.innerHTML = resultadosBusca.map((f, i) => montarLinha(f, i, token)).join('');
+        tbody.innerHTML = resultadosBusca.map((f, i) => montarLinha(f, i)).join('');
     } catch (e) {
         tbody.innerHTML = '<tr><td colspan="9" class="text-center text-danger py-4">Erro ao buscar. Tente novamente.</td></tr>';
     }

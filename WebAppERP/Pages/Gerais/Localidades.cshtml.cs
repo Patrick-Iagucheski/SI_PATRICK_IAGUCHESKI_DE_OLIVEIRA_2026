@@ -9,7 +9,7 @@ namespace WebAppERP.Pages.Gerais;
 // Todas as telas com campo de cidade (Clientes, Funcionarios, Fornecedores,
 // Transportadores, Compra) usam estes mesmos handlers. As regras ficam nas
 // classes Business, as mesmas das telas de Cidades, Estados e Paises.
-public class LocalidadesModel : PageModel
+public class LocalidadesModel : PaginaBase
 {
     private readonly CidadeBusiness _cidade;
     private readonly EstadoBusiness _estado;
@@ -55,18 +55,12 @@ public class LocalidadesModel : PageModel
         public int IdEstado { get; set; }
     }
 
-    public async Task<IActionResult> OnPostCidadeRapido([FromBody] CidadeRapidoDto dto)
-    {
-        try
+    public Task<IActionResult> OnPostCidadeRapido([FromBody] CidadeRapidoDto dto) =>
+        ExecutarJson(async () =>
         {
             var cidade = await _cidade.Salvar(new Cidade { NmCidade = dto?.NmCidade ?? string.Empty, IdEstado = dto?.IdEstado ?? 0 });
-            return new JsonResult(new { sucesso = true, id = cidade.IdCidade, nome = cidade.NmCidade, uf = cidade.Estado?.SgUF });
-        }
-        catch (ValidacaoException ex)
-        {
-            return new JsonResult(new { sucesso = false, mensagem = ex.MensagemCompleta });
-        }
-    }
+            return new { sucesso = true, id = cidade.IdCidade, nome = cidade.NmCidade, uf = cidade.Estado?.SgUF };
+        });
 
     // ============================================================
     // Cadastro rapido de Estado
@@ -78,9 +72,8 @@ public class LocalidadesModel : PageModel
         public int IdPais { get; set; }
     }
 
-    public async Task<IActionResult> OnPostEstadoRapido([FromBody] EstadoRapidoDto dto)
-    {
-        try
+    public Task<IActionResult> OnPostEstadoRapido([FromBody] EstadoRapidoDto dto) =>
+        ExecutarJson(async () =>
         {
             var estado = await _estado.Salvar(new Estado
             {
@@ -88,13 +81,8 @@ public class LocalidadesModel : PageModel
                 NmEstado = dto?.NmEstado ?? string.Empty,
                 IdPais = dto?.IdPais ?? 0
             });
-            return new JsonResult(new { sucesso = true, id = estado.IdEstado, nome = estado.NmEstado, uf = estado.SgUF });
-        }
-        catch (ValidacaoException ex)
-        {
-            return new JsonResult(new { sucesso = false, mensagem = ex.MensagemCompleta });
-        }
-    }
+            return new { sucesso = true, id = estado.IdEstado, nome = estado.NmEstado, uf = estado.SgUF };
+        });
 
     // ============================================================
     // Cadastro rapido de Pais
@@ -107,9 +95,8 @@ public class LocalidadesModel : PageModel
         public string? DsMoeda { get; set; }
     }
 
-    public async Task<IActionResult> OnPostPaisRapido([FromBody] PaisRapidoDto dto)
-    {
-        try
+    public Task<IActionResult> OnPostPaisRapido([FromBody] PaisRapidoDto dto) =>
+        ExecutarJson(async () =>
         {
             var pais = await _pais.Salvar(new Pais
             {
@@ -118,11 +105,6 @@ public class LocalidadesModel : PageModel
                 NrDDI = dto?.NrDDI,
                 DsMoeda = dto?.DsMoeda
             });
-            return new JsonResult(new { sucesso = true, id = pais.IdPais, nome = pais.NmPais });
-        }
-        catch (ValidacaoException ex)
-        {
-            return new JsonResult(new { sucesso = false, mensagem = ex.MensagemCompleta });
-        }
-    }
+            return new { sucesso = true, id = pais.IdPais, nome = pais.NmPais };
+        });
 }

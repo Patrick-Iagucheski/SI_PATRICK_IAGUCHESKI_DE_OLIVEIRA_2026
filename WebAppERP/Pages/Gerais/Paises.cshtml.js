@@ -1,18 +1,7 @@
 ﻿// Script da tela Países (Pages/Gerais/Paises.cshtml).
 
-function aplicarBusca() {
-    const id = document.getElementById('buscaId').value.trim();
-    const txt = document.getElementById('searchInput').value.toLowerCase();
-    document.querySelectorAll('#tblPaises tbody tr').forEach(row => {
-        if (row.querySelector('td[colspan]')) return;
-        const rowId = row.querySelector('td')?.textContent.trim();
-        const matchId = !id || rowId === id;
-        const matchTxt = row.textContent.toLowerCase().includes(txt);
-        row.style.display = (matchId && matchTxt) ? '' : 'none';
-    });
-}
-document.getElementById('searchInput')?.addEventListener('input', aplicarBusca);
-document.getElementById('buscaId')?.addEventListener('input', aplicarBusca);
+// Filtro rapido por codigo e texto (funcao em wwwroot/js/module.js); o botao Buscar chama aplicarBusca().
+const aplicarBusca = filtrarTabela('#tblPaises tbody tr', { texto: 'searchInput', codigo: 'buscaId' });
 
 function limparForm() {
     document.getElementById('modalTitle').innerHTML = '<i class="bi bi-globe-americas me-2"></i>Novo País';

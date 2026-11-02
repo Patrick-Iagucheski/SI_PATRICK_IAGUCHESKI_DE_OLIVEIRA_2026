@@ -6,7 +6,7 @@ using WebAppERP.Business.Operacional;
 namespace WebAppERP.Pages.Operacional;
 
 // Tela de Veiculos: so conversa com a tela. As regras ficam em VeiculoBusiness.
-public class VeiculosModel : PageModel
+public class VeiculosModel : PaginaBase
 {
     private readonly VeiculoBusiness _veiculo;
     private readonly EstadoBusiness _estado;
@@ -29,32 +29,9 @@ public class VeiculosModel : PageModel
         Estados = await _estado.Listar();
     }
 
-    public async Task<IActionResult> OnPost()
-    {
-        try
-        {
-            var novo = VeiculoForm.IdVeiculo == 0;
-            await _veiculo.Salvar(VeiculoForm);
-            TempData["Sucesso"] = novo ? "Veículo cadastrado com sucesso." : "Veículo atualizado com sucesso.";
-        }
-        catch (ValidacaoException ex)
-        {
-            TempData["Erro"] = ex.MensagemCompleta;
-        }
-        return RedirectToPage();
-    }
+    public Task<IActionResult> OnPost() =>
+        Executar(() => _veiculo.Salvar(VeiculoForm), VeiculoForm.IdVeiculo == 0 ? "Veículo cadastrado com sucesso." : "Veículo atualizado com sucesso.");
 
-    public async Task<IActionResult> OnPostExcluir(int id)
-    {
-        try
-        {
-            await _veiculo.Excluir(id);
-            TempData["Sucesso"] = "Veículo excluído com sucesso.";
-        }
-        catch (ValidacaoException ex)
-        {
-            TempData["Erro"] = ex.MensagemCompleta;
-        }
-        return RedirectToPage();
-    }
+    public Task<IActionResult> OnPostExcluir(int id) =>
+        Executar(() => _veiculo.Excluir(id), "Veículo excluído com sucesso.");
 }

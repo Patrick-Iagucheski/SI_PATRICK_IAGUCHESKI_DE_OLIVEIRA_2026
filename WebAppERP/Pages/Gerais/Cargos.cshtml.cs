@@ -5,7 +5,7 @@ using WebAppERP.Business.Gerais;
 namespace WebAppERP.Pages.Gerais;
 
 // Tela de Cargos: so conversa com a tela. As regras ficam em CargoBusiness.
-public class CargosModel : PageModel
+public class CargosModel : PaginaBase
 {
     private readonly CargoBusiness _cargo;
 
@@ -36,32 +36,9 @@ public class CargosModel : PageModel
         }));
     }
 
-    public async Task<IActionResult> OnPost()
-    {
-        try
-        {
-            var novo = CargoForm.IdCargo == 0;
-            await _cargo.Salvar(CargoForm);
-            TempData["Sucesso"] = novo ? "Cargo cadastrado com sucesso." : "Cargo atualizado com sucesso.";
-        }
-        catch (ValidacaoException ex)
-        {
-            TempData["Erro"] = ex.MensagemCompleta;
-        }
-        return RedirectToPage();
-    }
+    public Task<IActionResult> OnPost() =>
+        Executar(() => _cargo.Salvar(CargoForm), CargoForm.IdCargo == 0 ? "Cargo cadastrado com sucesso." : "Cargo atualizado com sucesso.");
 
-    public async Task<IActionResult> OnPostExcluir(int id)
-    {
-        try
-        {
-            await _cargo.Excluir(id);
-            TempData["Sucesso"] = "Cargo excluído com sucesso.";
-        }
-        catch (ValidacaoException ex)
-        {
-            TempData["Erro"] = ex.MensagemCompleta;
-        }
-        return RedirectToPage();
-    }
+    public Task<IActionResult> OnPostExcluir(int id) =>
+        Executar(() => _cargo.Excluir(id), "Cargo excluído com sucesso.");
 }

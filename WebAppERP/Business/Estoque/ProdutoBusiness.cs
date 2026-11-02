@@ -1,5 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using WebAppERP.Data;
+using WebAppERP.Infrastructure;
 
 namespace WebAppERP.Business.Estoque;
 
@@ -9,19 +10,18 @@ namespace WebAppERP.Business.Estoque;
 public class ProdutoBusiness
 {
     private readonly AppDbContext _db;
-    private readonly IWebHostEnvironment _env;
+    private readonly ArquivoService _arquivo;
     private readonly MarcaBusiness _marca;
     private readonly CategoriaBusiness _categoria;
 
-    private static readonly string[] ExtensoesPermitidas = [".jpg", ".jpeg", ".png", ".webp", ".gif"];
-
     // Mesmo limite de upload configurado no Program.cs.
     private const long TamanhoMaxImagem = 500L * 1024 * 1024; // 500 MB
+    private const string PastaImagem = "uploads";
 
-    public ProdutoBusiness(AppDbContext db, IWebHostEnvironment env, MarcaBusiness marca, CategoriaBusiness categoria)
+    public ProdutoBusiness(AppDbContext db, ArquivoService arquivo, MarcaBusiness marca, CategoriaBusiness categoria)
     {
         _db = db;
-        _env = env;
+        _arquivo = arquivo;
         _marca = marca;
         _categoria = categoria;
     }
@@ -119,7 +119,7 @@ public class ProdutoBusiness
         string? novaImagem = null;
         if (imagem is { Length: > 0 })
         {
-            novaImagem = await GravarImagem(imagem);
+            novaImagem = await _arquivo.Gravar(imagem, PastaImagem);
             registro.DsImagem = novaImagem;
             removerAntiga = true;
         }
@@ -138,12 +138,12 @@ public class ProdutoBusiness
         catch
         {
             // Banco recusou: a imagem nova nao fica perdida no disco.
-            RemoverImagem(novaImagem);
+            _arquivo.Remover(novaImagem, PastaImagem);
             throw;
         }
 
         if (removerAntiga && imagemAntiga != registro.DsImagem)
-            RemoverImagem(imagemAntiga);
+            _arquivo.Remover(imagemAntiga, PastaImagem);
 
         return registro;
     }
@@ -180,14 +180,7 @@ public class ProdutoBusiness
         if (p.IdCategoria.HasValue && !await _categoria.Existe(p.IdCategoria.Value))
             throw new ValidacaoException("Categoria inválida.");
 
-        if (imagem is { Length: > 0 })
-        {
-            var ext = Path.GetExtension(imagem.FileName).ToLowerInvariant();
-            if (!ExtensoesPermitidas.Contains(ext))
-                throw new ValidacaoException("Formato de imagem inválido. Use JPG, PNG, WEBP ou GIF.");
-            if (imagem.Length > TamanhoMaxImagem)
-                throw new ValidacaoException("A imagem deve ter no máximo 500 MB.");
-        }
+        _arquivo.ValidarImagem(imagem, TamanhoMaxImagem, "A imagem");
     }
 
     public async Task Excluir(int id)
@@ -218,32 +211,6 @@ public class ProdutoBusiness
 
         // A imagem so sai do disco depois que a exclusao foi confirmada no banco,
         // senao um delete recusado deixaria o produto sem o arquivo.
-        RemoverImagem(imagem);
-    }
-
-    // ============================================================
-    // Imagem (wwwroot/uploads)
-    // ============================================================
-
-    private async Task<string> GravarImagem(IFormFile imagem)
-    {
-        var ext = Path.GetExtension(imagem.FileName).ToLowerInvariant();
-        var pasta = Path.Combine(_env.WebRootPath, "uploads");
-        Directory.CreateDirectory(pasta);
-        var nomeArquivo = $"{Guid.NewGuid():N}{ext}";
-        using (var stream = File.Create(Path.Combine(pasta, nomeArquivo)))
-            await imagem.CopyToAsync(stream);
-
-        return $"/uploads/{nomeArquivo}";
-    }
-
-    private void RemoverImagem(string? caminhoRelativo)
-    {
-        if (string.IsNullOrEmpty(caminhoRelativo)) return;
-        var fisico = Path.Combine(_env.WebRootPath, caminhoRelativo.TrimStart('/').Replace('/', Path.DirectorySeparatorChar));
-        if (File.Exists(fisico))
-        {
-            try { File.Delete(fisico); } catch { /* ignora falha de exclusao */ }
-        }
+        _arquivo.Remover(imagem, PastaImagem);
     }
 }

@@ -5,7 +5,7 @@ using WebAppERP.Business.Gerais;
 namespace WebAppERP.Pages.Gerais;
 
 // Tela de Estados: so conversa com a tela. As regras ficam em EstadoBusiness.
-public class EstadosModel : PageModel
+public class EstadosModel : PaginaBase
 {
     private readonly EstadoBusiness _estado;
     private readonly PaisBusiness _pais;
@@ -28,32 +28,9 @@ public class EstadosModel : PageModel
         Paises = await _pais.Listar();
     }
 
-    public async Task<IActionResult> OnPost()
-    {
-        try
-        {
-            var novo = EstadoForm.IdEstado == 0;
-            await _estado.Salvar(EstadoForm);
-            TempData["Sucesso"] = novo ? "Estado cadastrado com sucesso." : "Estado atualizado com sucesso.";
-        }
-        catch (ValidacaoException ex)
-        {
-            TempData["Erro"] = ex.MensagemCompleta;
-        }
-        return RedirectToPage();
-    }
+    public Task<IActionResult> OnPost() =>
+        Executar(() => _estado.Salvar(EstadoForm), EstadoForm.IdEstado == 0 ? "Estado cadastrado com sucesso." : "Estado atualizado com sucesso.");
 
-    public async Task<IActionResult> OnPostExcluir(int id)
-    {
-        try
-        {
-            await _estado.Excluir(id);
-            TempData["Sucesso"] = "Estado excluído com sucesso.";
-        }
-        catch (ValidacaoException ex)
-        {
-            TempData["Erro"] = ex.MensagemCompleta;
-        }
-        return RedirectToPage();
-    }
+    public Task<IActionResult> OnPostExcluir(int id) =>
+        Executar(() => _estado.Excluir(id), "Estado excluído com sucesso.");
 }

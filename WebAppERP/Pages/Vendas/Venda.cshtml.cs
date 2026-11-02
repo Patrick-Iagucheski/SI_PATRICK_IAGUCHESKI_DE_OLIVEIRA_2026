@@ -8,7 +8,7 @@ using WebAppERP.ViewModels;
 namespace WebAppERP.Pages.Vendas;
 
 // Tela de Venda (inclusao e edicao): so conversa com a tela. As regras ficam em VendaBusiness.
-public class VendaModel : PageModel
+public class VendaModel : PaginaBase
 {
     private readonly VendaBusiness _business;
 

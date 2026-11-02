@@ -14,6 +14,7 @@
     var empresa = await EmpresaSvc.GetDadosEmpresa();
 }
 @inject WebAppERP.Infrastructure.EmpresaService EmpresaSvc
+@inject Microsoft.AspNetCore.Antiforgery.IAntiforgery Antiforgery
 <!DOCTYPE html>
 <html lang="pt-BR" data-empresa="@empresa.Nome">
 <head>
@@ -31,6 +32,8 @@
     <script type="importmap"></script>
     @* Funcoes compartilhadas (mascaras, validacoes, formatacao): no head porque os
        scripts dos componentes rodam no meio do body e ja usam estas funcoes. *@
+    @* Token de seguranca dos POSTs feitos por JavaScript (lido por tokenAntiforgery() no module.js) *@
+    <meta name="token-antiforgery" content="@Antiforgery.GetAndStoreTokens(Context).RequestToken" />
     <script src="~/js/module.js" asp-append-version="true"></script>
     <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" />

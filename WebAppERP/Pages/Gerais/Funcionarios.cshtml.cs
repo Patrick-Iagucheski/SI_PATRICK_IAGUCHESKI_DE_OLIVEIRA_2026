@@ -5,7 +5,7 @@ using WebAppERP.Business.Gerais;
 namespace WebAppERP.Pages.Gerais;
 
 // Tela de Funcionarios: so conversa com a tela. As regras ficam em FuncionarioBusiness.
-public class FuncionariosModel : PageModel
+public class FuncionariosModel : PaginaBase
 {
     private readonly FuncionarioBusiness _funcionario;
     private readonly CargoBusiness _cargo;
@@ -31,34 +31,11 @@ public class FuncionariosModel : PageModel
         Cargos = await _cargo.Listar();
     }
 
-    public async Task<IActionResult> OnPost()
-    {
-        try
-        {
-            var novo = FuncionarioForm.IdFuncionario == 0;
-            await _funcionario.Salvar(FuncionarioForm);
-            TempData["Sucesso"] = novo ? "Funcionário cadastrado com sucesso." : "Funcionário atualizado com sucesso.";
-        }
-        catch (ValidacaoException ex)
-        {
-            TempData["Erro"] = ex.MensagemCompleta;
-        }
-        return RedirectToPage();
-    }
+    public Task<IActionResult> OnPost() =>
+        Executar(() => _funcionario.Salvar(FuncionarioForm), FuncionarioForm.IdFuncionario == 0 ? "Funcionário cadastrado com sucesso." : "Funcionário atualizado com sucesso.");
 
-    public async Task<IActionResult> OnPostExcluir(int id)
-    {
-        try
-        {
-            await _funcionario.Excluir(id);
-            TempData["Sucesso"] = "Funcionário excluído com sucesso.";
-        }
-        catch (ValidacaoException ex)
-        {
-            TempData["Erro"] = ex.MensagemCompleta;
-        }
-        return RedirectToPage();
-    }
+    public Task<IActionResult> OnPostExcluir(int id) =>
+        Executar(() => _funcionario.Excluir(id), "Funcionário excluído com sucesso.");
 
     // ============================================================
     // Cadastro rapido de Cargo via AJAX (mesmas regras da tela de Cargos)
@@ -70,9 +47,8 @@ public class FuncionariosModel : PageModel
         public decimal? VlComissaoPadrao { get; set; }
     }
 
-    public async Task<IActionResult> OnPostCargoRapido([FromBody] CargoRapidoDto dto)
-    {
-        try
+    public Task<IActionResult> OnPostCargoRapido([FromBody] CargoRapidoDto dto) =>
+        ExecutarJson(async () =>
         {
             var cargo = await _cargo.Salvar(new Cargo
             {
@@ -81,13 +57,8 @@ public class FuncionariosModel : PageModel
                 VlComissaoPadrao = dto?.VlComissaoPadrao,
                 FlAtivo = true
             });
-            return new JsonResult(new { sucesso = true, id = cargo.IdCargo, nome = cargo.NmCargo });
-        }
-        catch (ValidacaoException ex)
-        {
-            return new JsonResult(new { sucesso = false, mensagem = ex.MensagemCompleta });
-        }
-    }
+            return new { sucesso = true, id = cargo.IdCargo, nome = cargo.NmCargo };
+        });
 
     // ============================================================
     // Busca de funcionarios via AJAX (modal de pesquisa)

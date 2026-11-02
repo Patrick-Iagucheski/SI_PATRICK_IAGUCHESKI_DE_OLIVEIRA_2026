@@ -5,7 +5,7 @@ using WebAppERP.DTOs.Principal;
 namespace WebAppERP.Pages;
 
 // Tela Principal: so conversa com a tela. O painel e montado em PrincipalBusiness.
-public class IndexModel : PageModel
+public class IndexModel : PaginaBase
 {
     private readonly PrincipalBusiness _principal;
 

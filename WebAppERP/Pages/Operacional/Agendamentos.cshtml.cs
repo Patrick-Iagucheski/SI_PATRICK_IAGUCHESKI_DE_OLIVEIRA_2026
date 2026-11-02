@@ -6,7 +6,7 @@ using WebAppERP.Business.Operacional;
 namespace WebAppERP.Pages.Operacional;
 
 // Tela de Agendamentos: so conversa com a tela. As regras ficam em AgendamentoBusiness.
-public class AgendamentosModel : PageModel
+public class AgendamentosModel : PaginaBase
 {
     private readonly AgendamentoBusiness _agendamento;
     private readonly ClienteBusiness _cliente;
@@ -57,48 +57,19 @@ public class AgendamentosModel : PageModel
         Servicos = await _servico.Listar(somenteAtivos: true);
     }
 
-    public async Task<IActionResult> OnPost()
+    public Task<IActionResult> OnPost()
     {
-        try
-        {
-            var novo = AgendamentoForm.IdAgendamento == 0;
-            await _agendamento.Salvar(AgendamentoForm);
-            TempData["Sucesso"] = novo ? "Agendamento cadastrado com sucesso." : "Agendamento atualizado com sucesso.";
-        }
-        catch (ValidacaoException ex)
-        {
-            TempData["Erro"] = ex.MensagemCompleta;
-        }
-
         // Volta para o dia do agendamento (ou para o dia que estava na tela, se a data nao veio).
         var data = AgendamentoForm.DtAgendamento == default ? DataFiltro : AgendamentoForm.DtAgendamento.ToString("yyyy-MM-dd");
-        return RedirectToPage(new { DataFiltro = data });
+        return Executar(() => _agendamento.Salvar(AgendamentoForm),
+            AgendamentoForm.IdAgendamento == 0 ? "Agendamento cadastrado com sucesso." : "Agendamento atualizado com sucesso.",
+            new { DataFiltro = data });
     }
 
-    public async Task<IActionResult> OnPostAlterarStatus(int id, string status, string? data)
-    {
-        try
-        {
-            TempData["Sucesso"] = await _agendamento.AlterarSituacao(id, status);
-        }
-        catch (ValidacaoException ex)
-        {
-            TempData["Erro"] = ex.MensagemCompleta;
-        }
-        return RedirectToPage(new { DataFiltro = data });
-    }
+    // Botoes da agenda (Confirmar, Iniciar, Concluir, Cancelar).
+    public Task<IActionResult> OnPostAlterarSituacao(int id, string status, string? data) =>
+        ExecutarComMensagem(() => _agendamento.AlterarSituacao(id, status), new { DataFiltro = data });
 
-    public async Task<IActionResult> OnPostExcluir(int id, string? data)
-    {
-        try
-        {
-            await _agendamento.Excluir(id);
-            TempData["Sucesso"] = "Agendamento excluído com sucesso.";
-        }
-        catch (ValidacaoException ex)
-        {
-            TempData["Erro"] = ex.MensagemCompleta;
-        }
-        return RedirectToPage(new { DataFiltro = data });
-    }
+    public Task<IActionResult> OnPostExcluir(int id, string? data) =>
+        Executar(() => _agendamento.Excluir(id), "Agendamento excluído com sucesso.", new { DataFiltro = data });
 }

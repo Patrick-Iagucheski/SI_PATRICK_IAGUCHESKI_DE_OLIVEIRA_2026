@@ -9,9 +9,8 @@ namespace WebAppERP.ViewComponents;
 // View: Pages/Shared/Components/CadastroProduto/Default.cshtml.
 // Traz o proprio script (Default.cshtml.js, na mesma pasta), incluido uma vez
 // por pagina. A gravacao fica em ProdutosModel (OnPost / OnPostSalvarAjax).
-public class CadastroProdutoViewComponent : ViewComponent
+public class CadastroProdutoViewComponent : ComponenteBase
 {
-    private const string ChaveScriptIncluido = "CadastroProduto.ScriptIncluido";
     private readonly MarcaBusiness _marca;
     private readonly CategoriaBusiness _categoria;
 
@@ -30,11 +29,8 @@ public class CadastroProdutoViewComponent : ViewComponent
             Categorias = await _categoria.Listar()
         };
 
-        if (!HttpContext.Items.ContainsKey(ChaveScriptIncluido))
-        {
-            HttpContext.Items[ChaveScriptIncluido] = true;
-            vm.IncluirScript = true;
-        }
+        // O script entra so na primeira vez que o componente aparece na pagina.
+        vm.IncluirScript = PrimeiraVezNaPagina();
 
         return View(vm);
     }

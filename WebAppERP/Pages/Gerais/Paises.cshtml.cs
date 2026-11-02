@@ -5,7 +5,7 @@ using WebAppERP.Business.Gerais;
 namespace WebAppERP.Pages.Gerais;
 
 // Tela de Paises: so conversa com a tela. As regras ficam em PaisBusiness.
-public class PaisesModel : PageModel
+public class PaisesModel : PaginaBase
 {
     private readonly PaisBusiness _pais;
 
@@ -21,32 +21,9 @@ public class PaisesModel : PageModel
         Paises = await _pais.Listar();
     }
 
-    public async Task<IActionResult> OnPost()
-    {
-        try
-        {
-            var novo = PaisForm.IdPais == 0;
-            await _pais.Salvar(PaisForm);
-            TempData["Sucesso"] = novo ? "País cadastrado com sucesso." : "País atualizado com sucesso.";
-        }
-        catch (ValidacaoException ex)
-        {
-            TempData["Erro"] = ex.MensagemCompleta;
-        }
-        return RedirectToPage();
-    }
+    public Task<IActionResult> OnPost() =>
+        Executar(() => _pais.Salvar(PaisForm), PaisForm.IdPais == 0 ? "País cadastrado com sucesso." : "País atualizado com sucesso.");
 
-    public async Task<IActionResult> OnPostExcluir(int id)
-    {
-        try
-        {
-            await _pais.Excluir(id);
-            TempData["Sucesso"] = "País excluído com sucesso.";
-        }
-        catch (ValidacaoException ex)
-        {
-            TempData["Erro"] = ex.MensagemCompleta;
-        }
-        return RedirectToPage();
-    }
+    public Task<IActionResult> OnPostExcluir(int id) =>
+        Executar(() => _pais.Excluir(id), "País excluído com sucesso.");
 }

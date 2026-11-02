@@ -148,9 +148,6 @@
 <!-- Modal Nova/Editar Condicao (componente compartilhado com o cadastro de fornecedor) -->
 @await Component.InvokeAsync("CadastroCondicaoPagamento", new { modo = "post", form = Model.CondicaoForm })
 
-<!-- Token antiforgery para os forms reconstruidos via AJAX (busca) -->
-<form id="formBuscaToken" class="d-none">@Html.AntiForgeryToken()</form>
-
 @section Scripts {
     <script type="application/json" id="dadosTela">
     {

@@ -1,11 +1,7 @@
 ﻿// Script da tela Veículos (Pages/Operacional/Veiculos.cshtml).
 
-document.getElementById('searchInput')?.addEventListener('input', function () {
-    const filter = this.value.toLowerCase();
-    document.querySelectorAll('#tblVeiculos tbody tr').forEach(row => {
-        row.style.display = row.textContent.toLowerCase().includes(filter) ? '' : 'none';
-    });
-});
+// Filtro rapido da lista (funcao em wwwroot/js/module.js).
+filtrarTabela('#tblVeiculos tbody tr', { texto: 'searchInput' });
 
 // Mascara placa: antiga LLLNNNN (ex.: ABC1234) ou Mercosul LLLNLNN (ex.: ABC1D23)
 function mascaraPlaca(v) {

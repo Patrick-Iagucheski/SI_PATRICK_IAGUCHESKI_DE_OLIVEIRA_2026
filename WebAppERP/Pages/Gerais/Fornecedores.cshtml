@@ -149,9 +149,6 @@
 <!-- Modal Novo/Editar Fornecedor + cadastros rapidos (componente compartilhado com a Compra) -->
 @await Component.InvokeAsync("CadastroFornecedor", new { modo = "post", form = Model.FornecedorForm })
 
-<!-- Token antiforgery para as chamadas AJAX -->
-<form id="formTokenAjax" class="d-none">@Html.AntiForgeryToken()</form>
-
 @section Scripts {
     <script type="application/json" id="dadosTela">
     {

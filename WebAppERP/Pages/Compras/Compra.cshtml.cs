@@ -10,7 +10,7 @@ using WebAppERP.ViewModels;
 
 namespace WebAppERP.Pages.Compras;
 
-public class CompraModel : PageModel
+public class CompraModel : PaginaBase
 {
     private readonly CompraBusiness _business;
     private readonly FornecedorBusiness _fornecedor;

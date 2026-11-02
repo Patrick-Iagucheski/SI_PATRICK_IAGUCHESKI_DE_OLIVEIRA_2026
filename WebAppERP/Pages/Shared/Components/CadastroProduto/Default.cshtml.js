@@ -53,20 +53,6 @@ function removerImagem() {
 function urlProdutos(handler) {
     return document.getElementById('modalProduto').dataset.urlProdutos + '?handler=' + handler;
 }
-function tokenProduto() {
-    return document.querySelector('#modalProduto input[name="__RequestVerificationToken"]').value;
-}
-function alertaErroProduto(m) {
-    return '<div class="alert alert-danger py-1 px-2 small mb-2">' + m + '</div>';
-}
-async function postJsonProduto(url, body) {
-    const resp = await fetch(url, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'RequestVerificationToken': tokenProduto() },
-        body: JSON.stringify(body)
-    });
-    return await resp.json();
-}
 
 // ===== Cadastro rapido de Marca (AJAX) =====
 async function salvarMarcaRapida() {
@@ -75,12 +61,12 @@ async function salvarMarcaRapida() {
     const btn = document.getElementById('btnSalvarMarcaRapido');
     msg.innerHTML = '';
 
-    if (!nome) { msg.innerHTML = alertaErroProduto('Informe o nome da marca.'); return; }
+    if (!nome) { msg.innerHTML = alertaErro('Informe o nome da marca.'); return; }
 
     btn.disabled = true;
     try {
-        const data = await postJsonProduto(urlProdutos('MarcaRapido'), { nmMarca: nome });
-        if (!data.sucesso) { msg.innerHTML = alertaErroProduto(data.mensagem); return; }
+        const data = await postJson(urlProdutos('MarcaRapido'), { nmMarca: nome });
+        if (!data.sucesso) { msg.innerHTML = alertaErro(data.mensagem); return; }
 
         // Adiciona a nova marca no dropdown e ja a seleciona automaticamente.
         const sel = document.getElementById('prodIdMarca');
@@ -93,7 +79,7 @@ async function salvarMarcaRapida() {
         document.getElementById('marcaNome').value = '';
         bootstrap.Modal.getInstance(document.getElementById('modalMarcaRapido')).hide();
     } catch (e) {
-        msg.innerHTML = alertaErroProduto('Erro ao salvar a marca. Tente novamente.');
+        msg.innerHTML = alertaErro('Erro ao salvar a marca. Tente novamente.');
     } finally {
         btn.disabled = false;
     }
@@ -106,12 +92,12 @@ async function salvarCategoriaRapida() {
     const btn = document.getElementById('btnSalvarCategoriaRapido');
     msg.innerHTML = '';
 
-    if (!nome) { msg.innerHTML = alertaErroProduto('Informe o nome da categoria.'); return; }
+    if (!nome) { msg.innerHTML = alertaErro('Informe o nome da categoria.'); return; }
 
     btn.disabled = true;
     try {
-        const data = await postJsonProduto(urlProdutos('CategoriaRapido'), { nmCategoria: nome });
-        if (!data.sucesso) { msg.innerHTML = alertaErroProduto(data.mensagem); return; }
+        const data = await postJson(urlProdutos('CategoriaRapido'), { nmCategoria: nome });
+        if (!data.sucesso) { msg.innerHTML = alertaErro(data.mensagem); return; }
 
         // Adiciona a nova categoria no dropdown e ja a seleciona automaticamente.
         const sel = document.getElementById('prodIdCategoria');
@@ -124,7 +110,7 @@ async function salvarCategoriaRapida() {
         document.getElementById('categoriaNome').value = '';
         bootstrap.Modal.getInstance(document.getElementById('modalCategoriaRapido')).hide();
     } catch (e) {
-        msg.innerHTML = alertaErroProduto('Erro ao salvar a categoria. Tente novamente.');
+        msg.innerHTML = alertaErro('Erro ao salvar a categoria. Tente novamente.');
     } finally {
         btn.disabled = false;
     }
@@ -188,11 +174,11 @@ async function salvarProdutoAjax(form) {
     try {
         const resp = await fetch(urlProdutos('SalvarAjax'), { method: 'POST', body: new FormData(form) });
         const data = await resp.json();
-        if (!data.sucesso) { msg.innerHTML = alertaErroProduto(data.mensagem); msg.scrollIntoView({ block: 'nearest' }); return; }
+        if (!data.sucesso) { msg.innerHTML = alertaErro(data.mensagem); msg.scrollIntoView({ block: 'nearest' }); return; }
         bootstrap.Modal.getInstance(document.getElementById('modalProduto')).hide();
         document.dispatchEvent(new CustomEvent('produto:salvo', { detail: data }));
     } catch (e) {
-        msg.innerHTML = alertaErroProduto('Erro ao salvar o produto. Tente novamente.');
+        msg.innerHTML = alertaErro('Erro ao salvar o produto. Tente novamente.');
         msg.scrollIntoView({ block: 'nearest' });
     } finally { btn.disabled = false; }
 }

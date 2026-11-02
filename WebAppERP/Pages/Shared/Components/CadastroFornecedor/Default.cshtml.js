@@ -132,14 +132,6 @@ function editarFornecedor(f) {
 function urlFornecedores(handler) {
     return document.getElementById('modalFornecedor').dataset.urlFornecedores + '?handler=' + handler;
 }
-function tokenFornecedor() {
-    return document.querySelector('#modalFornecedor input[name="__RequestVerificationToken"]').value;
-}
-function alertaErro(m) { return '<div class="alert alert-danger py-1 px-2 small mb-2">' + m + '</div>'; }
-async function postJson(url, body) {
-    const resp = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json', 'RequestVerificationToken': tokenFornecedor() }, body: JSON.stringify(body) });
-    return await resp.json();
-}
 
 // Condicao cadastrada pelo + do campo: entra no dropdown ja selecionada
 // (o dropdown so lista condicoes ativas).

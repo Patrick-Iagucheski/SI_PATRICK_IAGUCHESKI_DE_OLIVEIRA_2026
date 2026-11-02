@@ -78,4 +78,34 @@ public static class Module
 
     // Valor informado e negativo (campos opcionais vazios nao contam).
     public static bool EhNegativo(decimal? valor) => valor.HasValue && valor.Value < 0;
+
+    // ============================================================
+    // Itens de Compra e Venda
+    // ============================================================
+
+    // Valida o item (produto ou servico escolhido, quantidade, preco e desconto)
+    // e devolve o total: Quantidade x Preco Unitario - Desconto. seq: numero do
+    // item, para a mensagem dizer qual linha esta errada.
+    public static decimal CalcularTotalItem(int seq, bool produto, int? idProduto, int? idServico,
+                                            decimal quantidade, decimal vlUnitario, decimal vlDesconto)
+    {
+        if (produto && idProduto is not > 0)
+            throw new ValidacaoException($"Item {seq}: selecione o produto.");
+        if (!produto && idServico is not > 0)
+            throw new ValidacaoException($"Item {seq}: selecione o serviço.");
+
+        if (quantidade <= 0)
+            throw new ValidacaoException($"Item {seq}: a quantidade deve ser maior que zero.");
+        if (vlUnitario < 0)
+            throw new ValidacaoException($"Item {seq}: o preço unitário não pode ser negativo.");
+        if (vlDesconto < 0)
+            throw new ValidacaoException($"Item {seq}: o desconto não pode ser negativo.");
+
+        var bruto = Math.Round(quantidade * vlUnitario, 2, MidpointRounding.AwayFromZero);
+        var total = bruto - vlDesconto;
+        if (total < 0)
+            throw new ValidacaoException($"Item {seq}: o desconto (R$ {vlDesconto:N2}) é maior que o valor do item "
+                                       + $"(R$ {bruto:N2}) e deixaria o total negativo.");
+        return total;
+    }
 }

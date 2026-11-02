@@ -105,7 +105,7 @@ function documentoExibicao(f) {
     return f.cpf ? mascaraCPF(f.cpf) : '-';
 }
 
-function montarLinha(f, i, token) {
+function montarLinha(f, i) {
     return '<tr>' +
         '<td>' + f.id + '</td>' +
         '<td><strong>' + (f.nome || '') + '</strong></td>' +
@@ -118,7 +118,7 @@ function montarLinha(f, i, token) {
         '<td class="text-center">' +
             '<button class="btn btn-icon btn-outline-primary" title="Editar" onclick="abrirEdicao(' + i + ')"><i class="bi bi-pencil"></i></button> ' +
             '<form method="post" action="?handler=Excluir" class="d-inline" onsubmit="return confirm(\'Deseja realmente excluir este cliente?\')">' +
-                '<input type="hidden" name="__RequestVerificationToken" value="' + token + '">' +
+                campoToken() +
                 '<input type="hidden" name="id" value="' + f.id + '">' +
                 '<button type="submit" class="btn btn-icon btn-outline-danger" title="Excluir"><i class="bi bi-trash"></i></button>' +
             '</form>' +
@@ -153,9 +153,7 @@ async function buscarClientes() {
             tbody.innerHTML = '<tr><td colspan="9" class="text-center text-muted py-4">Nenhum cliente encontrado</td></tr>';
             return;
         }
-
-        const token = document.querySelector('#formTokenAjax input[name="__RequestVerificationToken"]').value;
-        tbody.innerHTML = resultadosBusca.map((f, i) => montarLinha(f, i, token)).join('');
+        tbody.innerHTML = resultadosBusca.map((f, i) => montarLinha(f, i)).join('');
     } catch (e) {
         tbody.innerHTML = '<tr><td colspan="9" class="text-center text-danger py-4">Erro ao buscar. Tente novamente.</td></tr>';
     }

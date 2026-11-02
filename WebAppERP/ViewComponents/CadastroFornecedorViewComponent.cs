@@ -9,9 +9,8 @@ namespace WebAppERP.ViewComponents;
 // CampoCidade. View: Pages/Shared/Components/CadastroFornecedor/Default.cshtml.
 // Traz o proprio script (Default.cshtml.js, na mesma pasta), incluido uma vez
 // por pagina. A gravacao fica em FornecedorBusiness (chamado por FornecedoresModel).
-public class CadastroFornecedorViewComponent : ViewComponent
+public class CadastroFornecedorViewComponent : ComponenteBase
 {
-    private const string ChaveScriptIncluido = "CadastroFornecedor.ScriptIncluido";
     private readonly CondicaoPagamentoBusiness _condicao;
 
     public CadastroFornecedorViewComponent(CondicaoPagamentoBusiness condicao) => _condicao = condicao;
@@ -25,11 +24,8 @@ public class CadastroFornecedorViewComponent : ViewComponent
             Condicoes = await _condicao.Listar(somenteAtivas: true)
         };
 
-        if (!HttpContext.Items.ContainsKey(ChaveScriptIncluido))
-        {
-            HttpContext.Items[ChaveScriptIncluido] = true;
-            vm.IncluirScript = true;
-        }
+        // O script entra so na primeira vez que o componente aparece na pagina.
+        vm.IncluirScript = PrimeiraVezNaPagina();
 
         return View(vm);
     }

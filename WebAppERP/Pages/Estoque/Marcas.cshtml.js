@@ -9,7 +9,7 @@ let resultadosBusca = [];
     });
 });
 
-function montarLinha(m, i, token) {
+function montarLinha(m, i) {
     return '<tr>' +
         '<td>' + m.id + '</td>' +
         '<td><strong>' + (m.nome || '') + '</strong></td>' +
@@ -17,7 +17,7 @@ function montarLinha(m, i, token) {
         '<td class="text-center">' +
             '<button class="btn btn-icon btn-outline-primary" title="Editar" onclick="abrirEdicao(' + i + ')"><i class="bi bi-pencil"></i></button> ' +
             '<form method="post" action="?handler=Excluir" class="d-inline" onsubmit="return confirm(\'Deseja realmente excluir esta marca?\')">' +
-                '<input type="hidden" name="__RequestVerificationToken" value="' + token + '">' +
+                campoToken() +
                 '<input type="hidden" name="id" value="' + m.id + '">' +
                 '<button type="submit" class="btn btn-icon btn-outline-danger" title="Excluir"><i class="bi bi-trash"></i></button>' +
             '</form>' +
@@ -48,9 +48,7 @@ async function buscarMarcas() {
             tbody.innerHTML = '<tr><td colspan="4" class="text-center text-muted py-4">Nenhuma marca encontrada</td></tr>';
             return;
         }
-
-        const token = document.querySelector('#formTokenAjax input[name="__RequestVerificationToken"]').value;
-        tbody.innerHTML = resultadosBusca.map((m, i) => montarLinha(m, i, token)).join('');
+        tbody.innerHTML = resultadosBusca.map((m, i) => montarLinha(m, i)).join('');
     } catch (e) {
         tbody.innerHTML = '<tr><td colspan="4" class="text-center text-danger py-4">Erro ao buscar. Tente novamente.</td></tr>';
     }

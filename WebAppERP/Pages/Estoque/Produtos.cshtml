@@ -115,9 +115,6 @@
 <!-- Modal Novo/Editar Produto + cadastro rapido de marca (componente compartilhado com a Compra) -->
 @await Component.InvokeAsync("CadastroProduto", new { modo = "post" })
 
-<!-- Token antiforgery para as chamadas AJAX -->
-<form id="formTokenAjax" class="d-none">@Html.AntiForgeryToken()</form>
-
 @section Scripts {
     <script src="~/Pages/Estoque/Produtos.cshtml.js" asp-append-version="true"></script>
 }
