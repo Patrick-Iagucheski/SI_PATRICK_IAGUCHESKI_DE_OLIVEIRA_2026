@@ -18,7 +18,7 @@
         tpItem = i.TpItem,
         idServico = i.IdServico,
         idProduto = i.IdProduto,
-        descricao = i.TpItem == "PRODUTO" ? (i.Produto != null ? i.Produto.DsProduto : "") : (i.Servico != null ? i.Servico.DsServico : ""),
+        descricao = i.TpItem == VendaItem.PRODUTO ? (i.Produto != null ? i.Produto.DsProduto : "") : (i.Servico != null ? i.Servico.DsServico : ""),
         qtItem = i.QtItem,
         vlUnitario = i.VlUnitario,
         vlDesconto = i.VlDesconto,
@@ -124,8 +124,8 @@
                     <div class="col-md-2">
                         <label class="form-label">Tipo</label>
                         <select class="form-select" id="itTipo" onchange="onTipoChange()">
-                            <option value="PRODUTO">Produto</option>
-                            <option value="SERVICO">Serviço</option>
+                            <option value="@VendaItem.PRODUTO">Produto</option>
+                            <option value="@VendaItem.SERVICO">Serviço</option>
                         </select>
                     </div>
                     <div class="col-md-4" id="grpProduto">
@@ -237,6 +237,7 @@
 @section Scripts {
     <script type="application/json" id="dadosTela">
     {
+        "TIPO_ITEM": { "PRODUTO": @Json.Serialize(VendaItem.PRODUTO), "SERVICO": @Json.Serialize(VendaItem.SERVICO) },
         "PRODUTOS": @Json.Serialize(produtosJs),
         "SERVICOS": @Json.Serialize(servicosJs),
         "SOMENTE_LEITURA": @Json.Serialize(Model.Vm.SomenteLeitura),

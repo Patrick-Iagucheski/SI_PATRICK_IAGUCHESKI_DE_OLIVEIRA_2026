@@ -2,6 +2,10 @@
 // Os valores que vem do servidor estao no bloco JSON #dadosTela da pagina.
 const DADOS_TELA = JSON.parse(document.getElementById('dadosTela').textContent);
 
+// Tipos de item (constantes da entidade no servidor).
+const TIPO_PRODUTO = DADOS_TELA.TIPO_ITEM.PRODUTO;
+const TIPO_SERVICO = DADOS_TELA.TIPO_ITEM.SERVICO;
+
 const FORMAS = DADOS_TELA.FORMAS;
 const CONDICOES = DADOS_TELA.CONDICOES;
 const SOMENTE_LEITURA = DADOS_TELA.SOMENTE_LEITURA;
@@ -58,7 +62,7 @@ function nomeCondicao(id) {
 function handlerBusca() {
     if (buscaContexto === 'fornecedor') return 'BuscarFornecedor';
     if (buscaContexto === 'transportador') return 'BuscarTransportador';
-    return document.getElementById('itTipo').value === 'PRODUTO' ? 'BuscarProduto' : 'BuscarServico';
+    return document.getElementById('itTipo').value === TIPO_PRODUTO ? 'BuscarProduto' : 'BuscarServico';
 }
 
 function abrirModalBusca(contexto, titulo) {
@@ -80,7 +84,7 @@ function abrirBuscaFornecedor() { abrirModalBusca('fornecedor', 'Pesquisar Forne
 function abrirBuscaTransportador() { abrirModalBusca('transportador', 'Pesquisar Transportadora'); }
 function abrirBuscaItem() {
     const tipo = document.getElementById('itTipo').value;
-    abrirModalBusca('item', tipo === 'PRODUTO' ? 'Pesquisar Produto' : 'Pesquisar Serviço');
+    abrirModalBusca('item', tipo === TIPO_PRODUTO ? 'Pesquisar Produto' : 'Pesquisar Serviço');
 }
 
 async function executarBusca() {
@@ -131,7 +135,7 @@ function selecionarBusca(reg) {
 function cadastroDaBusca() {
     if (buscaContexto === 'fornecedor' && document.getElementById('modalFornecedor'))
         return { modal: 'modalFornecedor', limpar: limparForm, titulo: 'Cadastrar novo fornecedor' };
-    if (buscaContexto === 'item' && document.getElementById('itTipo').value === 'PRODUTO'
+    if (buscaContexto === 'item' && document.getElementById('itTipo').value === TIPO_PRODUTO
         && document.getElementById('modalProduto'))
         return { modal: 'modalProduto', limpar: limparFormProduto, titulo: 'Cadastrar novo produto' };
     return null;
@@ -167,7 +171,7 @@ async function onCodigoItemChange() {
     if (!id) { document.getElementById('itDescricao').textContent = ''; return; }
 
     const tipo = document.getElementById('itTipo').value;
-    const handler = tipo === 'PRODUTO' ? 'BuscarProduto' : 'BuscarServico';
+    const handler = tipo === TIPO_PRODUTO ? 'BuscarProduto' : 'BuscarServico';
 
     try {
         const resp = await fetch('?handler=' + handler + '&id=' + id);
@@ -226,26 +230,26 @@ function adicionarItem() {
     const descricao = document.getElementById('itDescricao').textContent;
 
     if (!codigo || !descricao || descricao === 'Não encontrado') {
-        alert('Selecione um ' + (tipo === 'PRODUTO' ? 'produto' : 'serviço') + ' válido.');
+        exibirErro(secaoDoCampo('itTipo'), 'Selecione um ' + (tipo === TIPO_PRODUTO ? 'produto' : 'serviço') + ' válido.');
         return;
     }
 
     const qt = num('itQt');
-    if (qt <= 0) { alert('A quantidade deve ser maior que zero.'); return; }
+    if (qt <= 0) { exibirErro(secaoDoCampo('itTipo'), 'A quantidade deve ser maior que zero.'); return; }
 
     const vlUnit = num('itVlUnit');
     const desc = num('itDesc');
     const bruto = arred2(qt * vlUnit);
 
     if (desc > bruto) {
-        alert('O desconto (R$ ' + moeda(desc) + ') é maior que o valor do item (R$ ' + moeda(bruto) + ').');
+        exibirErro(secaoDoCampo('itTipo'), 'O desconto (R$ ' + moeda(desc) + ') é maior que o valor do item (R$ ' + moeda(bruto) + ').');
         return;
     }
 
     const item = {
         tpItem: tipo,
-        idProduto: tipo === 'PRODUTO' ? codigo : null,
-        idServico: tipo === 'SERVICO' ? codigo : null,
+        idProduto: tipo === TIPO_PRODUTO ? codigo : null,
+        idServico: tipo === TIPO_SERVICO ? codigo : null,
         codigo: codigo,
         descricao: descricao,
         // A classificacao saiu da tela. Item antigo que ja tinha uma
@@ -316,7 +320,7 @@ function renderItens() {
     const rateios = calcRateio();
 
     ITENS.forEach((it, idx) => {
-        const badge = it.tpItem === 'PRODUTO' ? 'badge-agendado' : 'badge-confirmado';
+        const badge = it.tpItem === TIPO_PRODUTO ? 'badge-agendado' : 'badge-confirmado';
         const acoes = SOMENTE_LEITURA ? '<td></td>' :
             '<td class="text-center" style="white-space:nowrap;">' +
             '<button type="button" class="btn btn-icon btn-outline-primary" title="Editar" onclick="editarItem(' + idx + ')"><i class="bi bi-pencil"></i></button> ' +
@@ -338,7 +342,7 @@ function renderItens() {
             '<td class="text-end">R$ ' + moeda(it.vlUnitario) + '</td>' +
             '<td class="text-end">R$ ' + moeda(it.vlDesconto) + percDesc + '</td>' +
             '<td class="text-end"><strong>R$ ' + moeda(it.vlTotal) + '</strong></td>' +
-            '<td class="text-end">' + (it.tpItem === 'PRODUTO' ? 'R$ ' + moeda(rateios[idx]) : '-') + '</td>' +
+            '<td class="text-end">' + (it.tpItem === TIPO_PRODUTO ? 'R$ ' + moeda(rateios[idx]) : '-') + '</td>' +
             '<td class="text-end">R$ ' + moeda(custoUnit) + '</td>' +
             acoes;
         tb.appendChild(tr);
@@ -364,7 +368,7 @@ function renderItens() {
 // de arredondamento. Mesma conta de RatearCustoAdicional no servidor.
 function calcRateio() {
     const custo = custoAdicional();
-    const produtos = ITENS.map((it, i) => it.tpItem === 'PRODUTO' ? i : -1).filter(i => i >= 0);
+    const produtos = ITENS.map((it, i) => it.tpItem === TIPO_PRODUTO ? i : -1).filter(i => i >= 0);
     const base = produtos.reduce((a, i) => a + (Number(ITENS[i].vlTotal) || 0), 0);
     const rateios = ITENS.map(() => 0);
     let acumulado = 0;
@@ -420,13 +424,13 @@ function calcTotalParcelas() {
 
 function adicionarPagamento() {
     const idForma = parseInt(document.getElementById('pgForma').value) || 0;
-    if (!idForma) { alert('Selecione a forma de pagamento.'); return; }
+    if (!idForma) { exibirErro(secaoDoCampo('pgValor'), 'Selecione a forma de pagamento.'); return; }
 
     const valor = num('pgValor');
-    if (valor <= 0) { alert('Informe o valor da parcela.'); return; }
+    if (valor <= 0) { exibirErro(secaoDoCampo('pgValor'), 'Informe o valor da parcela.'); return; }
 
     const venc = texto('pgVencimento');
-    if (!venc) { alert('Informe a data de vencimento.'); return; }
+    if (!venc) { exibirErro(secaoDoCampo('pgValor'), 'Informe a data de vencimento.'); return; }
 
     const idCondicao = parseInt(document.getElementById('IdCondicaoPagamento').value) || null;
 
@@ -511,24 +515,24 @@ function renderPagamentos() {
 // (dias de vencimento, percentual e forma de cada parcela).
 async function gerarParcelasDaCondicao() {
     const idCondicao = parseInt(document.getElementById('IdCondicaoPagamento').value) || 0;
-    if (!idCondicao) { alert('Selecione a condição de pagamento.'); return; }
+    if (!idCondicao) { exibirErro(secaoDoCampo('IdCondicaoPagamento'), 'Selecione a condição de pagamento.'); return; }
 
     const total = totalCompra();
-    if (total <= 0) { alert('Informe os itens da compra antes de gerar as parcelas.'); return; }
+    if (total <= 0) { exibirErro(secaoDoCampo('IdCondicaoPagamento'), 'Informe os itens da compra antes de gerar as parcelas.'); return; }
 
     const base = texto('DtEmissao');
-    if (!base) { alert('Informe a data de emissão.'); return; }
+    if (!base) { exibirErro(secaoDoCampo('IdCondicaoPagamento'), 'Informe a data de emissão.'); return; }
 
     let modelo;
     try {
         const resp = await fetch('?handler=BuscarParcelasCondicao&idCondicao=' + idCondicao);
         modelo = await resp.json();
     } catch {
-        alert('Não foi possível carregar as parcelas da condição de pagamento.');
+        exibirErro(secaoDoCampo('IdCondicaoPagamento'), 'Não foi possível carregar as parcelas da condição de pagamento.');
         return;
     }
 
-    if (!modelo.length) { alert('Esta condição de pagamento não possui parcelas cadastradas.'); return; }
+    if (!modelo.length) { exibirErro(secaoDoCampo('IdCondicaoPagamento'), 'Esta condição de pagamento não possui parcelas cadastradas.'); return; }
     if (PAGAMENTOS.length && !confirm('As parcelas atuais serão substituídas. Continuar?')) return;
 
     PAGAMENTOS = [];
@@ -621,10 +625,10 @@ function mensagemChave(html, classe) {
 // servidor ja grava o rascunho e a tela reabre como edicao dessa compra
 // (dali em diante tudo e salvo sozinho, ver "Salvamento automatico").
 async function validarChave() {
-    if (!texto('NrModelo')) { alert('Selecione o modelo da nota.'); return; }
-    if (texto('NrSerie') === '') { alert('Informe a série da nota.'); document.getElementById('NrSerie').focus(); return; }
-    if (!texto('NrNota')) { alert('Informe o número da nota.'); document.getElementById('NrNota').focus(); return; }
-    if (!texto('IdFornecedor')) { alert('Informe o fornecedor.'); document.getElementById('IdFornecedor').focus(); return; }
+    if (!texto('NrModelo')) { exibirErro(secaoDoCampo('NrNota'), 'Selecione o modelo da nota.'); return; }
+    if (texto('NrSerie') === '') { exibirErro(secaoDoCampo('NrNota'), 'Informe a série da nota.'); document.getElementById('NrSerie').focus(); return; }
+    if (!texto('NrNota')) { exibirErro(secaoDoCampo('NrNota'), 'Informe o número da nota.'); document.getElementById('NrNota').focus(); return; }
+    if (!texto('IdFornecedor')) { exibirErro(secaoDoCampo('NrNota'), 'Informe o fornecedor.'); document.getElementById('IdFornecedor').focus(); return; }
 
     const dados = new FormData();
     dados.append('__RequestVerificationToken', tokenAntiforgery());
@@ -707,27 +711,27 @@ function aplicarEtapas() {
 // ---------------- Gravacao ----------------
 
 function salvar(status) {
-    if (!texto('NrModelo')) { alert('Selecione o modelo da nota.'); return; }
-    if (!texto('NrNota')) { alert('Informe o número da nota.'); document.getElementById('NrNota').focus(); return; }
-    if (texto('NrSerie') === '') { alert('Informe a série da nota.'); document.getElementById('NrSerie').focus(); return; }
-    if (!texto('IdFornecedor')) { alert('Informe o fornecedor.'); document.getElementById('IdFornecedor').focus(); return; }
-    if (!chaveValidada) { alert('Valide a chave da nota antes de salvar.'); return; }
+    if (!texto('NrModelo')) { exibirErro(secaoDoCampo('NrNota'), 'Selecione o modelo da nota.'); return; }
+    if (!texto('NrNota')) { exibirErro(secaoDoCampo('NrNota'), 'Informe o número da nota.'); document.getElementById('NrNota').focus(); return; }
+    if (texto('NrSerie') === '') { exibirErro(secaoDoCampo('NrNota'), 'Informe a série da nota.'); document.getElementById('NrSerie').focus(); return; }
+    if (!texto('IdFornecedor')) { exibirErro(secaoDoCampo('NrNota'), 'Informe o fornecedor.'); document.getElementById('IdFornecedor').focus(); return; }
+    if (!chaveValidada) { exibirErro(secaoDoCampo('NrNota'), 'Valide a chave da nota antes de salvar.'); return; }
 
     const erroData = validarDatas();
     if (erroData) {
-        alert(erroData);
+        exibirErro(secaoDoCampo('NrNota'), erroData);
         // A mensagem e generica: o foco mostra qual data esta errada.
         document.querySelector('#DtEmissao.is-invalid, #DtChegada.is-invalid')?.focus();
         return;
     }
 
     if (status === 'FINALIZADA') {
-        if (!ITENS.length) { alert('Adicione ao menos um produto/serviço para finalizar a compra.'); return; }
-        if (!PAGAMENTOS.length) { alert('Informe ao menos uma parcela de pagamento para finalizar a compra.'); return; }
+        if (!ITENS.length) { exibirErro(secaoDoCampo('itTipo'), 'Adicione ao menos um produto/serviço para finalizar a compra.'); return; }
+        if (!PAGAMENTOS.length) { exibirErro(secaoDoCampo('pgValor'), 'Informe ao menos uma parcela de pagamento para finalizar a compra.'); return; }
 
         const soma = PAGAMENTOS.reduce((a, b) => a + (Number(b.vlParcela) || 0), 0);
         if (Math.abs(soma - totalCompra()) > 0.01) {
-            alert('A soma das parcelas (R$ ' + moeda(soma) + ') é diferente do total da compra (R$ ' + moeda(totalCompra()) + ').');
+            exibirErro(secaoDoCampo('pgValor'), 'A soma das parcelas (R$ ' + moeda(soma) + ') é diferente do total da compra (R$ ' + moeda(totalCompra()) + ').');
             return;
         }
 

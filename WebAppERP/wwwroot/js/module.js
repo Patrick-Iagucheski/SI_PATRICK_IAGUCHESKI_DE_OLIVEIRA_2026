@@ -143,24 +143,38 @@ document.addEventListener('submit', async e => {
     }
 });
 
-// Mostra (ou limpa, com msg null) o erro no topo do modal do formulario.
-// Usado por toda validacao de cadastro em modal: a da tela, antes de enviar, e
-// a do servidor, na resposta. O modal fica aberto com o que foi digitado.
-function exibirErro(form, msg) {
-    const corpo = form.querySelector('.modal-body') || form;
-    let aviso = corpo.querySelector(':scope > .modal-erro');
+// Mostra (ou limpa, com msg null) o erro de validacao no topo da area onde o
+// usuario precisa corrigir: o modal do formulario ou a secao (card) de uma tela
+// de edicao, como Compra e Venda. Usado por toda validacao da tela e pela
+// resposta do servidor; nunca alert(). A area fica como esta, com o que foi
+// digitado, e o aviso some quando o usuario volta a mexer nos campos dela.
+//   alvo: o <form> do modal ou a area (ex.: secaoDoCampo('itQt'))
+function exibirErro(alvo, msg) {
+    const corpo = alvo.querySelector('.modal-body') || alvo;
+    let aviso = corpo.querySelector(':scope > .aviso-erro');
     if (!aviso) {
         aviso = document.createElement('div');
-        aviso.className = 'modal-erro';
+        aviso.className = 'aviso-erro';
         corpo.prepend(aviso);
     }
     aviso.innerHTML = msg ? alertaErro(msg) : '';
-    if (msg) aviso.scrollIntoView({ block: 'nearest' });
+    if (!msg) return;
+    aviso.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+    const limpar = () => { aviso.innerHTML = ''; };
+    corpo.addEventListener('input', limpar, { once: true });
+    corpo.addEventListener('change', limpar, { once: true });
+}
+
+// Secao (card) da tela onde esta o campo, para exibirErro mostrar a mensagem
+// perto dele. Ex.: exibirErro(secaoDoCampo('itQt'), 'Informe a quantidade.')
+function secaoDoCampo(id) {
+    const campo = document.getElementById(id);
+    return campo.closest('.card-body') || campo.form || document.body;
 }
 
 // Ao abrir um modal, some o erro da tentativa anterior.
 document.addEventListener('show.bs.modal', e => {
-    e.target.querySelectorAll('.modal-erro').forEach(a => a.innerHTML = '');
+    e.target.querySelectorAll('.aviso-erro').forEach(a => a.innerHTML = '');
 });
 
 // ============================================================

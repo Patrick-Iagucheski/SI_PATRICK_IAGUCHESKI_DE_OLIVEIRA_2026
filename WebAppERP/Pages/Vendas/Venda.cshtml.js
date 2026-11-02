@@ -2,6 +2,10 @@
 // Os valores que vem do servidor estao no bloco JSON #dadosTela da pagina.
 const DADOS_TELA = JSON.parse(document.getElementById('dadosTela').textContent);
 
+// Tipos de item (constantes da entidade no servidor).
+const TIPO_PRODUTO = DADOS_TELA.TIPO_ITEM.PRODUTO;
+const TIPO_SERVICO = DADOS_TELA.TIPO_ITEM.SERVICO;
+
 const PRODUTOS = DADOS_TELA.PRODUTOS;
 const SERVICOS = DADOS_TELA.SERVICOS;
 const SOMENTE_LEITURA = DADOS_TELA.SOMENTE_LEITURA;
@@ -11,8 +15,8 @@ function num(id) { const v = document.getElementById(id).value; return parseFloa
 
 function onTipoChange() {
     const t = document.getElementById('itTipo').value;
-    document.getElementById('grpProduto').style.display = t === 'PRODUTO' ? '' : 'none';
-    document.getElementById('grpServico').style.display = t === 'SERVICO' ? '' : 'none';
+    document.getElementById('grpProduto').style.display = t === TIPO_PRODUTO ? '' : 'none';
+    document.getElementById('grpServico').style.display = t === TIPO_SERVICO ? '' : 'none';
     document.getElementById('itVlUnit').value = '';
     document.getElementById('itTotal').value = '';
     document.getElementById('itSaldo').textContent = '';
@@ -41,30 +45,30 @@ function calcItemTotal() {
 function adicionarItem() {
     const t = document.getElementById('itTipo').value;
     let item;
-    if (t === 'PRODUTO') {
+    if (t === TIPO_PRODUTO) {
         const id = parseInt(document.getElementById('itProduto').value) || 0;
         const p = PRODUTOS.find(x => x.id === id);
-        if (!p) { alert('Selecione um produto.'); return; }
-        item = { tpItem: 'PRODUTO', idProduto: id, idServico: null, descricao: p.nome };
+        if (!p) { exibirErro(secaoDoCampo('itTipo'), 'Selecione um produto.'); return; }
+        item = { tpItem: TIPO_PRODUTO, idProduto: id, idServico: null, descricao: p.nome };
     } else {
         const id = parseInt(document.getElementById('itServico').value) || 0;
         const s = SERVICOS.find(x => x.id === id);
-        if (!s) { alert('Selecione um serviço.'); return; }
-        item = { tpItem: 'SERVICO', idServico: id, idProduto: null, descricao: s.nome };
+        if (!s) { exibirErro(secaoDoCampo('itTipo'), 'Selecione um serviço.'); return; }
+        item = { tpItem: TIPO_SERVICO, idServico: id, idProduto: null, descricao: s.nome };
     }
     const qt = num('itQt');
-    if (qt <= 0) { alert('Informe a quantidade.'); return; }
+    if (qt <= 0) { exibirErro(secaoDoCampo('itTipo'), 'Informe a quantidade.'); return; }
     const vlUnit = num('itVlUnit');
     const desc = num('itDesc');
-    if (desc < 0) { alert('O desconto não pode ser negativo.'); return; }
+    if (desc < 0) { exibirErro(secaoDoCampo('itTipo'), 'O desconto não pode ser negativo.'); return; }
     const total = qt * vlUnit - desc;
-    if (total < 0) { alert('O desconto é maior que o valor do item.'); return; }
+    if (total < 0) { exibirErro(secaoDoCampo('itTipo'), 'O desconto é maior que o valor do item.'); return; }
     item.qtItem = qt; item.vlUnitario = vlUnit; item.vlDesconto = desc; item.vlTotal = total > 0 ? total : 0;
 
     // Validacao de estoque (produto): considera o que ja esta no carrinho.
-    if (item.tpItem === 'PRODUTO') {
+    if (item.tpItem === TIPO_PRODUTO) {
         const p = PRODUTOS.find(x => x.id === item.idProduto);
-        const noCarrinho = ITENS.filter(i => i.tpItem === 'PRODUTO' && i.idProduto === item.idProduto)
+        const noCarrinho = ITENS.filter(i => i.tpItem === TIPO_PRODUTO && i.idProduto === item.idProduto)
                                 .reduce((a, b) => a + b.qtItem, 0);
         if (noCarrinho + qt > p.saldo) {
             if (!confirm('Quantidade acima do saldo em estoque (' + moeda(p.saldo) + '). A venda não poderá ser FINALIZADA assim. Adicionar mesmo assim?')) return;
@@ -91,7 +95,7 @@ function removerItem(i) { ITENS.splice(i, 1); renderItens(); }
 function editarItem(i) {
     const it = ITENS[i];
     document.getElementById('itTipo').value = it.tpItem; onTipoChange();
-    if (it.tpItem === 'PRODUTO') { document.getElementById('itProduto').value = it.idProduto; onProdutoChange(); }
+    if (it.tpItem === TIPO_PRODUTO) { document.getElementById('itProduto').value = it.idProduto; onProdutoChange(); }
     else { document.getElementById('itServico').value = it.idServico; }
     document.getElementById('itQt').value = it.qtItem;
     document.getElementById('itVlUnit').value = it.vlUnitario;
@@ -107,8 +111,8 @@ function renderItens() {
         tb.innerHTML = '<tr><td colspan="8" class="text-center text-muted py-3">Nenhum item adicionado</td></tr>';
     }
     ITENS.forEach((it, idx) => {
-        const codigo = it.tpItem === 'PRODUTO' ? it.idProduto : it.idServico;
-        const badge = it.tpItem === 'PRODUTO' ? 'badge-agendado' : 'badge-confirmado';
+        const codigo = it.tpItem === TIPO_PRODUTO ? it.idProduto : it.idServico;
+        const badge = it.tpItem === TIPO_PRODUTO ? 'badge-agendado' : 'badge-confirmado';
         const acoes = SOMENTE_LEITURA ? '<td></td>' :
             '<td class="text-center" style="white-space:nowrap;">' +
             '<button type="button" class="btn btn-icon btn-outline-primary" title="Editar" onclick="editarItem(' + idx + ')"><i class="bi bi-pencil"></i></button> ' +
@@ -139,9 +143,9 @@ function calcTotais() {
 
 function salvar(status) {
     const func = document.getElementById('IdFuncionario');
-    if (!func.value) { alert('Selecione o funcionário responsável.'); func.focus(); return; }
-    if (status === 'FINALIZADA' && ITENS.length === 0) { alert('Adicione ao menos um item para finalizar.'); return; }
-    if (status === 'FINALIZADA' && !document.getElementById('IdFormaPagamento').value) { alert('Selecione a forma de pagamento para finalizar a venda.'); return; }
+    if (!func.value) { exibirErro(secaoDoCampo('IdFuncionario'), 'Selecione o funcionário responsável.'); func.focus(); return; }
+    if (status === 'FINALIZADA' && ITENS.length === 0) { exibirErro(secaoDoCampo('itTipo'), 'Adicione ao menos um item para finalizar.'); return; }
+    if (status === 'FINALIZADA' && !document.getElementById('IdFormaPagamento').value) { exibirErro(secaoDoCampo('IdFormaPagamento'), 'Selecione a forma de pagamento para finalizar a venda.'); return; }
     document.getElementById('TpStatus').value = status;
     document.getElementById('ItensJson').value = JSON.stringify(ITENS.map(i => ({
         TpItem: i.tpItem, IdServico: i.idServico, IdProduto: i.idProduto,
