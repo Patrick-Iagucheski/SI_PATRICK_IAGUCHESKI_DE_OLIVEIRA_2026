@@ -32,8 +32,7 @@ public class CategoriaBusiness
 
         if (!string.IsNullOrWhiteSpace(termo))
         {
-            var t = termo.Trim();
-            query = query.Where(c => c.NmCategoria.Contains(t));
+            query = query.Where(Module.MontarFiltroTexto<Categoria>(termo, c => c.NmCategoria));
         }
 
         return await query.OrderBy(c => c.NmCategoria).Take(100).ToListAsync();

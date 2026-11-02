@@ -12,7 +12,7 @@ function opcoesFormaCondicao(selecionado) {
     let html = '<option value="">Selecione</option>';
     formas.forEach(f => {
         const sel = (String(f.id) === String(selecionado)) ? ' selected' : '';
-        html += `<option value="${f.id}"${sel}>${f.nome}</option>`;
+        html += `<option value="${f.id}"${sel}>${escaparHtml(f.nome)}</option>`;
     });
     return html;
 }
@@ -78,7 +78,6 @@ function limparFormCondicao() {
     document.getElementById('condVlJuro').value = '0';
     document.getElementById('condVlMulta').value = '0';
     document.getElementById('condVlDesconto').value = '0';
-    document.getElementById('condMsg').innerHTML = '';
     document.querySelector('#condTblParcelas tbody').innerHTML = '';
     addParcelaCondicao(0, '', 100);
 }
@@ -93,7 +92,6 @@ function editarCondicao(id, nome, juro, multa, desc, ativo, parcelas) {
     document.getElementById('condVlJuro').value = juro;
     document.getElementById('condVlMulta').value = multa;
     document.getElementById('condVlDesconto').value = desc;
-    document.getElementById('condMsg').innerHTML = '';
     document.querySelector('#condTblParcelas tbody').innerHTML = '';
     if (!parcelas || parcelas.length === 0) { addParcelaCondicao(0, '', 100); }
     else { parcelas.forEach(p => addParcelaCondicao(p.nrDiasVencimento, p.idFormaPagamento, p.vlPercentual)); }
@@ -103,18 +101,18 @@ function editarCondicao(id, nome, juro, multa, desc, ativo, parcelas) {
 document.getElementById('condForm')?.addEventListener('submit', function (e) {
     const parcelas = coletarParcelasCondicao();
     if (parcelas.length === 0) {
-        e.preventDefault(); alert('Adicione ao menos uma parcela.'); return;
+        e.preventDefault(); exibirErro(this, 'Adicione ao menos uma parcela.'); return;
     }
     if (parcelas.some(p => !p.idFormaPagamento)) {
-        e.preventDefault(); alert('Selecione a forma de pagamento em todas as parcelas.'); return;
+        e.preventDefault(); exibirErro(this, 'Selecione a forma de pagamento em todas as parcelas.'); return;
     }
     if (parcelas.some(p => p.vlPercentual <= 0 || p.vlPercentual > 100)) {
-        e.preventDefault(); alert('O percentual de cada parcela deve estar entre 0 e 100.'); return;
+        e.preventDefault(); exibirErro(this, 'O percentual de cada parcela deve estar entre 0 e 100.'); return;
     }
     const soma = parcelas.reduce((s, p) => s + p.vlPercentual, 0);
     if (Math.abs(soma - 100) > 0.01) {
         e.preventDefault();
-        alert('O percentual total das parcelas deve ser 100%. Atual: ' + soma.toFixed(2) + '%.');
+        exibirErro(this, 'O percentual total das parcelas deve ser 100%. Atual: ' + soma.toFixed(2) + '%.');
         return;
     }
     document.getElementById('condParcelasJson').value = JSON.stringify(parcelas);
@@ -128,20 +126,17 @@ document.getElementById('condForm')?.addEventListener('submit', function (e) {
 
 // Grava a condicao e avisa a tela de origem pelo evento 'condicao:salva'.
 async function salvarCondicaoAjax(form) {
-    const msg = document.getElementById('condMsg');
     const btn = form.querySelector('button[type="submit"]');
-    const alerta = m => '<div class="alert alert-danger py-1 px-2 small mb-2">' + m + '</div>';
-    msg.innerHTML = '';
+    exibirErro(form, null);
     btn.disabled = true;
     try {
         const url = document.getElementById('modalCondicao').dataset.urlCondicoes + '?handler=SalvarAjax';
         const resp = await fetch(url, { method: 'POST', body: new FormData(form) });
         const data = await resp.json();
-        if (!data.sucesso) { msg.innerHTML = alerta(data.mensagem); msg.scrollIntoView({ block: 'nearest' }); return; }
+        if (!data.sucesso) { exibirErro(form, data.mensagem); return; }
         bootstrap.Modal.getInstance(document.getElementById('modalCondicao')).hide();
         document.dispatchEvent(new CustomEvent('condicao:salva', { detail: data }));
     } catch (e) {
-        msg.innerHTML = alerta('Erro ao salvar a condição de pagamento. Tente novamente.');
-        msg.scrollIntoView({ block: 'nearest' });
+        exibirErro(form, 'Erro ao salvar a condição de pagamento. Tente novamente.');
     } finally { btn.disabled = false; }
 }

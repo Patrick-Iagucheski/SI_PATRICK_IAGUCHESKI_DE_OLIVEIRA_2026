@@ -14,10 +14,10 @@ function montarLinha(p, i) {
         ? parseFloat(p.estoque).toLocaleString('pt-BR', { maximumFractionDigits: 2 }) : '0';
     return '<tr>' +
         '<td>' + p.id + '</td>' +
-        '<td><strong>' + (p.nome || '') + '</strong></td>' +
-        '<td>' + (p.marca || '-') + '</td>' +
-        '<td>' + (p.categoria || '-') + '</td>' +
-        '<td>' + (p.unidade || '-') + '</td>' +
+        '<td><strong>' + escaparHtml(p.nome || '') + '</strong></td>' +
+        '<td>' + escaparHtml(p.marca || '-') + '</td>' +
+        '<td>' + escaparHtml(p.categoria || '-') + '</td>' +
+        '<td>' + escaparHtml(p.unidade || '-') + '</td>' +
         '<td class="text-end">R$ ' + moeda(p.venda) + '</td>' +
         '<td class="text-end">' + estoque + '</td>' +
         '<td>' + statusBadge(p.ativo) + '</td>' +

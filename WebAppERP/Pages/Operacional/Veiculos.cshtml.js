@@ -1,7 +1,7 @@
 ﻿// Script da tela Veículos (Pages/Operacional/Veiculos.cshtml).
 
-// Filtro rapido da lista (funcao em wwwroot/js/module.js).
-filtrarTabela('#tblVeiculos tbody tr', { texto: 'searchInput' });
+// Filtro da lista (funcao em wwwroot/js/module.js): filtra no botao Buscar ou no Enter.
+const aplicarBusca = filtrarTabela('#tblVeiculos tbody tr', { texto: 'buscaTexto', codigo: 'buscaId', contador: 'contadorRegistros' });
 
 // Mascara placa: antiga LLLNNNN (ex.: ABC1234) ou Mercosul LLLNLNN (ex.: ABC1D23)
 function mascaraPlaca(v) {

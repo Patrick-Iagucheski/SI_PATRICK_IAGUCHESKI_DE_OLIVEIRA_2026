@@ -9,7 +9,6 @@ let resultadosBusca = [];
         if (e.key === 'Enter') { e.preventDefault(); buscarContas(); }
     });
 });
-document.getElementById('buscaFornecedor')?.addEventListener('change', buscarContas);
 
 function situacaoConta(c) {
     if (c.status === 'PAGO') return 'PAGO';
@@ -25,7 +24,7 @@ function badgeSituacao(sit) {
 
 function montarLinha(c, i) {
     const sit = situacaoConta(c);
-    const docHtml = c.documento ? '<div class="text-muted small">Doc: ' + c.documento + '</div>' : '';
+    const docHtml = c.documento ? '<div class="text-muted small">Doc: ' + escaparHtml(c.documento) + '</div>' : '';
     const baixaHtml = (sit !== 'PAGO' && sit !== 'CANCELADO')
         ? '<form method="post" action="?handler=Baixa" class="d-inline" onsubmit="return confirm(\'Confirmar baixa (pagamento) desta conta hoje?\')">' +
               campoToken() +
@@ -34,14 +33,14 @@ function montarLinha(c, i) {
           '</form> '
         : '';
     return '<tr>' +
-        '<td><strong>' + (c.conta || '') + '</strong>' + docHtml + '</td>' +
-        '<td>' + (c.fornecedorNome || '-') + '</td>' +
+        '<td><strong>' + escaparHtml(c.conta || '') + '</strong>' + docHtml + '</td>' +
+        '<td>' + escaparHtml(c.fornecedorNome || '-') + '</td>' +
         '<td>' + dataBr(c.venc) + '</td>' +
         '<td class="text-end"><strong>R$ ' + moeda(c.valor) + '</strong></td>' +
         '<td class="text-end">R$ ' + moeda(c.pago) + '</td>' +
         '<td>' + badgeSituacao(sit) + '</td>' +
         '<td class="text-center">' + (c.ativo ? 'S' : 'N') + '</td>' +
-        '<td>' + (c.formaNome || '-') + '</td>' +
+        '<td>' + escaparHtml(c.formaNome || '-') + '</td>' +
         '<td class="text-center" style="white-space: nowrap;">' +
             baixaHtml +
             '<button class="btn btn-icon btn-outline-primary" title="Editar" onclick="abrirEdicao(' + i + ')"><i class="bi bi-pencil"></i></button> ' +

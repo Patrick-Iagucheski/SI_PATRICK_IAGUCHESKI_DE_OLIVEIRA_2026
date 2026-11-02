@@ -14,23 +14,27 @@
     </button>
 </div>
 
-<!-- Filtros -->
+<!-- Filtros de busca (todos opcionais e combinaveis) -->
 <div class="card mb-3">
-    <div class="card-body py-2">
-        <div class="row g-2 align-items-center">
-            <div class="col-md-4">
-                <div class="search-box">
-                    <i class="bi bi-search search-icon"></i>
-                    <input type="text" class="form-control" placeholder="Buscar forma de pagamento..." id="searchInput" />
-                </div>
-            </div>
+    <div class="card-body py-3">
+        <div class="row g-2 align-items-end">
             <div class="col-md-2">
-                <select class="form-select" id="filterStatus">
-                    <option value="">Todos os Status</option>
-                    <option value="ativo">Ativo</option>
-                    <option value="inativo">Inativo</option>
-                </select>
+                <label class="form-label small mb-1">ID</label>
+                <input type="number" class="form-control" id="buscaId" min="1" autocomplete="off" />
             </div>
+            <div class="col-md-4">
+                <label class="form-label small mb-1">Descrição</label>
+                <input type="text" class="form-control" id="buscaTexto" autocomplete="off" />
+            </div>
+        </div>
+        <div class="d-flex justify-content-between align-items-center mt-3">
+            <div class="form-check mb-0">
+                <input class="form-check-input" type="checkbox" id="buscaInativos" />
+                <label class="form-check-label" for="buscaInativos">Exibir Formas Inativas</label>
+            </div>
+            <button type="button" class="btn btn-primary" onclick="aplicarBusca()">
+                <i class="bi bi-search me-1"></i>Buscar
+            </button>
         </div>
     </div>
 </div>
@@ -39,7 +43,7 @@
 <div class="table-container">
     <div class="table-header">
         <h5><i class="bi bi-credit-card me-2"></i>Lista de Formas de Pagamento</h5>
-        <span class="text-muted small">@Model.Formas.Count registros encontrados</span>
+        <span class="text-muted small" id="contadorRegistros">@Model.Formas.Count registros encontrados</span>
     </div>
     <div class="table-responsive">
         <table class="table" id="tblFormas">
@@ -115,7 +119,7 @@
 <div class="modal fade" id="modalForma" tabindex="-1">
     <div class="modal-dialog">
         <div class="modal-content">
-            <form method="post">
+            <form method="post" data-modal-ajax>
                 <div class="modal-header">
                     <h5 class="modal-title" id="modalTitle"><i class="bi bi-credit-card me-2"></i>Nova Forma de Pagamento</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>

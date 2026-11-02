@@ -28,10 +28,7 @@ public class EstadoBusiness
         var query = _db.Estados.AsQueryable();
         if (!string.IsNullOrWhiteSpace(termo))
         {
-            var padrao = Module.MontarLikeContem(termo);
-            var t = termo.Trim();
-            query = query.Where(e => EF.Functions.Like(EF.Functions.Collate(e.NmEstado, Module.CollationSemAcento), padrao)
-                                  || e.SgUF == t);
+            query = query.Where(Module.MontarFiltroTexto<Estado>(termo, e => e.NmEstado, e => e.SgUF));
         }
         return await query.OrderBy(e => e.NmEstado).Take(50).ToListAsync();
     }

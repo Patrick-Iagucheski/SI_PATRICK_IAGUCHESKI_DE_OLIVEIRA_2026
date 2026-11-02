@@ -32,8 +32,7 @@ public class CargoBusiness
 
         if (!string.IsNullOrWhiteSpace(termo))
         {
-            var t = termo.Trim();
-            query = query.Where(c => c.NmCargo.Contains(t) || (c.DsCargo != null && c.DsCargo.Contains(t)));
+            query = query.Where(Module.MontarFiltroTexto<Cargo>(termo, c => c.NmCargo, c => c.DsCargo));
         }
 
         return await query.OrderBy(c => c.NmCargo).Take(100).ToListAsync();

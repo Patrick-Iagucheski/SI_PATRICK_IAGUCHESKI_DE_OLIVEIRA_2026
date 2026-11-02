@@ -18,13 +18,12 @@
      data-formas="@System.Text.Json.JsonSerializer.Serialize(formasJs)">
     <div class="modal-dialog modal-xl">
         <div class="modal-content">
-            <form method="post" asp-page="/Financeiro/CondicoesPagamento" id="condForm">
+            <form method="post" data-modal-ajax asp-page="/Financeiro/CondicoesPagamento" id="condForm">
                 <div class="modal-header">
                     <h5 class="modal-title" id="condModalTitle"><i class="bi bi-list-check me-2"></i>Nova Condição de Pagamento</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
-                    <div id="condMsg"></div>
                     <input type="hidden" asp-for="CondicaoForm.IdCondicaoPagamento" id="condIdCondicao" />
                     <input type="hidden" name="ParcelasJson" id="condParcelasJson" value="[]" />
 

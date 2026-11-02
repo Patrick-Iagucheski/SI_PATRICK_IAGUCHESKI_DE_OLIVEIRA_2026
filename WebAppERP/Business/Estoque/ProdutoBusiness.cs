@@ -50,12 +50,8 @@ public class ProdutoBusiness
 
         if (!string.IsNullOrWhiteSpace(termo))
         {
-            var t = termo.Trim();
-            query = query.Where(p =>
-                p.DsProduto.Contains(t) ||
-                (p.Marca != null && p.Marca.NmMarca.Contains(t)) ||
-                (p.Categoria != null && p.Categoria.NmCategoria.Contains(t)) ||
-                (p.DsDescricao != null && p.DsDescricao.Contains(t)));
+            query = query.Where(Module.MontarFiltroTexto<Produto>(termo,
+                p => p.DsProduto, p => p.Marca!.NmMarca, p => p.Categoria!.NmCategoria, p => p.DsDescricao));
         }
 
         return await query.OrderBy(p => p.DsProduto).Take(100).ToListAsync();
@@ -70,8 +66,7 @@ public class ProdutoBusiness
             query = query.Where(p => p.IdProduto == id.Value);
         else if (!string.IsNullOrWhiteSpace(termo))
         {
-            var t = termo.Trim();
-            query = query.Where(p => p.DsProduto.Contains(t));
+            query = query.Where(Module.MontarFiltroTexto<Produto>(termo, p => p.DsProduto));
         }
 
         return await query.OrderBy(p => p.DsProduto).Take(50).ToListAsync();
@@ -174,11 +169,15 @@ public class ProdutoBusiness
         if (p.VlVenda.HasValue && p.VlVendaMinimo.HasValue && p.VlVenda < p.VlVendaMinimo)
             throw new ValidacaoException("O valor de venda não pode ser menor que o valor de venda mínimo.");
 
-        // Marca e categoria vem dos dropdowns; valida se existem.
-        if (p.IdMarca.HasValue && !await _marca.Existe(p.IdMarca.Value))
-            throw new ValidacaoException("Marca inválida.");
-        if (p.IdCategoria.HasValue && !await _categoria.Existe(p.IdCategoria.Value))
+        // Marca e categoria obrigatorias (vem dos dropdowns; valida se existem).
+        if (p.IdCategoria is not > 0)
+            throw new ValidacaoException("Selecione a categoria do produto.");
+        if (!await _categoria.Existe(p.IdCategoria.Value))
             throw new ValidacaoException("Categoria inválida.");
+        if (p.IdMarca is not > 0)
+            throw new ValidacaoException("Selecione a marca do produto.");
+        if (!await _marca.Existe(p.IdMarca.Value))
+            throw new ValidacaoException("Marca inválida.");
 
         _arquivo.ValidarImagem(imagem, TamanhoMaxImagem, "A imagem");
     }

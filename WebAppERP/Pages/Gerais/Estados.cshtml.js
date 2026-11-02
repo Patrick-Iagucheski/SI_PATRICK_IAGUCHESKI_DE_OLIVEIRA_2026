@@ -1,7 +1,7 @@
 ﻿// Script da tela Estados (Pages/Gerais/Estados.cshtml).
 
-// Filtro rapido por codigo e texto (funcao em wwwroot/js/module.js); o botao Buscar chama aplicarBusca().
-const aplicarBusca = filtrarTabela('#tblEstados tbody tr', { texto: 'searchInput', codigo: 'buscaId' });
+// Filtro da lista (funcao em wwwroot/js/module.js): filtra no botao Buscar ou no Enter.
+const aplicarBusca = filtrarTabela('#tblEstados tbody tr', { texto: 'buscaTexto', codigo: 'buscaId', contador: 'contadorRegistros' });
 
 function limparForm() {
     document.getElementById('modalTitle').innerHTML = '<i class="bi bi-map me-2"></i>Novo Estado';

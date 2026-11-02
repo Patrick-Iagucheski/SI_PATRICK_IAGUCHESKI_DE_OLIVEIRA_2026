@@ -1,7 +1,10 @@
 ﻿@page
 @model WebAppERP.Pages.Gerais.ServicosModel
+@using System.Globalization
 @{
     ViewData["Title"] = "Serviços";
+    // Valores passados ao JavaScript vao com ponto decimal (o campo numerico nao aceita virgula).
+    CultureInfo inv = CultureInfo.InvariantCulture;
 }
 
 <div class="d-flex justify-content-between align-items-start mb-4">
@@ -14,23 +17,27 @@
     </button>
 </div>
 
-<!-- Filtros -->
+<!-- Filtros de busca (todos opcionais e combinaveis) -->
 <div class="card mb-3">
-    <div class="card-body py-2">
-        <div class="row g-2 align-items-center">
-            <div class="col-md-4">
-                <div class="search-box">
-                    <i class="bi bi-search search-icon"></i>
-                    <input type="text" class="form-control" placeholder="Buscar serviço..." id="searchInput" />
-                </div>
-            </div>
+    <div class="card-body py-3">
+        <div class="row g-2 align-items-end">
             <div class="col-md-2">
-                <select class="form-select" id="filterStatus">
-                    <option value="">Todos</option>
-                    <option value="ativo">Ativo</option>
-                    <option value="inativo">Inativo</option>
-                </select>
+                <label class="form-label small mb-1">ID</label>
+                <input type="number" class="form-control" id="buscaId" min="1" autocomplete="off" />
             </div>
+            <div class="col-md-4">
+                <label class="form-label small mb-1">Serviço / Categoria</label>
+                <input type="text" class="form-control" id="buscaTexto" autocomplete="off" />
+            </div>
+        </div>
+        <div class="d-flex justify-content-between align-items-center mt-3">
+            <div class="form-check mb-0">
+                <input class="form-check-input" type="checkbox" id="buscaInativos" />
+                <label class="form-check-label" for="buscaInativos">Exibir Serviços Inativos</label>
+            </div>
+            <button type="button" class="btn btn-primary" onclick="aplicarBusca()">
+                <i class="bi bi-search me-1"></i>Buscar
+            </button>
         </div>
     </div>
 </div>
@@ -49,7 +56,7 @@
                 "tratamento" => "bg-info bg-opacity-10 text-info",
                 _ => "bg-secondary bg-opacity-10 text-secondary"
             };
-            <div class="col-xl-3 col-md-6 servico-card" data-status="@(s.FlAtivo ? "ativo" : "inativo")">
+            <div class="col-xl-3 col-md-6 servico-card" data-id="@s.IdServico" data-status="@(s.FlAtivo ? "ativo" : "inativo")">
                 <div class="card h-100">
                     <div class="card-body">
                         <div class="d-flex justify-content-between align-items-start mb-2">
@@ -76,7 +83,7 @@
                             <div>
                                 <button class="btn btn-icon btn-outline-primary btn-sm" title="Editar"
                                         data-bs-toggle="modal" data-bs-target="#modalServico"
-                                        onclick="editarServico(@s.IdServico,'@s.DsServico.Replace("'", "\\'")','@s.DsDescricao?.Replace("'", "\\'")','@s.VlServico.ToString("F2")','@(s.NrDuracaoMin?.ToString() ?? "")','@s.DsCategoria','@s.FlAtivo')">
+                                        onclick="editarServico(@s.IdServico,'@s.DsServico.Replace("'", "\\'")','@s.DsDescricao?.Replace("'", "\\'")','@s.VlServico.ToString("F2", inv)','@(s.NrDuracaoMin?.ToString() ?? "")','@s.DsCategoria','@s.FlAtivo')">
                                     <i class="bi bi-pencil"></i>
                                 </button>
                                 <form method="post" asp-page-handler="Excluir" class="d-inline" onsubmit="return confirm('Deseja excluir este servico?')">
@@ -109,7 +116,7 @@
 <div class="modal fade" id="modalServico" tabindex="-1">
     <div class="modal-dialog">
         <div class="modal-content">
-            <form method="post">
+            <form method="post" data-modal-ajax>
                 <div class="modal-header">
                     <h5 class="modal-title" id="modalTitle"><i class="bi bi-card-checklist me-2"></i>Novo Serviço</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
@@ -127,7 +134,7 @@
                         </div>
                         <div class="col-md-6">
                             <label class="form-label">Valor (R$) *</label>
-                            <input type="number" class="form-control" asp-for="ServicoForm.VlServico" id="sValor" step="0.01" required />
+                            <input type="number" class="form-control" asp-for="ServicoForm.VlServico" id="sValor" step="0.01" min="0.01" required />
                         </div>
                         <div class="col-md-6">
                             <label class="form-label">Duração (min)</label>

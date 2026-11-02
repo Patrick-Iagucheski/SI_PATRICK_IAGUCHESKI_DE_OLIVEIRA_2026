@@ -1,8 +1,5 @@
 ﻿// Script da tela Funcionários (Pages/Gerais/Funcionarios.cshtml).
 
-// Filtro rapido da lista (funcao em wwwroot/js/module.js).
-filtrarTabela('#tblFuncionarios tbody tr', { texto: 'searchInput' });
-
 // ===== Mascaras (funcoes em wwwroot/js/module.js; no banco salva so numeros) =====
 aplicarMascara('fCpf', mascaraCPF);
 aplicarMascara('fCep', mascaraCEP);
@@ -87,7 +84,7 @@ async function salvarCargoRapido() {
         document.getElementById('crComissao').value = '';
         bootstrap.Modal.getInstance(document.getElementById('modalCargoRapido')).hide();
     } catch (e) {
-        msg.innerHTML = '<div class="alert alert-danger py-1 px-2 small mb-2">Erro ao salvar o cargo. Tente novamente.</div>';
+        msg.innerHTML = alertaErro('Erro ao salvar o cargo. Tente novamente.');
     } finally {
         btn.disabled = false;
     }
@@ -109,9 +106,9 @@ function montarLinha(f, i) {
     const com = (f.com !== null && f.com !== undefined) ? f.com + '%' : '-';
     return '<tr>' +
         '<td>' + f.id + '</td>' +
-        '<td><strong>' + (f.nome || '') + '</strong></td>' +
+        '<td><strong>' + escaparHtml(f.nome || '') + '</strong></td>' +
         '<td>' + mascaraCPF(f.cpf || '') + '</td>' +
-        '<td>' + (f.cargoNome || '-') + '</td>' +
+        '<td>' + escaparHtml(f.cargoNome || '-') + '</td>' +
         '<td>' + (f.tel ? mascaraTelefone(f.tel) : '-') + '</td>' +
         '<td>' + adm + '</td>' +
         '<td>' + com + '</td>' +

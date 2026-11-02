@@ -124,7 +124,6 @@ function limparFormProduto() {
     });
     document.getElementById('prodIdProduto').value = '0';
     document.getElementById('prodFlAtivo').value = 'true';
-    document.getElementById('prodMsg').innerHTML = '';
     esconderImagem();
 }
 
@@ -151,7 +150,6 @@ function editarProduto(id, nome, idMarca, idCategoria, unidade, custo, vendaMin,
     document.getElementById('prodDsImagem').value = imagem || '';
     document.getElementById('prodImagemUpload').value = '';
     document.getElementById('prodFlAtivo').value = ativo === 'True' ? 'true' : 'false';
-    document.getElementById('prodMsg').innerHTML = '';
 
     if (imagem) { mostrarImagem(imagem); }
     else { esconderImagem(); }
@@ -167,18 +165,16 @@ document.querySelector('#modalProduto form')?.addEventListener('submit', functio
 // Grava o produto (com a imagem, se houver) e avisa a tela de origem pelo
 // evento 'produto:salvo'.
 async function salvarProdutoAjax(form) {
-    const msg = document.getElementById('prodMsg');
     const btn = form.querySelector('button[type="submit"]');
-    msg.innerHTML = '';
+    exibirErro(form, null);
     btn.disabled = true;
     try {
         const resp = await fetch(urlProdutos('SalvarAjax'), { method: 'POST', body: new FormData(form) });
         const data = await resp.json();
-        if (!data.sucesso) { msg.innerHTML = alertaErro(data.mensagem); msg.scrollIntoView({ block: 'nearest' }); return; }
+        if (!data.sucesso) { exibirErro(form, data.mensagem); return; }
         bootstrap.Modal.getInstance(document.getElementById('modalProduto')).hide();
         document.dispatchEvent(new CustomEvent('produto:salvo', { detail: data }));
     } catch (e) {
-        msg.innerHTML = alertaErro('Erro ao salvar o produto. Tente novamente.');
-        msg.scrollIntoView({ block: 'nearest' });
+        exibirErro(form, 'Erro ao salvar o produto. Tente novamente.');
     } finally { btn.disabled = false; }
 }

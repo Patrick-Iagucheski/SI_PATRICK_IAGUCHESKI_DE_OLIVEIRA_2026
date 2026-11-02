@@ -1,7 +1,9 @@
 ﻿// Script da tela Cidades (Pages/Gerais/Cidades.cshtml).
 
-// Filtro rapido por codigo, texto e UF (funcao em wwwroot/js/module.js); o botao Buscar chama aplicarBusca().
-const aplicarBusca = filtrarTabela('#tblCidades tbody tr', { texto: 'searchInput', codigo: 'buscaId', atributos: { uf: 'filterEstado' } });
+// Filtro da lista (funcao em wwwroot/js/module.js): filtra no botao Buscar ou no Enter.
+const aplicarBusca = filtrarTabela('#tblCidades tbody tr', {
+    texto: 'buscaTexto', codigo: 'buscaId', atributos: { uf: 'buscaEstado' }, contador: 'contadorRegistros'
+});
 
 function limparForm() {
     document.getElementById('modalTitle').innerHTML = '<i class="bi bi-building me-2"></i>Nova Cidade';

@@ -32,8 +32,7 @@ public class MarcaBusiness
 
         if (!string.IsNullOrWhiteSpace(termo))
         {
-            var t = termo.Trim();
-            query = query.Where(m => m.NmMarca.Contains(t));
+            query = query.Where(Module.MontarFiltroTexto<Marca>(termo, m => m.NmMarca));
         }
 
         return await query.OrderBy(m => m.NmMarca).Take(100).ToListAsync();

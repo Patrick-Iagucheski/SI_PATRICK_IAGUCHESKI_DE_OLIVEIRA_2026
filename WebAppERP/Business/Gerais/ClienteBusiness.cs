@@ -37,8 +37,7 @@ public class ClienteBusiness
 
         if (!string.IsNullOrWhiteSpace(nome))
         {
-            var n = nome.Trim();
-            query = query.Where(c => c.NmCliente.Contains(n));
+            query = query.Where(Module.MontarFiltroTexto<Cliente>(nome, c => c.NmCliente));
         }
 
         if (!string.IsNullOrWhiteSpace(documento))
@@ -51,15 +50,13 @@ public class ClienteBusiness
                     (c.NrDocumento != null && c.NrDocumento.Contains(digitos)));
             else
             {
-                var d = documento.Trim();
-                query = query.Where(c => c.NrDocumento != null && c.NrDocumento.Contains(d));
+                query = query.Where(Module.MontarFiltroTexto<Cliente>(documento, c => c.NrDocumento));
             }
         }
 
         if (!string.IsNullOrWhiteSpace(email))
         {
-            var e = email.Trim();
-            query = query.Where(c => c.DsEmail != null && c.DsEmail.Contains(e));
+            query = query.Where(Module.MontarFiltroTexto<Cliente>(email, c => c.DsEmail));
         }
 
         return await query.OrderBy(c => c.NmCliente).Take(100).ToListAsync();
@@ -73,7 +70,7 @@ public class ClienteBusiness
     public async Task<Cliente> Salvar(Cliente cliente)
     {
         Normalizar(cliente);
-        Validar(cliente);
+        await Validar(cliente);
 
         Cliente registro;
         if (cliente.IdCliente == 0)
@@ -148,19 +145,41 @@ public class ClienteBusiness
         c.DsObservacao = Module.Truncar(c.DsObservacao, 500);
     }
 
-    private static void Validar(Cliente c)
+    // Obrigatorios: nome e o documento do tipo de pessoa (CPF na fisica, CNPJ na
+    // juridica). E-mail e endereco sao opcionais.
+    private async Task Validar(Cliente c)
     {
         if (string.IsNullOrWhiteSpace(c.NmCliente))
             throw new ValidacaoException("Informe o nome do cliente.");
 
-        if (c.TpPessoa == "F" && !string.IsNullOrEmpty(c.NrCpf) && !Module.CpfValido(c.NrCpf))
-            throw new ValidacaoException("CPF inválido. Verifique os números informados.");
+        if (c.TpPessoa == "F")
+        {
+            if (string.IsNullOrEmpty(c.NrCpf))
+                throw new ValidacaoException("Informe o CPF do cliente.");
+            if (!Module.CpfValido(c.NrCpf))
+                throw new ValidacaoException("CPF inválido. Verifique os números informados.");
+        }
 
-        if (c.TpPessoa == "J" && !string.IsNullOrEmpty(c.NrCnpj) && !Module.CnpjValido(c.NrCnpj))
-            throw new ValidacaoException("CNPJ inválido. Verifique os números informados.");
+        if (c.TpPessoa == "J")
+        {
+            if (string.IsNullOrEmpty(c.NrCnpj))
+                throw new ValidacaoException("Informe o CNPJ do cliente.");
+            if (!Module.CnpjValido(c.NrCnpj))
+                throw new ValidacaoException("CNPJ inválido. Verifique os números informados.");
+        }
 
         if (!string.IsNullOrWhiteSpace(c.DsEmail) && !new EmailAddressAttribute().IsValid(c.DsEmail))
             throw new ValidacaoException("E-mail inválido. Verifique o formato (exemplo: nome@dominio.com).");
+
+        // CPF e CNPJ unicos (respeita UQ_tbGerClientes_nrCpf e UQ_tbGerClientes_nrCnpj)
+        var mesmoDocumento = await _db.Clientes
+            .Where(x => x.IdCliente != c.IdCliente &&
+                        ((c.NrCpf != null && x.NrCpf == c.NrCpf) || (c.NrCnpj != null && x.NrCnpj == c.NrCnpj)))
+            .Select(x => x.NmCliente)
+            .FirstOrDefaultAsync();
+        if (mesmoDocumento != null)
+            throw new ValidacaoException($"Já existe um cliente com este {(c.TpPessoa == "J" ? "CNPJ" : "CPF")}: {mesmoDocumento}.",
+                                         "Utilize a pesquisa para encontrá-lo.");
     }
 
     public async Task Excluir(int id)

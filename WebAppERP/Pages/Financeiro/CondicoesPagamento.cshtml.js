@@ -28,7 +28,7 @@ function montarLinha(c, i) {
         ? '<form method="post" action="?handler=AlterarSituacao" class="d-inline">' + campoToken() + '<input type="hidden" name="id" value="' + c.id + '"><button type="submit" class="btn btn-icon btn-outline-warning" title="Inativar"><i class="bi bi-pause-circle"></i></button></form>'
         : '<form method="post" action="?handler=AlterarSituacao" class="d-inline">' + campoToken() + '<input type="hidden" name="id" value="' + c.id + '"><button type="submit" class="btn btn-icon btn-outline-success" title="Ativar"><i class="bi bi-play-circle"></i></button></form>';
     return '<tr>' +
-        '<td><strong>' + (c.condicao || '') + '</strong></td>' +
+        '<td><strong>' + escaparHtml(c.condicao || '') + '</strong></td>' +
         '<td>' + aggForma(c.parcelas) + '</td>' +
         '<td class="text-center">' + maxPrazo(c.parcelas) + ' dia(s)</td>' +
         '<td class="text-center">' + ((c.parcelas || []).length) + '</td>' +

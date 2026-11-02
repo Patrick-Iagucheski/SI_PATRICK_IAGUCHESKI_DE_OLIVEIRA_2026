@@ -26,13 +26,6 @@
     </button>
 </div>
 
-@if (TempData["ErroCondicao"] != null)
-{
-    <div class="alert alert-danger d-flex align-items-center" role="alert">
-        <i class="bi bi-exclamation-triangle-fill me-2"></i> @TempData["ErroCondicao"]
-    </div>
-}
-
 <!-- Filtros de busca (todos opcionais e combinaveis) -->
 <div class="card mb-3">
     <div class="card-body py-3">
@@ -146,7 +139,7 @@
 </div>
 
 <!-- Modal Nova/Editar Condicao (componente compartilhado com o cadastro de fornecedor) -->
-@await Component.InvokeAsync("CadastroCondicaoPagamento", new { modo = "post", form = Model.CondicaoForm })
+@await Component.InvokeAsync("CadastroCondicaoPagamento", new { modo = "post" })
 
 @section Scripts {
     <script type="application/json" id="dadosTela">

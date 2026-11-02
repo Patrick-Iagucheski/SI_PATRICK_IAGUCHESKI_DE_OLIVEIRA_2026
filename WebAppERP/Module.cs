@@ -1,4 +1,7 @@
-﻿namespace WebAppERP;
+﻿using System.Linq.Expressions;
+using Microsoft.EntityFrameworkCore;
+
+namespace WebAppERP;
 
 // Metodos compartilhados por todo o sistema (telas e regras de negocio).
 // Tudo que serviria a mais de uma tela fica aqui, em vez de ser copiado em
@@ -27,9 +30,44 @@ public static class Module
     // EF.Functions.Collate(coluna, Module.CollationSemAcento).
     public const string CollationSemAcento = "SQL_Latin1_General_CP1_CI_AI";
 
-    // Monta o padrao %termo% para LIKE, escapando os curingas digitados.
+    // Monta o padrao %termo% para LIKE, escapando os curingas digitados. O termo
+    // e limitado a 100 caracteres: texto gigante colado na busca nao estoura o
+    // tamanho do parametro no SQL Server.
     public static string MontarLikeContem(string termo) =>
-        "%" + termo.Trim().Replace("[", "[[]").Replace("%", "[%]").Replace("_", "[_]") + "%";
+        "%" + Truncar(termo.Trim(), 100)!.Replace("[", "[[]").Replace("%", "[%]").Replace("_", "[_]") + "%";
+
+    // Filtro "contem o termo" das buscas por texto, sem diferenciar maiusculas
+    // nem acentos ("parana" acha "Paraná"), em um ou mais campos (basta um
+    // conter). Vira LIKE no banco com o termo como parametro e os curingas
+    // escapados, entao o texto digitado nunca entra como SQL.
+    // Uso: query.Where(Module.MontarFiltroTexto<Cliente>(termo, c => c.NmCliente, c => c.DsEmail))
+    public static Expression<Func<T, bool>> MontarFiltroTexto<T>(string termo, params Expression<Func<T, string?>>[] campos)
+    {
+        var filtro = new { padrao = MontarLikeContem(termo) };   // membro de objeto: o EF envia como parametro
+        var padrao = Expression.Property(Expression.Constant(filtro), nameof(filtro.padrao));
+        var funcoes = Expression.Property(null, typeof(EF), nameof(EF.Functions));
+        var like = typeof(DbFunctionsExtensions).GetMethod(nameof(DbFunctionsExtensions.Like),
+            [typeof(DbFunctions), typeof(string), typeof(string)])!;
+        var collate = typeof(RelationalDbFunctionsExtensions).GetMethod(nameof(RelationalDbFunctionsExtensions.Collate))!
+            .MakeGenericMethod(typeof(string));
+
+        var x = Expression.Parameter(typeof(T), "x");
+        Expression? corpo = null;
+        foreach (var campo in campos)
+        {
+            var valor = new TrocarParametro(campo.Parameters[0], x).Visit(campo.Body);
+            var semAcento = Expression.Call(collate, funcoes, valor, Expression.Constant(CollationSemAcento));
+            var contem = Expression.Call(like, funcoes, semAcento, padrao);
+            corpo = corpo == null ? contem : Expression.OrElse(corpo, contem);
+        }
+        return Expression.Lambda<Func<T, bool>>(corpo ?? Expression.Constant(true), x);
+    }
+
+    // Troca o parametro de cada campo (c => ...) pelo parametro unico do filtro.
+    private sealed class TrocarParametro(ParameterExpression de, ParameterExpression para) : ExpressionVisitor
+    {
+        protected override Expression VisitParameter(ParameterExpression node) => node == de ? para : base.VisitParameter(node);
+    }
 
     // ============================================================
     // Validacoes

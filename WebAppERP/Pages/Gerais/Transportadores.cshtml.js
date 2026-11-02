@@ -1,7 +1,7 @@
 ﻿// Script da tela Transportadores (Pages/Gerais/Transportadores.cshtml).
 
-// Filtro rapido da lista (funcao em wwwroot/js/module.js).
-filtrarTabela('#tblTransportadores tbody tr', { texto: 'searchInput' });
+// Filtro da lista (funcao em wwwroot/js/module.js): filtra no botao Buscar ou no Enter.
+const aplicarBusca = filtrarTabela('#tblTransportadores tbody tr', { texto: 'buscaTexto', codigo: 'buscaId', contador: 'contadorRegistros' });
 
 // Mascara dinamica CPF (<= 11 digitos) ou CNPJ (> 11 digitos)
 function mascaraCpfCnpj(v) {

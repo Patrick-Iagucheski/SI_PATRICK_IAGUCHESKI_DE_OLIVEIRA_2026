@@ -31,8 +31,7 @@ public class ServicoBusiness
             query = query.Where(s => s.IdServico == id.Value);
         else if (!string.IsNullOrWhiteSpace(termo))
         {
-            var t = termo.Trim();
-            query = query.Where(s => s.DsServico.Contains(t));
+            query = query.Where(Module.MontarFiltroTexto<Servico>(termo, s => s.DsServico));
         }
 
         return await query.OrderBy(s => s.DsServico).Take(50).ToListAsync();
@@ -57,8 +56,8 @@ public class ServicoBusiness
             throw new ValidacaoException("A descrição do serviço deve ter no máximo 500 caracteres.");
         if (categoria?.Length > 100)
             throw new ValidacaoException("A categoria deve ter no máximo 100 caracteres.");
-        if (servico.VlServico < 0)
-            throw new ValidacaoException("O valor do serviço não pode ser negativo.");
+        if (servico.VlServico <= 0)
+            throw new ValidacaoException("Informe o valor do serviço.", "O valor deve ser maior que zero.");
         if (servico.NrDuracaoMin is <= 0 or > 1440)
             throw new ValidacaoException("Duração inválida.", "Informe a duração em minutos (de 1 a 1440).");
 

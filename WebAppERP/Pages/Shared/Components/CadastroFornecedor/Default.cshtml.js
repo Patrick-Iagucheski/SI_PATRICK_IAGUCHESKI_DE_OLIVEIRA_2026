@@ -32,8 +32,10 @@ function toggleTipoPessoa() {
     document.getElementById('wrapInscMunicipal').classList.toggle('d-none', !ehJ);
     document.getElementById('wrapDataNasc').classList.toggle('d-none', ehJ);
 
-    // RG so e obrigatorio para Pessoa Fisica
-    document.getElementById('formNrRG').required = ehF;
+    // Obrigatorio so o documento visivel (CPF na fisica, CNPJ na juridica):
+    // campo escondido com required travaria o envio do formulario.
+    document.getElementById('formNrCpf').required = ehF;
+    document.getElementById('formNrCNPJ').required = ehJ;
 }
 
 // ===== Mascara da chave PIX conforme o tipo =====
@@ -52,19 +54,19 @@ document.querySelector('#modalFornecedor form')?.addEventListener('submit', func
     const cnpj = document.getElementById('formNrCNPJ').value;
     const cpf = document.getElementById('formNrCpf').value;
     const email = document.getElementById('formDsEmail').value.trim();
-    if (tipo === 'J' && cnpj.replace(/\D/g, '') && !cnpjValido(cnpj)) { e.preventDefault(); alert('CNPJ inválido. Verifique os números informados.'); return; }
-    if (tipo === 'F' && cpf.replace(/\D/g, '') && !cpfValido(cpf)) { e.preventDefault(); alert('CPF inválido. Verifique os números informados.'); return; }
+    if (tipo === 'J' && cnpj.replace(/\D/g, '') && !cnpjValido(cnpj)) { e.preventDefault(); exibirErro(this, 'CNPJ inválido. Verifique os números informados.'); return; }
+    if (tipo === 'F' && cpf.replace(/\D/g, '') && !cpfValido(cpf)) { e.preventDefault(); exibirErro(this, 'CPF inválido. Verifique os números informados.'); return; }
     if (tipo === 'F') {
         const rg = document.getElementById('formNrRG').value.replace(/\D/g, '');
-        if (rg.length !== 9) { e.preventDefault(); alert('Informe o RG com 9 dígitos (Pessoa Física).'); return; }
+        if (rg && rg.length !== 9) { e.preventDefault(); exibirErro(this, 'RG inválido. Informe 9 dígitos.'); return; }
     }
     if (tipo === 'J') {
         const ie = document.getElementById('formNrInscEstadual').value.replace(/\D/g, '');
-        if (ie && (ie.length < 8 || ie.length > 13)) { e.preventDefault(); alert('Inscrição Estadual deve ter de 8 a 13 dígitos.'); return; }
+        if (ie && (ie.length < 8 || ie.length > 13)) { e.preventDefault(); exibirErro(this, 'Inscrição Estadual deve ter de 8 a 13 dígitos.'); return; }
         const im = document.getElementById('formNrInscMunicipal').value.trim();
-        if (im && (im.length < 7 || im.length > 15)) { e.preventDefault(); alert('Inscrição Municipal deve ter de 7 a 15 caracteres.'); return; }
+        if (im && (im.length < 7 || im.length > 15)) { e.preventDefault(); exibirErro(this, 'Inscrição Municipal deve ter de 7 a 15 caracteres.'); return; }
     }
-    if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { e.preventDefault(); alert('E-mail inválido. Verifique o formato (exemplo: nome@dominio.com).'); return; }
+    if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { e.preventDefault(); exibirErro(this, 'E-mail inválido. Verifique o formato (exemplo: nome@dominio.com).'); return; }
 
     // Modo AJAX: grava sem recarregar a tela que abriu o cadastro.
     if (document.getElementById('modalFornecedor').dataset.modo === 'ajax') {
@@ -81,7 +83,6 @@ function limparForm() {
     document.getElementById('formId').value = '0';
     document.getElementById('formTpPessoa').value = 'J';
     document.getElementById('formFlAtivo').value = 'true';
-    document.getElementById('fornMsg').innerHTML = '';
     limparCidade('formIdCidade');
     toggleTipoPessoa();
 }
@@ -122,7 +123,6 @@ function editarFornecedor(f) {
     document.getElementById('formDsChavePix').value = f.chavePix || '';
     aplicarMascaraPix();
     document.getElementById('formFlAtivo').value = (f.ativo === true || f.ativo === 'True') ? 'true' : 'false';
-    document.getElementById('fornMsg').innerHTML = '';
     toggleTipoPessoa();
 }
 
@@ -150,19 +150,17 @@ document.addEventListener('condicao:salva', e => {
 
 // Grava o fornecedor e avisa a tela de origem pelo evento 'fornecedor:salvo'.
 async function salvarFornecedorAjax(form) {
-    const msg = document.getElementById('fornMsg');
     const btn = form.querySelector('button[type="submit"]');
-    msg.innerHTML = '';
+    exibirErro(form, null);
     btn.disabled = true;
     try {
         const resp = await fetch(urlFornecedores('SalvarAjax'), { method: 'POST', body: new FormData(form) });
         const data = await resp.json();
-        if (!data.sucesso) { msg.innerHTML = alertaErro(data.mensagem); msg.scrollIntoView({ block: 'nearest' }); return; }
+        if (!data.sucesso) { exibirErro(form, data.mensagem); return; }
         bootstrap.Modal.getInstance(document.getElementById('modalFornecedor')).hide();
         document.dispatchEvent(new CustomEvent('fornecedor:salvo', { detail: data }));
     } catch (e) {
-        msg.innerHTML = alertaErro('Erro ao salvar o fornecedor. Tente novamente.');
-        msg.scrollIntoView({ block: 'nearest' });
+        exibirErro(form, 'Erro ao salvar o fornecedor. Tente novamente.');
     } finally { btn.disabled = false; }
 }
 

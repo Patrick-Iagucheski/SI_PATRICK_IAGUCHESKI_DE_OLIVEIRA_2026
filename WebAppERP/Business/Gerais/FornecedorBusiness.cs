@@ -46,14 +46,12 @@ public class FornecedorBusiness
 
         if (!string.IsNullOrWhiteSpace(razao))
         {
-            var r = razao.Trim();
-            query = query.Where(f => f.DsRazaoSocial.Contains(r));
+            query = query.Where(Module.MontarFiltroTexto<Fornecedor>(razao, f => f.DsRazaoSocial));
         }
 
         if (!string.IsNullOrWhiteSpace(fantasia))
         {
-            var nf = fantasia.Trim();
-            query = query.Where(f => f.DsNomeFantasia != null && f.DsNomeFantasia.Contains(nf));
+            query = query.Where(Module.MontarFiltroTexto<Fornecedor>(fantasia, f => f.DsNomeFantasia));
         }
 
         if (!string.IsNullOrWhiteSpace(documento))
@@ -66,8 +64,7 @@ public class FornecedorBusiness
                     (f.NrDocumento != null && f.NrDocumento.Contains(dig)));
             else
             {
-                var d = documento.Trim();
-                query = query.Where(f => f.NrDocumento != null && f.NrDocumento.Contains(d));
+                query = query.Where(Module.MontarFiltroTexto<Fornecedor>(documento, f => f.NrDocumento));
             }
         }
 
@@ -84,9 +81,7 @@ public class FornecedorBusiness
             query = query.Where(f => f.IdFornecedor == id.Value);
         else if (!string.IsNullOrWhiteSpace(termo))
         {
-            var t = termo.Trim();
-            query = query.Where(f => f.DsRazaoSocial.Contains(t)
-                                  || (f.DsNomeFantasia != null && f.DsNomeFantasia.Contains(t)));
+            query = query.Where(Module.MontarFiltroTexto<Fornecedor>(termo, f => f.DsRazaoSocial, f => f.DsNomeFantasia));
         }
 
         return await query.OrderBy(f => f.DsRazaoSocial).Take(50).ToListAsync();
@@ -220,20 +215,26 @@ public class FornecedorBusiness
         if (string.IsNullOrWhiteSpace(f.DsRazaoSocial))
             throw new ValidacaoException("Informe a Razão Social / Nome do fornecedor.");
 
-        if (f.TpPessoa == "F" && !string.IsNullOrEmpty(f.NrCpf) && !Module.CpfValido(f.NrCpf))
-            throw new ValidacaoException("CPF inválido. Verifique os números informados.");
-
-        if (f.TpPessoa == "J" && !string.IsNullOrEmpty(f.NrCNPJ) && !Module.CnpjValido(f.NrCNPJ))
-            throw new ValidacaoException("CNPJ inválido. Verifique os números informados.");
-
-        // RG obrigatorio (9 digitos) para Pessoa Fisica
+        // Documento do tipo de pessoa obrigatorio: CPF na fisica, CNPJ na juridica.
         if (f.TpPessoa == "F")
         {
-            if (string.IsNullOrWhiteSpace(f.NrRG))
-                throw new ValidacaoException("Informe o RG do fornecedor (Pessoa Física).");
-            if (f.NrRG.Length != 9)
-                throw new ValidacaoException("RG inválido. Informe 9 dígitos.");
+            if (string.IsNullOrEmpty(f.NrCpf))
+                throw new ValidacaoException("Informe o CPF do fornecedor.");
+            if (!Module.CpfValido(f.NrCpf))
+                throw new ValidacaoException("CPF inválido. Verifique os números informados.");
         }
+
+        if (f.TpPessoa == "J")
+        {
+            if (string.IsNullOrEmpty(f.NrCNPJ))
+                throw new ValidacaoException("Informe o CNPJ do fornecedor.");
+            if (!Module.CnpjValido(f.NrCNPJ))
+                throw new ValidacaoException("CNPJ inválido. Verifique os números informados.");
+        }
+
+        // RG opcional; quando informado (Pessoa Fisica), com 9 digitos.
+        if (f.TpPessoa == "F" && !string.IsNullOrEmpty(f.NrRG) && f.NrRG.Length != 9)
+            throw new ValidacaoException("RG inválido. Informe 9 dígitos.");
 
         // Inscricoes para Pessoa Juridica (validadas apenas quando preenchidas)
         if (f.TpPessoa == "J")
@@ -294,10 +295,14 @@ public class FornecedorBusiness
         if (fornecedor == null)
             return;
 
-        // Filha com DbSet: tbFinContasAPagar.idFornecedor. tbFisNFe.idFornecedor
-        // tambem aponta para ca, mas nao tem DbSet: quem cobre e o catch abaixo.
+        // Filhas com DbSet: tbCmpCompras e tbFinContasAPagar (idFornecedor).
+        // tbFisNFe.idFornecedor tambem aponta para ca, mas nao tem DbSet: quem
+        // cobre e o catch abaixo.
+        const string dica = "Inative o fornecedor em vez de excluí-lo.";
+        if (await _db.Compras.AnyAsync(c => c.IdFornecedor == id))
+            throw new ValidacaoException("Não é possível excluir: existe compra deste fornecedor.", dica);
         if (await _db.ContasAPagar.AnyAsync(c => c.IdFornecedor == id))
-            throw new ValidacaoException("Não é possível excluir: existe conta a pagar para este fornecedor.", "Inative o fornecedor em vez de excluí-lo.");
+            throw new ValidacaoException("Não é possível excluir: existe conta a pagar para este fornecedor.", dica);
 
         try
         {
@@ -306,7 +311,7 @@ public class FornecedorBusiness
         }
         catch (DbUpdateException)
         {
-            throw new ValidacaoException("Não é possível excluir: existem registros vinculados a este fornecedor.", "Inative o fornecedor em vez de excluí-lo.");
+            throw new ValidacaoException("Não é possível excluir: existem registros vinculados a este fornecedor.", dica);
         }
     }
 }

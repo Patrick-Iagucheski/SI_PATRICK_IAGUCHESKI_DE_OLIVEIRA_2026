@@ -36,14 +36,12 @@ public class FuncionarioBusiness
 
         if (!string.IsNullOrWhiteSpace(nome))
         {
-            var n = nome.Trim();
-            query = query.Where(f => f.NmFuncionario.Contains(n));
+            query = query.Where(Module.MontarFiltroTexto<Funcionario>(nome, f => f.NmFuncionario));
         }
 
         if (!string.IsNullOrWhiteSpace(apelido))
         {
-            var a = apelido.Trim();
-            query = query.Where(f => f.NmApelido != null && f.NmApelido.Contains(a));
+            query = query.Where(Module.MontarFiltroTexto<Funcionario>(apelido, f => f.NmApelido));
         }
 
         var cpfDigitos = Module.SomenteNumeros(cpf) ?? "";

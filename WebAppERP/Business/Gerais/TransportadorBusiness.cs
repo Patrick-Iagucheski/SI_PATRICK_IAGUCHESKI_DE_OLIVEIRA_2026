@@ -33,8 +33,7 @@ public class TransportadorBusiness
             query = query.Where(t => t.IdTransportador == id.Value);
         else if (!string.IsNullOrWhiteSpace(termo))
         {
-            var t = termo.Trim();
-            query = query.Where(x => x.DsRazaoSocial != null && x.DsRazaoSocial.Contains(t));
+            query = query.Where(Module.MontarFiltroTexto<Transportador>(termo, x => x.DsRazaoSocial));
         }
 
         return await query.OrderBy(t => t.DsRazaoSocial).Take(50).ToListAsync();
@@ -61,25 +60,25 @@ public class TransportadorBusiness
         if (inscricao?.Length > 20)
             throw new ValidacaoException("A inscrição estadual deve ter no máximo 20 caracteres.");
 
-        // CPF (11 digitos) ou CNPJ (14 digitos), opcional
-        if (documento != null)
-        {
-            var valido = documento.Length switch
-            {
-                11 => Module.CpfValido(documento),
-                14 => Module.CnpjValido(documento),
-                _ => false
-            };
-            if (!valido)
-                throw new ValidacaoException("CPF/CNPJ inválido. Verifique os números informados.");
+        // CPF (11 digitos) ou CNPJ (14 digitos), obrigatorio
+        if (string.IsNullOrEmpty(documento))
+            throw new ValidacaoException("Informe o CPF/CNPJ do transportador.");
 
-            var mesmoDocumento = await _db.Transportadores
-                .Where(t => t.NrCpfCnpj == documento && t.IdTransportador != transportador.IdTransportador)
-                .Select(t => t.DsRazaoSocial)
-                .FirstOrDefaultAsync();
-            if (mesmoDocumento != null)
-                throw new ValidacaoException($"Já existe um transportador com este CPF/CNPJ: {mesmoDocumento}.");
-        }
+        var valido = documento.Length switch
+        {
+            11 => Module.CpfValido(documento),
+            14 => Module.CnpjValido(documento),
+            _ => false
+        };
+        if (!valido)
+            throw new ValidacaoException("CPF/CNPJ inválido. Verifique os números informados.");
+
+        var mesmoDocumento = await _db.Transportadores
+            .Where(t => t.NrCpfCnpj == documento && t.IdTransportador != transportador.IdTransportador)
+            .Select(t => t.DsRazaoSocial)
+            .FirstOrDefaultAsync();
+        if (mesmoDocumento != null)
+            throw new ValidacaoException($"Já existe um transportador com este CPF/CNPJ: {mesmoDocumento}.");
 
         if (transportador.IdCidade.HasValue && !await _db.Cidades.AnyAsync(c => c.IdCidade == transportador.IdCidade))
             throw new ValidacaoException("Cidade inválida.");

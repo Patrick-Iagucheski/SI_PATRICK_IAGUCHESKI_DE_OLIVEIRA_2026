@@ -38,14 +38,6 @@
     </button>
 </div>
 
-@if (TempData["ErroFornecedor"] != null)
-{
-    <div class="alert alert-danger alert-dismissible fade show" role="alert">
-        <i class="bi bi-exclamation-triangle me-1"></i> @TempData["ErroFornecedor"]
-        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-    </div>
-}
-
 <!-- Filtros de busca (todos opcionais e combinaveis) -->
 <div class="card mb-3">
     <div class="card-body py-3">
@@ -147,7 +139,7 @@
 </div>
 
 <!-- Modal Novo/Editar Fornecedor + cadastros rapidos (componente compartilhado com a Compra) -->
-@await Component.InvokeAsync("CadastroFornecedor", new { modo = "post", form = Model.FornecedorForm })
+@await Component.InvokeAsync("CadastroFornecedor", new { modo = "post" })
 
 @section Scripts {
     <script type="application/json" id="dadosTela">

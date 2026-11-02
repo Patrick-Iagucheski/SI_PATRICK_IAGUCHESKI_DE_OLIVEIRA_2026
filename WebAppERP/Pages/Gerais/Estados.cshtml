@@ -14,7 +14,7 @@
     </button>
 </div>
 
-<!-- Filtros de busca (mesmo padrao da tela de Funcionarios) -->
+<!-- Filtros de busca (todos opcionais e combinaveis) -->
 <div class="card mb-3">
     <div class="card-body py-3">
         <div class="row g-2 align-items-end">
@@ -22,15 +22,16 @@
                 <label class="form-label small mb-1">ID</label>
                 <input type="number" class="form-control" id="buscaId" min="1" autocomplete="off" />
             </div>
-            <div class="col-md-6">
+            <div class="col-md-4">
                 <label class="form-label small mb-1">Nome / UF</label>
-                <input type="text" class="form-control" id="searchInput" autocomplete="off" />
+                <input type="text" class="form-control" id="buscaTexto" autocomplete="off" />
             </div>
-            <div class="col-md-auto">
-                <button type="button" class="btn btn-primary" onclick="aplicarBusca()">
-                    <i class="bi bi-search me-1"></i>Buscar
-                </button>
-            </div>
+        </div>
+        <div class="d-flex justify-content-between align-items-center mt-3">
+            <div></div>
+            <button type="button" class="btn btn-primary" onclick="aplicarBusca()">
+                <i class="bi bi-search me-1"></i>Buscar
+            </button>
         </div>
     </div>
 </div>
@@ -39,7 +40,7 @@
 <div class="table-container">
     <div class="table-header">
         <h5><i class="bi bi-map me-2"></i>Lista de Estados</h5>
-        <span class="text-muted small">@Model.Estados.Count registros encontrados</span>
+        <span class="text-muted small" id="contadorRegistros">@Model.Estados.Count registros encontrados</span>
     </div>
     <div class="table-responsive">
         <table class="table" id="tblEstados">
@@ -93,7 +94,7 @@
 <div class="modal fade" id="modalEstado" tabindex="-1">
     <div class="modal-dialog">
         <div class="modal-content">
-            <form method="post">
+            <form method="post" data-modal-ajax>
                 <div class="modal-header">
                     <h5 class="modal-title" id="modalTitle"><i class="bi bi-map me-2"></i>Novo Estado</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>

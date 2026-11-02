@@ -14,16 +14,24 @@
     </button>
 </div>
 
-<!-- Filtros -->
+<!-- Filtros de busca (todos opcionais e combinaveis) -->
 <div class="card mb-3">
-    <div class="card-body py-2">
-        <div class="row g-2 align-items-center">
-            <div class="col-md-4">
-                <div class="search-box">
-                    <i class="bi bi-search search-icon"></i>
-                    <input type="text" class="form-control" placeholder="Buscar por razão social ou CPF/CNPJ..." id="searchInput" />
-                </div>
+    <div class="card-body py-3">
+        <div class="row g-2 align-items-end">
+            <div class="col-md-2">
+                <label class="form-label small mb-1">ID</label>
+                <input type="number" class="form-control" id="buscaId" min="1" autocomplete="off" />
             </div>
+            <div class="col-md-4">
+                <label class="form-label small mb-1">Razão Social / CPF / CNPJ</label>
+                <input type="text" class="form-control" id="buscaTexto" autocomplete="off" />
+            </div>
+        </div>
+        <div class="d-flex justify-content-between align-items-center mt-3">
+            <div></div>
+            <button type="button" class="btn btn-primary" onclick="aplicarBusca()">
+                <i class="bi bi-search me-1"></i>Buscar
+            </button>
         </div>
     </div>
 </div>
@@ -32,7 +40,7 @@
 <div class="table-container">
     <div class="table-header">
         <h5><i class="bi bi-truck-front me-2"></i>Lista de Transportadores</h5>
-        <span class="text-muted small">@Model.Transportadores.Count registros encontrados</span>
+        <span class="text-muted small" id="contadorRegistros">@Model.Transportadores.Count registros encontrados</span>
     </div>
     <div class="table-responsive">
         <table class="table" id="tblTransportadores">
@@ -88,7 +96,7 @@
 <div class="modal fade" id="modalTransportador" tabindex="-1">
     <div class="modal-dialog modal-lg">
         <div class="modal-content">
-            <form method="post">
+            <form method="post" data-modal-ajax>
                 <div class="modal-header">
                     <h5 class="modal-title" id="modalTitle"><i class="bi bi-truck-front me-2"></i>Novo Transportador</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
@@ -97,12 +105,12 @@
                     <input type="hidden" asp-for="TransportadorForm.IdTransportador" id="formIdTransportador" />
                     <div class="row g-3">
                         <div class="col-md-8">
-                            <label class="form-label">Razão Social</label>
-                            <input type="text" class="form-control" asp-for="TransportadorForm.DsRazaoSocial" id="formDsRazaoSocial" />
+                            <label class="form-label">Razão Social *</label>
+                            <input type="text" class="form-control" asp-for="TransportadorForm.DsRazaoSocial" id="formDsRazaoSocial" maxlength="200" required />
                         </div>
                         <div class="col-md-4">
-                            <label class="form-label">CPF / CNPJ</label>
-                            <input type="text" class="form-control" asp-for="TransportadorForm.NrCpfCnpj" id="formNrCpfCnpj" maxlength="18" placeholder="000.000.000-00" />
+                            <label class="form-label">CPF / CNPJ *</label>
+                            <input type="text" class="form-control" asp-for="TransportadorForm.NrCpfCnpj" id="formNrCpfCnpj" maxlength="18" placeholder="000.000.000-00" required />
                         </div>
                         <div class="col-md-7">
                             <label class="form-label">Endereço</label>

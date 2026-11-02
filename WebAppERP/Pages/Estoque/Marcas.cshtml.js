@@ -12,7 +12,7 @@ let resultadosBusca = [];
 function montarLinha(m, i) {
     return '<tr>' +
         '<td>' + m.id + '</td>' +
-        '<td><strong>' + (m.nome || '') + '</strong></td>' +
+        '<td><strong>' + escaparHtml(m.nome || '') + '</strong></td>' +
         '<td>' + statusBadge(m.ativo) + '</td>' +
         '<td class="text-center">' +
             '<button class="btn btn-icon btn-outline-primary" title="Editar" onclick="abrirEdicao(' + i + ')"><i class="bi bi-pencil"></i></button> ' +

@@ -49,11 +49,9 @@ public class CondicoesPagamentoModel : PaginaBase
             })
             .ToList();
 
-    // No erro, recarrega a tela e reabre o cadastro com o que foi digitado.
     public Task<IActionResult> OnPost() =>
-        ExecutarOuReexibir(() => _condicao.Salvar(CondicaoForm, ParcelasDaTela()),
-            CondicaoForm.IdCondicaoPagamento == 0 ? "Condição de pagamento cadastrada com sucesso." : "Condição de pagamento atualizada com sucesso.",
-            "ErroCondicao", OnGet);
+        Executar(() => _condicao.Salvar(CondicaoForm, ParcelasDaTela()),
+            CondicaoForm.IdCondicaoPagamento == 0 ? "Condição de pagamento cadastrada com sucesso." : "Condição de pagamento atualizada com sucesso.");
 
     // Cadastro pelo componente em modo AJAX (ex.: botao + da condicao no
     // cadastro de fornecedor e na Compra). Mesmas regras do OnPost, mas

@@ -99,6 +99,8 @@ public class AgendamentoBusiness
             throw new ValidacaoException("Informe a data do agendamento.");
         if (novo && agendamento.DtAgendamento < DateOnly.FromDateTime(DateTime.Today))
             throw new ValidacaoException("Não é possível agendar em uma data que já passou.");
+        if (agendamento.DtAgendamento > DateOnly.FromDateTime(DateTime.Today).AddYears(1))
+            throw new ValidacaoException("Data muito distante.", "Agende com no máximo 1 ano de antecedência.");
 
         var inicio = agendamento.HrInicio;
         var fim = agendamento.HrFim;

@@ -117,7 +117,7 @@ function renderItens() {
         tr.innerHTML =
             '<td><span class="badge-status ' + badge + '">' + it.tpItem + '</span></td>' +
             '<td>' + codigo + '</td>' +
-            '<td><strong>' + it.descricao + '</strong></td>' +
+            '<td><strong>' + escaparHtml(it.descricao) + '</strong></td>' +
             '<td class="text-end">' + moeda(it.qtItem) + '</td>' +
             '<td class="text-end">R$ ' + moeda(it.vlUnitario) + '</td>' +
             '<td class="text-end">R$ ' + moeda(it.vlDesconto) + '</td>' +

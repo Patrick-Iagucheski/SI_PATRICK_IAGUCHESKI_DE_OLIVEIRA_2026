@@ -1,4 +1,6 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using System.Globalization;
+using Microsoft.AspNetCore.Localization;
+using Microsoft.EntityFrameworkCore;
 using WebAppERP.Data;
 using WebAppERP.Business.Compras;
 using WebAppERP.Business.Estoque;
@@ -71,6 +73,18 @@ var servidor = app.Services.GetRequiredService<ConexaoBanco>().Servidor;
 app.Logger.LogInformation(servidor == null
     ? "Banco: DefaultConnection do appsettings.json (Servers/servers.json não encontrado)"
     : $"Banco: {servidor.name} -> {servidor.host} / {servidor.database} (Servers/servers.json)");
+
+// Numeros, moeda e datas sempre no formato brasileiro (R$ 1.675,44), qualquer
+// que seja o idioma do Windows ou do IIS onde o sistema rodar.
+var ptBR = new CultureInfo("pt-BR");
+CultureInfo.DefaultThreadCurrentCulture = ptBR;
+CultureInfo.DefaultThreadCurrentUICulture = ptBR;
+app.UseRequestLocalization(new RequestLocalizationOptions
+{
+    DefaultRequestCulture = new RequestCulture(ptBR),
+    SupportedCultures = [ptBR],
+    SupportedUICultures = [ptBR]
+});
 
 // Pipeline das requisicoes.
 if (!app.Environment.IsDevelopment())

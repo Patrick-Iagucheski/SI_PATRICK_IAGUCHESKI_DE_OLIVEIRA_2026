@@ -108,45 +108,137 @@ async function postJson(url, dados) {
     return await resp.json();
 }
 
-// Caixa de erro pequena, usada dentro dos modais.
+// Caixa de erro dos modais (cadastro e cadastro rapido): mesma aparencia em todos.
 function alertaErro(msg) {
-    return '<div class="alert alert-danger py-1 px-2 small mb-2">' + msg + '</div>';
+    return '<div class="alert alert-danger py-2 mb-3"><i class="bi bi-exclamation-triangle me-1"></i>' + escaparHtml(msg) + '</div>';
 }
+
+// Salvar dos modais de cadastro (<form method="post" data-modal-ajax>): grava
+// por AJAX em vez de recarregar a pagina. No erro, a mensagem aparece no topo
+// do modal, que continua aberto com tudo o que foi digitado; no sucesso, a
+// tela recarrega e mostra a mensagem verde. A validacao da propria tela
+// (listener no form que chama preventDefault) roda antes e pode barrar o envio.
+document.addEventListener('submit', async e => {
+    const form = e.target;
+    if (!form.matches('form[data-modal-ajax]') || e.defaultPrevented) return;
+    e.preventDefault();
+
+    const botao = form.querySelector('button[type="submit"]');
+    exibirErro(form, null);
+    if (botao) botao.disabled = true;
+
+    try {
+        const resp = await fetch(form.action, {
+            method: 'POST',
+            body: new FormData(form),
+            headers: { 'X-Requested-With': 'XMLHttpRequest' }
+        });
+        const data = await resp.json();
+        if (data.sucesso) { location.reload(); return; }
+        exibirErro(form, data.mensagem);
+    } catch {
+        exibirErro(form, 'Não foi possível salvar. Tente novamente.');
+    } finally {
+        if (botao) botao.disabled = false;
+    }
+});
+
+// Mostra (ou limpa, com msg null) o erro no topo do modal do formulario.
+// Usado por toda validacao de cadastro em modal: a da tela, antes de enviar, e
+// a do servidor, na resposta. O modal fica aberto com o que foi digitado.
+function exibirErro(form, msg) {
+    const corpo = form.querySelector('.modal-body') || form;
+    let aviso = corpo.querySelector(':scope > .modal-erro');
+    if (!aviso) {
+        aviso = document.createElement('div');
+        aviso.className = 'modal-erro';
+        corpo.prepend(aviso);
+    }
+    aviso.innerHTML = msg ? alertaErro(msg) : '';
+    if (msg) aviso.scrollIntoView({ block: 'nearest' });
+}
+
+// Ao abrir um modal, some o erro da tentativa anterior.
+document.addEventListener('show.bs.modal', e => {
+    e.target.querySelectorAll('.modal-erro').forEach(a => a.innerHTML = '');
+});
 
 // ============================================================
 // Listagens
 // ============================================================
 
-// Filtro local das listagens: esconde as linhas que nao batem com os campos
-// de filtro e ja liga os eventos dos campos. Devolve a funcao que aplica o
-// filtro (para um botao "Buscar", por exemplo).
+// Filtro local das listagens com poucos registros (ja carregados na pagina).
+// Funciona como a busca das telas grandes (ex.: Clientes): so filtra no botao
+// Buscar (que chama a funcao devolvida) ou no Enter dos campos; o checkbox de
+// inativos filtra na hora. Atualiza o contador e mostra "Nenhum registro
+// encontrado" quando o filtro esconde tudo.
 //   seletor: linhas a filtrar (ex.: '#tblPaises tbody tr' ou '.servico-card')
 //   campos.texto: id do campo de texto (procura em qualquer parte da linha)
-//   campos.codigo: id do campo de codigo (compara com a 1a coluna)
+//   campos.codigo: id do campo de codigo (compara com data-id da linha ou, sem
+//                  ele, com a 1a coluna)
 //   campos.atributos: { atributo: idDoCampo } compara com data-<atributo> da linha
-// Linhas de aviso ("Nenhum registro...", com td[colspan]) ficam sempre visiveis.
+//   campos.inativos: id do checkbox "Exibir ... inativos" (desmarcado: so as
+//                    linhas data-status="ativo"; marcado: so as "inativo")
+//   campos.contador: id do texto "N registros encontrados"
+// Linhas de aviso ("Nenhum registro...", com td[colspan]) nao entram no filtro.
 function filtrarTabela(seletor, campos) {
     const campo = id => id ? document.getElementById(id) : null;
     const texto = campo(campos.texto);
     const codigo = campo(campos.codigo);
+    const inativos = campo(campos.inativos);
+    const contador = campo(campos.contador);
     const atributos = Object.entries(campos.atributos || {}).map(([attr, id]) => [attr, campo(id)]);
+    const linhas = () => [...document.querySelectorAll(seletor)].filter(l => !l.querySelector('td[colspan]'));
 
     function aplicar() {
-        const t = (texto?.value || '').toLowerCase();
+        const t = semAcento(texto?.value || '').trim();
         const c = (codigo?.value || '').trim();
-        document.querySelectorAll(seletor).forEach(linha => {
-            if (linha.querySelector('td[colspan]')) return;
-            const ok = (!t || linha.textContent.toLowerCase().includes(t))
-                && (!c || linha.querySelector('td')?.textContent.trim() === c)
+        const status = inativos ? (inativos.checked ? 'inativo' : 'ativo') : null;
+        const todas = linhas();
+        let visiveis = 0;
+        todas.forEach(linha => {
+            const id = linha.dataset.id ?? linha.querySelector('td')?.textContent.trim();
+            const ok = (!t || semAcento(linha.textContent).includes(t))
+                && (!c || id === c)
+                && (!status || linha.dataset.status === status)
                 && atributos.every(([attr, el]) => !el?.value || linha.getAttribute('data-' + attr) === el.value);
             linha.style.display = ok ? '' : 'none';
+            if (ok) visiveis++;
         });
+
+        if (contador) contador.textContent = visiveis + ' registros encontrados';
+        if (todas.length) avisoSemResultado(todas[0], visiveis === 0);
     }
 
-    texto?.addEventListener('input', aplicar);
-    codigo?.addEventListener('input', aplicar);
-    atributos.forEach(([, el]) => el?.addEventListener('change', aplicar));
+    [texto, codigo].forEach(el => el?.addEventListener('keydown', e => {
+        if (e.key === 'Enter') { e.preventDefault(); aplicar(); }
+    }));
+    inativos?.addEventListener('change', aplicar);
+    if (inativos) aplicar();   // abre mostrando so os ativos, como nas telas grandes
     return aplicar;
+}
+
+// Texto em minusculas e sem acento, para comparar como as buscas do servidor
+// ("parana" acha "Paraná").
+function semAcento(s) {
+    return String(s).normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+}
+
+// Aviso "Nenhum registro encontrado" ao lado das linhas filtradas (linha de
+// tabela ou card, conforme o tipo da primeira linha).
+function avisoSemResultado(modelo, mostrar) {
+    const pai = modelo.parentElement;
+    let aviso = pai.querySelector(':scope > .aviso-sem-resultado');
+    if (!aviso) {
+        aviso = document.createElement(modelo.tagName === 'TR' ? 'tr' : 'div');
+        aviso.className = 'aviso-sem-resultado' + (modelo.tagName === 'TR' ? '' : ' col-12');
+        const msg = '<span class="text-muted">Nenhum registro encontrado</span>';
+        aviso.innerHTML = modelo.tagName === 'TR'
+            ? '<td colspan="' + modelo.children.length + '" class="text-center py-4">' + msg + '</td>'
+            : '<div class="text-center py-4">' + msg + '</div>';
+        pai.appendChild(aviso);
+    }
+    aviso.style.display = mostrar ? '' : 'none';
 }
 
 // ============================================================

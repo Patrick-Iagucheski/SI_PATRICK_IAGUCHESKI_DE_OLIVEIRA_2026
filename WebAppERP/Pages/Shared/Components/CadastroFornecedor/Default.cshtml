@@ -14,13 +14,12 @@
      data-modo="@Model.Modo" data-url-fornecedores="@Url.Page("/Gerais/Fornecedores")">
     <div class="modal-dialog modal-lg">
         <div class="modal-content">
-            <form method="post" asp-page="/Gerais/Fornecedores">
+            <form method="post" data-modal-ajax asp-page="/Gerais/Fornecedores">
                 <div class="modal-header">
                     <h5 class="modal-title" id="modalTitle"><i class="bi bi-truck me-2"></i>Novo Fornecedor</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
-                    <div id="fornMsg"></div>
                     <input type="hidden" asp-for="FornecedorForm.IdFornecedor" id="formId" />
 
                     <!-- ===== Dados Cadastrais ===== -->
@@ -54,11 +53,11 @@
                         </div>
 
                         <div class="col-md-3 doc-wrap" id="wrapCnpj">
-                            <label class="form-label">CNPJ</label>
-                            <input type="text" class="form-control" asp-for="FornecedorForm.NrCNPJ" id="formNrCNPJ" maxlength="18" placeholder="00.000.000/0000-00" />
+                            <label class="form-label">CNPJ *</label>
+                            <input type="text" class="form-control" asp-for="FornecedorForm.NrCNPJ" id="formNrCNPJ" maxlength="18" placeholder="00.000.000/0000-00" required />
                         </div>
                         <div class="col-md-3 doc-wrap d-none" id="wrapCpf">
-                            <label class="form-label">CPF</label>
+                            <label class="form-label">CPF *</label>
                             <input type="text" class="form-control" asp-for="FornecedorForm.NrCpf" id="formNrCpf" maxlength="14" placeholder="000.000.000-00" />
                         </div>
                         <div class="col-md-3 doc-wrap d-none" id="wrapDoc">
@@ -71,7 +70,7 @@
                             <input type="text" class="form-control" asp-for="FornecedorForm.NrInscEstadual" id="formNrInscEstadual" maxlength="13" placeholder="8 a 13 dígitos" />
                         </div>
                         <div class="col-md-3 doc-wrap d-none" id="wrapRG">
-                            <label class="form-label">RG *</label>
+                            <label class="form-label">RG</label>
                             <input type="text" class="form-control" asp-for="FornecedorForm.NrRG" id="formNrRG" maxlength="12" placeholder="00.000.000-0" />
                         </div>
 

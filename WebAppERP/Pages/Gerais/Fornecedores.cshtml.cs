@@ -24,11 +24,9 @@ public class FornecedoresModel : PaginaBase
         Fornecedores = await _fornecedor.Listar();
     }
 
-    // No erro, recarrega a tela e reabre o cadastro com o que foi digitado.
     public Task<IActionResult> OnPost() =>
-        ExecutarOuReexibir(() => _fornecedor.Salvar(FornecedorForm),
-            FornecedorForm.IdFornecedor == 0 ? "Fornecedor cadastrado com sucesso." : "Fornecedor atualizado com sucesso.",
-            "ErroFornecedor", OnGet);
+        Executar(() => _fornecedor.Salvar(FornecedorForm),
+            FornecedorForm.IdFornecedor == 0 ? "Fornecedor cadastrado com sucesso." : "Fornecedor atualizado com sucesso.");
 
     // Cadastro pelo componente em modo AJAX (ex.: botao + da pesquisa de
     // fornecedor na Compra). Mesmas regras do OnPost, mas responde JSON

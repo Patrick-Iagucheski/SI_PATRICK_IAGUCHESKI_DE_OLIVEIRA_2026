@@ -4,8 +4,7 @@ namespace WebAppERP.ViewModels;
 // Dados do componente de cadastro de fornecedor (ViewComponents/CadastroFornecedorViewComponent).
 public class CadastroFornecedorViewModel
 {
-    // Valores do formulario. Na tela de Fornecedores volta preenchido quando
-    // a gravacao falha, para o usuario nao perder o que digitou.
+    // Valores do formulario (preenchidos pelo script ao editar).
     public Fornecedor FornecedorForm { get; set; } = new();
 
     // Condicoes de pagamento ja cadastradas (so ativas) para o dropdown.

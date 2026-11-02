@@ -52,14 +52,6 @@
     </button>
 </div>
 
-@if (TempData["ErroCliente"] != null)
-{
-    <div class="alert alert-danger alert-dismissible fade show" role="alert">
-        <i class="bi bi-exclamation-triangle me-1"></i> @TempData["ErroCliente"]
-        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-    </div>
-}
-
 <!-- Filtros de busca (todos opcionais e combinaveis) -->
 <div class="card mb-3">
     <div class="card-body py-3">
@@ -166,7 +158,7 @@
 <div class="modal fade" id="modalCliente" tabindex="-1">
     <div class="modal-dialog modal-lg">
         <div class="modal-content">
-            <form method="post">
+            <form method="post" data-modal-ajax>
                 <div class="modal-header">
                     <h5 class="modal-title" id="modalTitle"><i class="bi bi-person-plus me-2"></i>Novo Cliente</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
@@ -194,11 +186,11 @@
 
                         <!-- Documento (CPF / CNPJ / Outro) | RG | Sexo | Nascimento -->
                         <div class="col-md-3" id="wrapCpf">
-                            <label class="form-label">CPF</label>
-                            <input type="text" class="form-control" asp-for="ClienteForm.NrCpf" id="formNrCpf" maxlength="14" placeholder="000.000.000-00" />
+                            <label class="form-label">CPF *</label>
+                            <input type="text" class="form-control" asp-for="ClienteForm.NrCpf" id="formNrCpf" maxlength="14" placeholder="000.000.000-00" required />
                         </div>
                         <div class="col-md-3 d-none" id="wrapCnpj">
-                            <label class="form-label">CNPJ</label>
+                            <label class="form-label">CNPJ *</label>
                             <input type="text" class="form-control" asp-for="ClienteForm.NrCnpj" id="formNrCnpj" maxlength="18" placeholder="00.000.000/0000-00" />
                         </div>
                         <div class="col-md-3 d-none" id="wrapDoc">

@@ -83,9 +83,9 @@ public class VendaModel : PaginaBase
                 : "Venda salva com sucesso.";
             return RedirectToPage("Vendas");
         }
-        catch (ValidacaoException ex)
+        catch (Exception ex) when (MensagemDeErro(ex) is { } mensagem)
         {
-            Erro = ex.MensagemCompleta;
+            Erro = mensagem;
         }
 
         // Em caso de erro, recarrega combos e reexibe a tela com os dados digitados.

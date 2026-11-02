@@ -14,13 +14,12 @@
      data-modo="@Model.Modo" data-url-produtos="@Url.Page("/Estoque/Produtos")">
     <div class="modal-dialog modal-lg">
         <div class="modal-content">
-            <form method="post" asp-page="/Estoque/Produtos" enctype="multipart/form-data">
+            <form method="post" data-modal-ajax asp-page="/Estoque/Produtos" enctype="multipart/form-data">
                 <div class="modal-header">
                     <h5 class="modal-title" id="prodModalTitle"><i class="bi bi-box-seam me-2"></i>Novo Produto</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
-                    <div id="prodMsg"></div>
                     <input type="hidden" asp-for="ProdutoForm.IdProduto" id="prodIdProduto" />
                     <input type="hidden" asp-for="ProdutoForm.DsImagem" id="prodDsImagem" />
                     <div class="row g-3">
@@ -34,9 +33,9 @@
                             <input type="text" class="form-control" asp-for="ProdutoForm.DsProduto" id="prodDsProduto" maxlength="300" placeholder="Ex: Pomada modeladora" required />
                         </div>
                         <div class="col-md-4">
-                            <label class="form-label">Categoria</label>
+                            <label class="form-label">Categoria *</label>
                             <div class="input-group">
-                                <select class="form-select" asp-for="ProdutoForm.IdCategoria" id="prodIdCategoria">
+                                <select class="form-select" asp-for="ProdutoForm.IdCategoria" id="prodIdCategoria" required>
                                     <option value="">Selecione</option>
                                     @foreach (var categoria in Model.Categorias)
                                     {
@@ -59,9 +58,9 @@
 
                         <!-- Marca | Unidade de Medida -->
                         <div class="col-md-8">
-                            <label class="form-label">Marca</label>
+                            <label class="form-label">Marca *</label>
                             <div class="input-group">
-                                <select class="form-select" asp-for="ProdutoForm.IdMarca" id="prodIdMarca">
+                                <select class="form-select" asp-for="ProdutoForm.IdMarca" id="prodIdMarca" required>
                                     <option value="">Selecione</option>
                                     @foreach (var marca in Model.Marcas)
                                     {

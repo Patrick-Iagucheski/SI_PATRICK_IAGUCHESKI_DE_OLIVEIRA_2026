@@ -37,8 +37,7 @@ public class CondicaoPagamentoBusiness
 
         if (!string.IsNullOrWhiteSpace(condicao))
         {
-            var n = condicao.Trim();
-            query = query.Where(c => c.DsCondicao.Contains(n));
+            query = query.Where(Module.MontarFiltroTexto<CondicaoPagamento>(condicao, c => c.DsCondicao));
         }
 
         return await query.OrderBy(c => c.DsCondicao).Take(100).ToListAsync();

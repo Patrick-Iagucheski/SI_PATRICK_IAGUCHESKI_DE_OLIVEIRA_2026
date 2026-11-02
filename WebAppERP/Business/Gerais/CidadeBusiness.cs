@@ -31,10 +31,7 @@ public class CidadeBusiness
             query = query.Where(c => c.IdCidade == id.Value);
         else if (!string.IsNullOrWhiteSpace(termo))
         {
-            var padrao = Module.MontarLikeContem(termo);
-            var t = termo.Trim();
-            query = query.Where(c => EF.Functions.Like(EF.Functions.Collate(c.NmCidade, Module.CollationSemAcento), padrao)
-                                  || (c.Estado != null && c.Estado.SgUF == t));
+            query = query.Where(Module.MontarFiltroTexto<Cidade>(termo, c => c.NmCidade, c => c.Estado!.SgUF));
         }
         return await query.OrderBy(c => c.NmCidade).Take(50).ToListAsync();
     }

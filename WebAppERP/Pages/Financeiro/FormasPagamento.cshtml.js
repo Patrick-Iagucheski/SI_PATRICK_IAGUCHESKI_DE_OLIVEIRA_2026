@@ -1,7 +1,9 @@
 ﻿// Script da tela Formas de Pagamento (Pages/Financeiro/FormasPagamento.cshtml).
 
-// Filtro rapido da lista por texto e situacao (funcao em wwwroot/js/module.js).
-filtrarTabela('#tblFormas tbody tr', { texto: 'searchInput', atributos: { status: 'filterStatus' } });
+// Filtro da lista (funcao em wwwroot/js/module.js): filtra no botao Buscar ou no Enter.
+const aplicarBusca = filtrarTabela('#tblFormas tbody tr', {
+    texto: 'buscaTexto', codigo: 'buscaId', inativos: 'buscaInativos', contador: 'contadorRegistros'
+});
 
 function limparForm() {
     document.getElementById('modalTitle').innerHTML = '<i class="bi bi-credit-card me-2"></i>Nova Forma de Pagamento';

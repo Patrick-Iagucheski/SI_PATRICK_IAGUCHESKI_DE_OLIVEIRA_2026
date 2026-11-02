@@ -15,11 +15,10 @@ public class CadastroCondicaoPagamentoViewComponent : ComponenteBase
 
     public CadastroCondicaoPagamentoViewComponent(FormaPagamentoBusiness forma) => _forma = forma;
 
-    public async Task<IViewComponentResult> InvokeAsync(string modo = "post", CondicaoPagamento? form = null)
+    public async Task<IViewComponentResult> InvokeAsync(string modo = "post")
     {
         var vm = new CadastroCondicaoPagamentoViewModel
         {
-            CondicaoForm = form ?? new CondicaoPagamento(),
             Modo = modo == "ajax" ? "ajax" : "post",
             Formas = await _forma.Listar(somenteAtivas: true)
         };

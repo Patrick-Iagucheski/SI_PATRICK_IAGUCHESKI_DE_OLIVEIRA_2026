@@ -180,9 +180,9 @@ public class CompraModel : PaginaBase
                 idFornecedor = chave.IdFornecedor
             });
         }
-        catch (ValidacaoException ex)
+        catch (Exception ex) when (MensagemDeErro(ex) is { } mensagem)
         {
-            Erro = ex.MensagemCompleta;
+            Erro = mensagem;
         }
 
         // Em caso de erro, recarrega os combos e reexibe a tela com os dados digitados.
@@ -254,11 +254,11 @@ public class CompraModel : PaginaBase
                 TpStatus = Compra.RASCUNHO
             });
         }
-        catch (ValidacaoException ex)
+        catch (Exception ex) when (MensagemDeErro(ex) is { } mensagem)
         {
             // O nome do fornecedor volta mesmo no erro, para a tela mostrar de quem e a nota.
             var fornecedor = IdFornecedor > 0 ? await _fornecedor.GetFornecedor(IdFornecedor) : null;
-            return new JsonResult(new { ok = false, erro = ex.MensagemCompleta, fornecedor = fornecedor?.DsRazaoSocial });
+            return new JsonResult(new { ok = false, erro = mensagem, fornecedor = fornecedor?.DsRazaoSocial });
         }
 
         return new JsonResult(new
@@ -290,9 +290,9 @@ public class CompraModel : PaginaBase
             await _business.Salvar(MontarDados());
             return new JsonResult(new { ok = true, erro = (string?)null, hora = DateTime.Now.ToString("HH:mm:ss") });
         }
-        catch (ValidacaoException ex)
+        catch (Exception ex) when (MensagemDeErro(ex) is { } mensagem)
         {
-            return new JsonResult(new { ok = false, erro = ex.MensagemCompleta });
+            return new JsonResult(new { ok = false, erro = mensagem });
         }
     }
 

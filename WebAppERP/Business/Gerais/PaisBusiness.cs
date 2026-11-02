@@ -24,10 +24,7 @@ public class PaisBusiness
         var query = _db.Paises.AsQueryable();
         if (!string.IsNullOrWhiteSpace(termo))
         {
-            var padrao = Module.MontarLikeContem(termo);
-            var t = termo.Trim();
-            query = query.Where(p => EF.Functions.Like(EF.Functions.Collate(p.NmPais, Module.CollationSemAcento), padrao)
-                                  || p.SgPais == t);
+            query = query.Where(Module.MontarFiltroTexto<Pais>(termo, p => p.NmPais, p => p.SgPais));
         }
         return await query.OrderBy(p => p.NmPais).Take(50).ToListAsync();
     }

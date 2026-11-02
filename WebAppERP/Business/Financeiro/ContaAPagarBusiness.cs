@@ -49,14 +49,12 @@ public class ContaAPagarBusiness
 
         if (!string.IsNullOrWhiteSpace(conta))
         {
-            var n = conta.Trim();
-            query = query.Where(c => c.DsConta.Contains(n));
+            query = query.Where(Module.MontarFiltroTexto<ContaAPagar>(conta, c => c.DsConta));
         }
 
         if (!string.IsNullOrWhiteSpace(documento))
         {
-            var d = documento.Trim();
-            query = query.Where(c => c.NrDocumento != null && c.NrDocumento.Contains(d));
+            query = query.Where(Module.MontarFiltroTexto<ContaAPagar>(documento, c => c.NrDocumento));
         }
 
         if (idFornecedor.HasValue)

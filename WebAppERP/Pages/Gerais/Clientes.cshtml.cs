@@ -22,11 +22,9 @@ public class ClientesModel : PaginaBase
         Clientes = await _cliente.Listar();
     }
 
-    // No erro, recarrega a tela e reabre o cadastro com o que foi digitado.
     public Task<IActionResult> OnPost() =>
-        ExecutarOuReexibir(() => _cliente.Salvar(ClienteForm),
-            ClienteForm.IdCliente == 0 ? "Cliente cadastrado com sucesso." : "Cliente atualizado com sucesso.",
-            "ErroCliente", OnGet);
+        Executar(() => _cliente.Salvar(ClienteForm),
+            ClienteForm.IdCliente == 0 ? "Cliente cadastrado com sucesso." : "Cliente atualizado com sucesso.");
 
     public Task<IActionResult> OnPostExcluir(int id) =>
         Executar(() => _cliente.Excluir(id), "Cliente excluído com sucesso.");

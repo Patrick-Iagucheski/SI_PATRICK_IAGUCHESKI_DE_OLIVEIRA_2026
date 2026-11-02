@@ -19,6 +19,11 @@ function toggleTipoPessoa() {
     wrapCnpj.classList.toggle('d-none', tipo !== 'J');
     wrapDoc.classList.toggle('d-none', tipo !== 'E');
 
+    // Obrigatorio so o documento visivel (CPF na fisica, CNPJ na juridica):
+    // campo escondido com required travaria o envio do formulario.
+    document.getElementById('formNrCpf').required = tipo === 'F';
+    document.getElementById('formNrCnpj').required = tipo === 'J';
+
     lblNome.textContent = tipo === 'J' ? 'Razão Social *' : 'Nome Completo *';
 }
 
@@ -31,17 +36,17 @@ document.querySelector('#modalCliente form')?.addEventListener('submit', functio
 
     if (tipo === 'F' && cpf.replace(/\D/g, '') && !cpfValido(cpf)) {
         e.preventDefault();
-        alert('CPF inválido. Verifique os números informados.');
+        exibirErro(this, 'CPF inválido. Verifique os números informados.');
         return;
     }
     if (tipo === 'J' && cnpj.replace(/\D/g, '') && !cnpjValido(cnpj)) {
         e.preventDefault();
-        alert('CNPJ inválido. Verifique os números informados.');
+        exibirErro(this, 'CNPJ inválido. Verifique os números informados.');
         return;
     }
     if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
         e.preventDefault();
-        alert('E-mail inválido. Verifique o formato (exemplo: nome@dominio.com).');
+        exibirErro(this, 'E-mail inválido. Verifique o formato (exemplo: nome@dominio.com).');
         return;
     }
 });
@@ -108,12 +113,12 @@ function documentoExibicao(f) {
 function montarLinha(f, i) {
     return '<tr>' +
         '<td>' + f.id + '</td>' +
-        '<td><strong>' + (f.nome || '') + '</strong></td>' +
+        '<td><strong>' + escaparHtml(f.nome || '') + '</strong></td>' +
         '<td>' + tipoLabel(f.tipoPessoa) + '</td>' +
         '<td class="text-nowrap">' + documentoExibicao(f) + '</td>' +
         '<td class="text-nowrap">' + (f.tel ? mascaraTelefone(f.tel) : '-') + '</td>' +
-        '<td>' + (f.email || '-') + '</td>' +
-        '<td>' + (f.cidadeNome || '-') + '</td>' +
+        '<td>' + escaparHtml(f.email || '-') + '</td>' +
+        '<td>' + escaparHtml(f.cidadeNome || '-') + '</td>' +
         '<td>' + statusBadge(f.ativo) + '</td>' +
         '<td class="text-center">' +
             '<button class="btn btn-icon btn-outline-primary" title="Editar" onclick="abrirEdicao(' + i + ')"><i class="bi bi-pencil"></i></button> ' +

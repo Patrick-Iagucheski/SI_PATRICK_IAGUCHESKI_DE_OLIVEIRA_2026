@@ -1,7 +1,7 @@
 ﻿// Script da tela Países (Pages/Gerais/Paises.cshtml).
 
-// Filtro rapido por codigo e texto (funcao em wwwroot/js/module.js); o botao Buscar chama aplicarBusca().
-const aplicarBusca = filtrarTabela('#tblPaises tbody tr', { texto: 'searchInput', codigo: 'buscaId' });
+// Filtro da lista (funcao em wwwroot/js/module.js): filtra no botao Buscar ou no Enter.
+const aplicarBusca = filtrarTabela('#tblPaises tbody tr', { texto: 'buscaTexto', codigo: 'buscaId', contador: 'contadorRegistros' });
 
 function limparForm() {
     document.getElementById('modalTitle').innerHTML = '<i class="bi bi-globe-americas me-2"></i>Novo País';

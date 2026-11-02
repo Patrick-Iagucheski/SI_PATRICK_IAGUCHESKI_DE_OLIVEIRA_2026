@@ -1,7 +1,10 @@
 ﻿@page
 @model WebAppERP.Pages.Gerais.FuncionariosModel
+@using System.Globalization
 @{
     ViewData["Title"] = "Funcionários";
+    // Valores passados ao JavaScript vao com ponto decimal (o campo numerico nao aceita virgula).
+    CultureInfo inv = CultureInfo.InvariantCulture;
 
     string FormatarCPF(string? v)
     {
@@ -110,7 +113,7 @@
                             <td class="text-center">
                                 <button class="btn btn-icon btn-outline-primary" title="Editar"
                                         data-bs-toggle="modal" data-bs-target="#modalFuncionario"
-                                        onclick="editarFunc(@f.IdFuncionario,'@f.NmFuncionario.Replace("'", "\\'")','@f.NrCpf','@f.NrTelefone','@f.DsEmail','@f.DsEndereco?.Replace("'", "\\'")','@f.DsBairro?.Replace("'", "\\'")','@(f.IdCidade?.ToString() ?? "")','@f.NrCEP','@(f.DtNascimento?.ToString("yyyy-MM-dd") ?? "")','@f.DtAdmissao.ToString("yyyy-MM-dd")','@(f.DtDemissao?.ToString("yyyy-MM-dd") ?? "")','@f.IdCargo','@(f.VlSalario?.ToString("F2") ?? "")','@(f.VlComissao?.ToString("F2") ?? "")','@f.DsObservacao?.Replace("'", "\\'")','@f.FlAtivo','@f.NmApelido?.Replace("'", "\\'")','@f.NrRG','@f.NrNumero','@f.DsComplemento?.Replace("'", "\\'")','@f.DsSexo')">
+                                        onclick="editarFunc(@f.IdFuncionario,'@f.NmFuncionario.Replace("'", "\\'")','@f.NrCpf','@f.NrTelefone','@f.DsEmail','@f.DsEndereco?.Replace("'", "\\'")','@f.DsBairro?.Replace("'", "\\'")','@(f.IdCidade?.ToString() ?? "")','@f.NrCEP','@(f.DtNascimento?.ToString("yyyy-MM-dd") ?? "")','@f.DtAdmissao.ToString("yyyy-MM-dd")','@(f.DtDemissao?.ToString("yyyy-MM-dd") ?? "")','@f.IdCargo','@(f.VlSalario?.ToString("F2", inv) ?? "")','@(f.VlComissao?.ToString("F2", inv) ?? "")','@f.DsObservacao?.Replace("'", "\\'")','@f.FlAtivo','@f.NmApelido?.Replace("'", "\\'")','@f.NrRG','@f.NrNumero','@f.DsComplemento?.Replace("'", "\\'")','@f.DsSexo')">
                                     <i class="bi bi-pencil"></i>
                                 </button>
                                 <form method="post" asp-page-handler="Excluir" class="d-inline" onsubmit="return confirm('Deseja realmente excluir este funcionario?')">
@@ -136,7 +139,7 @@
 <div class="modal fade" id="modalFuncionario" tabindex="-1">
     <div class="modal-dialog modal-lg">
         <div class="modal-content">
-            <form method="post">
+            <form method="post" data-modal-ajax>
                 <div class="modal-header">
                     <h5 class="modal-title" id="modalTitle"><i class="bi bi-person-badge me-2"></i>Novo Funcionário</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
@@ -250,7 +253,7 @@
 
                         <!-- Salario | Comissao | Status -->
                         <div class="col-md-4">
-                            <label class="form-label">Salario (R$)</label>
+                            <label class="form-label">Salário (R$)</label>
                             <input type="number" class="form-control" asp-for="FuncionarioForm.VlSalario" id="fSal" step="0.01" min="0" />
                         </div>
                         <div class="col-md-4">

@@ -15,7 +15,7 @@ function montarLinha(c, i) {
     const desc = (c.desc && c.desc.trim()) ? c.desc : '-';
     return '<tr>' +
         '<td>' + c.id + '</td>' +
-        '<td><strong>' + (c.nome || '') + '</strong></td>' +
+        '<td><strong>' + escaparHtml(c.nome || '') + '</strong></td>' +
         '<td>' + desc + '</td>' +
         '<td>' + comissao + '</td>' +
         '<td>' + statusBadge(c.ativo) + '</td>' +

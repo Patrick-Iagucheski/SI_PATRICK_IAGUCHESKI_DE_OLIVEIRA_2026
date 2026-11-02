@@ -35,11 +35,11 @@ function montarLinha(f, i) {
     const tel = f.celular || f.telefoneFixo;
     return '<tr>' +
         '<td>' + f.id + '</td>' +
-        '<td><strong>' + (f.razaoSocial || '') + '</strong></td>' +
-        '<td>' + (f.nomeFantasia || '-') + '</td>' +
+        '<td><strong>' + escaparHtml(f.razaoSocial || '') + '</strong></td>' +
+        '<td>' + escaparHtml(f.nomeFantasia || '-') + '</td>' +
         '<td>' + documentoExibicao(f) + '</td>' +
         '<td>' + (tel ? mascaraTelefone(tel) : '-') + '</td>' +
-        '<td>' + (f.cidadeNome || '-') + '</td>' +
+        '<td>' + escaparHtml(f.cidadeNome || '-') + '</td>' +
         '<td>' + statusBadge(f.ativo) + '</td>' +
         '<td class="text-center">' +
             '<button class="btn btn-icon btn-outline-primary" title="Editar" onclick="abrirEdicao(' + i + ')"><i class="bi bi-pencil"></i></button> ' +
