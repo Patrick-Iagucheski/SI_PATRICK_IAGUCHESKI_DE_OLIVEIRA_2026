@@ -64,14 +64,13 @@ public class FuncionarioBusiness
         Funcionario registro;
         if (funcionario.IdFuncionario == 0)
         {
-            registro = new Funcionario { DtCriacao = DateTime.Now };
+            registro = new Funcionario();
             _db.Funcionarios.Add(registro);
         }
         else
         {
             registro = await _db.Funcionarios.FindAsync(funcionario.IdFuncionario)
                 ?? throw new ValidacaoException("Funcionário não encontrado.", "Ele pode ter sido excluído por outra pessoa.");
-            registro.DtEdicao = DateTime.Now;
         }
 
         // O cargo vem do campo de cargo (idCargo) e e a unica fonte da verdade:

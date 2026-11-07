@@ -4,7 +4,7 @@ using System.ComponentModel.DataAnnotations.Schema;
 namespace WebAppERP.Models.Gerais;
 
 [Table("tbGerFornecedores")]
-public class Fornecedor
+public class Fornecedor : EntidadeComRegistro
 {
     [Key]
     [Column("idFornecedor")]
@@ -24,7 +24,6 @@ public class Fornecedor
     [Column("dsNomeFantasia")]
     [MaxLength(150)]
     public string? DsNomeFantasia { get; set; }
-
 
     [Column("nrCpf")]
     [MaxLength(11)]
@@ -155,13 +154,4 @@ public class Fornecedor
     public string? DsChavePix { get; set; }
 
     // ===== Auditoria =====
-
-    [Column("dtCriacao")]
-    public DateTime DtCriacao { get; set; } = DateTime.Now;
-
-    [Column("idUsuarioEdicao")]
-    public int? IdUsuarioEdicao { get; set; }
-
-    [Column("dtEdicao")]
-    public DateTime? DtEdicao { get; set; }
 }

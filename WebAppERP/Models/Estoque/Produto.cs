@@ -4,7 +4,7 @@ using System.ComponentModel.DataAnnotations.Schema;
 namespace WebAppERP.Models.Estoque;
 
 [Table("tbEstProdutos")]
-public class Produto
+public class Produto : EntidadeComRegistro
 {
     [Key]
     [Column("idProduto")]

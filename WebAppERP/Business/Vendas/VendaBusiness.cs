@@ -121,14 +121,13 @@ public class VendaBusiness
         Venda venda;
         if (existente == null)
         {
-            venda = new Venda { DtCriacao = DateTime.Now, DtVenda = DateTime.Now };
+            venda = new Venda { DtVenda = DateTime.Now };
             _db.Vendas.Add(venda);
         }
         else
         {
             venda = existente;
             _db.VendaItens.RemoveRange(existente.Itens);
-            venda.DtEdicao = DateTime.Now;
         }
 
         venda.IdCliente = input.IdCliente is > 0 ? input.IdCliente : null;
@@ -164,7 +163,6 @@ public class VendaBusiness
             await AjustarEstoque(venda.Itens, +1); // devolve o estoque
 
         venda.TpStatus = Venda.CANCELADA;
-        venda.DtEdicao = DateTime.Now;
         await _db.SaveChangesAsync();
         await tx.CommitAsync();
     }

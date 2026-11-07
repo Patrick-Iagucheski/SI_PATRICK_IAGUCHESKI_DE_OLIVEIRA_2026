@@ -69,6 +69,7 @@ async function buscarFuncionarios() {
 }
 
 function abrirEdicao(i) {
+    mostrarRegistro('modalFuncionario', resultadosBusca[i].registro);
     editarFuncionarioPorRegistro(resultadosBusca[i]);
     bootstrap.Modal.getOrCreateInstance(document.getElementById('modalFuncionario')).show();
 }

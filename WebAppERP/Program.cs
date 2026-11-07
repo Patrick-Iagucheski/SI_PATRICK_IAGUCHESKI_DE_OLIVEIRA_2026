@@ -66,6 +66,9 @@ builder.Services.AddScoped<ContaAPagarBusiness>();
 builder.Services.AddMemoryCache();
 builder.Services.AddScoped<EmpresaService>();
 
+// Usuario gravado como quem incluiu / alterou os registros (AppDbContext).
+builder.Services.AddScoped<UsuarioAtual>();
+
 var app = builder.Build();
 
 // Mostra no console qual banco esta em uso (ajuda a conferir o servers.json)

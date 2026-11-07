@@ -5,7 +5,7 @@ namespace WebAppERP.Models.Estoque;
 
 // Mapeia a tabela tbEstMarcas (criada no banco via Database/CriarMarcas.sql).
 [Table("tbEstMarcas")]
-public class Marca
+public class Marca : EntidadeComRegistro
 {
     [Key]
     [Column("idMarca")]
@@ -18,16 +18,4 @@ public class Marca
 
     [Column("flAtivo")]
     public bool FlAtivo { get; set; } = true;
-
-    [Column("idUsuario")]
-    public int? IdUsuario { get; set; }
-
-    [Column("dtCriacao")]
-    public DateTime DtCriacao { get; set; } = DateTime.Now;
-
-    [Column("idUsuarioEdicao")]
-    public int? IdUsuarioEdicao { get; set; }
-
-    [Column("dtEdicao")]
-    public DateTime? DtEdicao { get; set; }
 }

@@ -63,7 +63,7 @@ public class FormaPagamentoBusiness
         FormaPagamento registro;
         if (forma.IdFormaPagamento == 0)
         {
-            registro = new FormaPagamento { DtCriacao = DateTime.Now };
+            registro = new FormaPagamento();
             _db.FormasPagamento.Add(registro);
         }
         else

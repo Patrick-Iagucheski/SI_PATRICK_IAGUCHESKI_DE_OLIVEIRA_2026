@@ -84,14 +84,13 @@ public class FornecedorBusiness
         Fornecedor registro;
         if (fornecedor.IdFornecedor == 0)
         {
-            registro = new Fornecedor { DtCriacao = DateTime.Now };
+            registro = new Fornecedor();
             _db.Fornecedores.Add(registro);
         }
         else
         {
             registro = await _db.Fornecedores.FindAsync(fornecedor.IdFornecedor)
                 ?? throw new ValidacaoException("Fornecedor não encontrado.", "Ele pode ter sido excluído por outra pessoa.");
-            registro.DtEdicao = DateTime.Now;
         }
 
         registro.TpPessoa = fornecedor.TpPessoa;

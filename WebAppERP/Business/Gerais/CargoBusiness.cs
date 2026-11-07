@@ -64,14 +64,13 @@ public class CargoBusiness
         Cargo registro;
         if (cargo.IdCargo == 0)
         {
-            registro = new Cargo { DtCriacao = DateTime.Now };
+            registro = new Cargo();
             _db.Cargos.Add(registro);
         }
         else
         {
             registro = await _db.Cargos.FindAsync(cargo.IdCargo)
                 ?? throw new ValidacaoException("Cargo não encontrado.", "Ele pode ter sido excluído por outra pessoa.");
-            registro.DtEdicao = DateTime.Now;
         }
 
         registro.NmCargo = nome;

@@ -7,7 +7,7 @@ namespace WebAppERP.Models.Financeiro;
 // (ex: Mercadorias para Revenda, Material de Uso e Consumo).
 // Tabela criada em Database/CriarCompras.sql.
 [Table("tbFinClassificacoesConta")]
-public class ClassificacaoConta
+public class ClassificacaoConta : EntidadeComRegistro
 {
     [Key]
     [Column("idClassificacaoConta")]
@@ -20,10 +20,4 @@ public class ClassificacaoConta
 
     [Column("flAtivo")]
     public bool FlAtivo { get; set; } = true;
-
-    [Column("dtCriacao")]
-    public DateTime DtCriacao { get; set; } = DateTime.Now;
-
-    [Column("dtEdicao")]
-    public DateTime? DtEdicao { get; set; }
 }

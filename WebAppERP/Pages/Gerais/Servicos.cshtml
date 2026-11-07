@@ -91,6 +91,7 @@
                             <td class="text-center">
                                 <button class="btn btn-icon btn-outline-primary" title="Editar"
                                         data-bs-toggle="modal" data-bs-target="#modalServico"
+                                        data-registro="@Module.RegistroJson(s)"
                                         onclick="editarServico(@s.IdServico,'@s.DsServico.Replace("'", "\\'")','@s.DsDescricao?.Replace("'", "\\'")','@s.VlServico.ToString("F2", inv)','@(s.NrDuracaoMin?.ToString() ?? "")','@s.DsCategoria','@s.FlAtivo')">
                                     <i class="bi bi-pencil"></i>
                                 </button>

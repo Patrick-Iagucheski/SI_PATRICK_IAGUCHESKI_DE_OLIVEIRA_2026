@@ -30,11 +30,14 @@ public class ConfiguracoesModel : PaginaBase
 
     public bool TabelaCriada { get; set; } = true;
 
+    // Empresa gravada (para o bloco Registro: quem incluiu / alterou).
+    public Empresa? Empresa { get; set; }
+
     public async Task OnGet()
     {
         try
         {
-            var empresa = await _empresa.GetEmpresa();
+            var empresa = Empresa = await _empresa.GetEmpresa();
             NmEmpresa = empresa?.NmEmpresa ?? EmpresaService.NomePadrao;
             DsLogo = empresa?.DsLogo;
         }

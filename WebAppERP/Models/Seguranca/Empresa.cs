@@ -7,7 +7,7 @@ namespace WebAppERP.Models.Seguranca;
 // tbGerEmpresa e renomeada pela migration em Database/Migracoes).
 // Uma linha so: nome e logo da empresa exibidos no menu lateral.
 [Table("tbSegEmpresas")]
-public class Empresa
+public class Empresa : EntidadeComRegistro
 {
     [Key]
     [Column("idEmpresa")]
@@ -23,16 +23,4 @@ public class Empresa
     [Column("dsLogo")]
     [MaxLength(300)]
     public string? DsLogo { get; set; }
-
-    [Column("idUsuario")]
-    public int? IdUsuario { get; set; }
-
-    [Column("dtCriacao")]
-    public DateTime DtCriacao { get; set; } = DateTime.Now;
-
-    [Column("idUsuarioEdicao")]
-    public int? IdUsuarioEdicao { get; set; }
-
-    [Column("dtEdicao")]
-    public DateTime? DtEdicao { get; set; }
 }

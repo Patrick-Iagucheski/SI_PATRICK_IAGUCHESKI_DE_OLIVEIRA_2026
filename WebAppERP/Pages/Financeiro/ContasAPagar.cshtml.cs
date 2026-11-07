@@ -72,7 +72,7 @@ public class ContasAPagarModel : PaginaBase
         var lista = await _conta.Buscar(id, conta, documento, idFornecedor, incluirInativos);
         return new JsonResult(lista.Select(c => new
         {
-            id = c.IdContaPagar,
+            id = c.IdContaPagar, registro = Module.Registro(c),
             conta = c.DsConta,
             documento = c.NrDocumento,
             idFornecedor = c.IdFornecedor,

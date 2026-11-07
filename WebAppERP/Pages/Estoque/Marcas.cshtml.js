@@ -55,6 +55,7 @@ async function buscarMarcas() {
 }
 
 function abrirEdicao(i) {
+    mostrarRegistro('modalMarca', resultadosBusca[i].registro);
     const m = resultadosBusca[i];
     editarMarca(m.id, m.nome || '', (m.ativo ? 'True' : 'False'));
     bootstrap.Modal.getOrCreateInstance(document.getElementById('modalMarca')).show();

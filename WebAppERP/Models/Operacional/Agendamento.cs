@@ -4,7 +4,7 @@ using System.ComponentModel.DataAnnotations.Schema;
 namespace WebAppERP.Models.Operacional;
 
 [Table("tbOpeAgendamentos")]
-public class Agendamento
+public class Agendamento : EntidadeComRegistro
 {
     // Situacoes do agendamento (TpStatus)
     public const string AGENDADO       = "AGENDADO";
@@ -51,13 +51,4 @@ public class Agendamento
     [Column("dsObservacao")]
     [MaxLength(500)]
     public string? DsObservacao { get; set; }
-
-    [Column("dtCriacao")]
-    public DateTime DtCriacao { get; set; } = DateTime.Now;
-
-    [Column("idUsuarioEdicao")]
-    public int? IdUsuarioEdicao { get; set; }
-
-    [Column("dtEdicao")]
-    public DateTime? DtEdicao { get; set; }
 }

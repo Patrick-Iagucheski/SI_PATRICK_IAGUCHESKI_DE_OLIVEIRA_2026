@@ -68,6 +68,7 @@
                             <td class="text-center">
                                 <button class="btn btn-icon btn-outline-primary" title="Editar"
                                         data-bs-toggle="modal" data-bs-target="#modalVeiculo"
+                                        data-registro="@Module.RegistroJson(v)"
                                         onclick="editarVeiculo(@v.IdVeiculo, '@v.DsPlaca','@(v.IdEstado?.ToString() ?? "")','@v.NrANTT')">
                                     <i class="bi bi-pencil"></i>
                                 </button>
@@ -122,6 +123,7 @@
                             </select>
                         </div>
                     </div>
+                    <partial name="_Registro" />
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>

@@ -5,7 +5,7 @@ namespace WebAppERP.Models.Financeiro;
 
 // Condicao de pagamento: cabecalho com juros/multa/desconto e parcelas (1:N).
 [Table("tbFinCondicoesPagamento")]
-public class CondicaoPagamento
+public class CondicaoPagamento : EntidadeComRegistro
 {
     [Key]
     [Column("idCondicaoPagamento")]
@@ -26,12 +26,6 @@ public class CondicaoPagamento
 
     [Column("flAtivo")]
     public bool FlAtivo { get; set; } = true;
-
-    [Column("dtCriacao")]
-    public DateTime DtCriacao { get; set; } = DateTime.Now;
-
-    [Column("dtEdicao")]
-    public DateTime? DtEdicao { get; set; }
 
     public List<CondicaoPagamentoParcela> Parcelas { get; set; } = [];
 }

@@ -28,7 +28,7 @@ public class CategoriasModel : PaginaBase
         var lista = await _categoria.Buscar(id, termo, incluirInativos);
         return new JsonResult(lista.Select(c => new
         {
-            id = c.IdCategoria,
+            id = c.IdCategoria, registro = Module.Registro(c),
             nome = c.NmCategoria,
             ativo = c.FlAtivo
         }));

@@ -104,7 +104,7 @@ public class CondicaoPagamentoBusiness
         CondicaoPagamento registro;
         if (condicao.IdCondicaoPagamento == 0)
         {
-            registro = new CondicaoPagamento { DtCriacao = DateTime.Now };
+            registro = new CondicaoPagamento();
             _db.CondicoesPagamento.Add(registro);
         }
         else
@@ -113,7 +113,6 @@ public class CondicaoPagamentoBusiness
                 .Include(c => c.Parcelas)
                 .FirstOrDefaultAsync(c => c.IdCondicaoPagamento == condicao.IdCondicaoPagamento)
                 ?? throw new ValidacaoException("Condição de pagamento não encontrada.", "Ela pode ter sido excluída por outra pessoa.");
-            registro.DtEdicao = DateTime.Now;
             _db.CondicoesPagamentoParcelas.RemoveRange(registro.Parcelas);
         }
 
@@ -136,7 +135,6 @@ public class CondicaoPagamentoBusiness
             ?? throw new ValidacaoException("Condição de pagamento não encontrada.", "Ela pode ter sido excluída por outra pessoa.");
 
         condicao.FlAtivo = !condicao.FlAtivo;
-        condicao.DtEdicao = DateTime.Now;
         await _db.SaveChangesAsync();
         return condicao.FlAtivo ? "Condição de pagamento ativada." : "Condição de pagamento inativada.";
     }

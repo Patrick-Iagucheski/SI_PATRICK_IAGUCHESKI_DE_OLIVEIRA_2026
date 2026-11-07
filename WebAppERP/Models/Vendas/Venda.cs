@@ -4,7 +4,7 @@ using System.ComponentModel.DataAnnotations.Schema;
 namespace WebAppERP.Models.Vendas;
 
 [Table("tbVenVendas")]
-public class Venda
+public class Venda : EntidadeComRegistro
 {
     // Situacoes da venda (TpStatus)
     public const string ABERTA     = "ABERTA";
@@ -52,15 +52,6 @@ public class Venda
     [Column("dsObservacao")]
     [MaxLength(500)]
     public string? DsObservacao { get; set; }
-
-    [Column("dtCriacao")]
-    public DateTime DtCriacao { get; set; } = DateTime.Now;
-
-    [Column("idUsuarioEdicao")]
-    public int? IdUsuarioEdicao { get; set; }
-
-    [Column("dtEdicao")]
-    public DateTime? DtEdicao { get; set; }
 
     [ForeignKey("IdFormaPagamento")]
     public FormaPagamento? FormaPagamento { get; set; }

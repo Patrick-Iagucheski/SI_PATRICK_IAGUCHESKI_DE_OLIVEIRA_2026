@@ -74,14 +74,13 @@ public class ServicoBusiness
         Servico registro;
         if (servico.IdServico == 0)
         {
-            registro = new Servico { DtCriacao = DateTime.Now };
+            registro = new Servico();
             _db.Servicos.Add(registro);
         }
         else
         {
             registro = await _db.Servicos.FindAsync(servico.IdServico)
                 ?? throw new ValidacaoException("Serviço não encontrado.", "Ele pode ter sido excluído por outra pessoa.");
-            registro.DtEdicao = DateTime.Now;
         }
 
         registro.DsServico = nome;

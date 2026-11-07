@@ -5,7 +5,7 @@ namespace WebAppERP.Models.Gerais;
 
 // Mapeia a tabela tbGerCargos (ja criada no banco via SQL).
 [Table("tbGerCargos")]
-public class Cargo
+public class Cargo : EntidadeComRegistro
 {
     [Key]
     [Column("idCargo")]
@@ -26,16 +26,4 @@ public class Cargo
 
     [Column("flAtivo")]
     public bool FlAtivo { get; set; } = true;
-
-    [Column("idUsuario")]
-    public int? IdUsuario { get; set; }
-
-    [Column("dtCriacao")]
-    public DateTime DtCriacao { get; set; } = DateTime.Now;
-
-    [Column("idUsuarioEdicao")]
-    public int? IdUsuarioEdicao { get; set; }
-
-    [Column("dtEdicao")]
-    public DateTime? DtEdicao { get; set; }
 }

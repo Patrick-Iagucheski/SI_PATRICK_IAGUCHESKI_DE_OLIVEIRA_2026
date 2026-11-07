@@ -50,6 +50,20 @@ public static class Module
     public static string? CidadeUf(Models.Gerais.Cidade? c) =>
         c == null ? null : c.NmCidade + "/" + c.Estado?.SgUF;
 
+    // Registro de quem incluiu e de quem alterou por ultimo, no formato do
+    // bloco "Registro" das telas (_Registro.cshtml / mostrarRegistro no module.js).
+    public static object Registro(Models.EntidadeComRegistro e) => new
+    {
+        incluidoPor = e.UsuarioInclusao?.NmUsuario,
+        incluidoEm = e.DtCriacao.ToString("dd/MM/yyyy HH:mm"),
+        alteradoPor = e.UsuarioEdicao?.NmUsuario,
+        alteradoEm = e.DtEdicao?.ToString("dd/MM/yyyy HH:mm")
+    };
+
+    // O mesmo registro em JSON, para o atributo data-registro dos botoes Editar.
+    public static string RegistroJson(Models.EntidadeComRegistro e) =>
+        System.Text.Json.JsonSerializer.Serialize(Registro(e));
+
     // Traco nas listagens quando nao ha valor.
     public static string OuTraco(string? v) => string.IsNullOrWhiteSpace(v) ? "-" : v;
 

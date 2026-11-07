@@ -61,14 +61,13 @@ public class CategoriaBusiness
         Categoria registro;
         if (categoria.IdCategoria == 0)
         {
-            registro = new Categoria { DtCriacao = DateTime.Now };
+            registro = new Categoria();
             _db.Categorias.Add(registro);
         }
         else
         {
             registro = await _db.Categorias.FindAsync(categoria.IdCategoria)
                 ?? throw new ValidacaoException("Categoria não encontrada.", "Ela pode ter sido excluída por outra pessoa.");
-            registro.DtEdicao = DateTime.Now;
         }
 
         registro.NmCategoria = nome;

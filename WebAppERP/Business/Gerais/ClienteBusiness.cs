@@ -77,14 +77,13 @@ public class ClienteBusiness
         Cliente registro;
         if (cliente.IdCliente == 0)
         {
-            registro = new Cliente { DtCriacao = DateTime.Now };
+            registro = new Cliente();
             _db.Clientes.Add(registro);
         }
         else
         {
             registro = await _db.Clientes.FindAsync(cliente.IdCliente)
                 ?? throw new ValidacaoException("Cliente não encontrado.", "Ele pode ter sido excluído por outra pessoa.");
-            registro.DtEdicao = DateTime.Now;
         }
 
         registro.NmCliente = cliente.NmCliente;

@@ -93,14 +93,13 @@ public class ContaAPagarBusiness
         ContaAPagar registro;
         if (conta.IdContaPagar == 0)
         {
-            registro = new ContaAPagar { DtCriacao = DateTime.Now };
+            registro = new ContaAPagar();
             _db.ContasAPagar.Add(registro);
         }
         else
         {
             registro = await _db.ContasAPagar.FindAsync(conta.IdContaPagar)
                 ?? throw new ValidacaoException("Conta a pagar não encontrada.", "Ela pode ter sido excluída por outra pessoa.");
-            registro.DtEdicao = DateTime.Now;
 
             // Titulo da compra: so o pagamento (data, valor pago, situacao) e a
             // observacao mudam por aqui; o resto vem das parcelas da compra.
@@ -147,7 +146,6 @@ public class ContaAPagarBusiness
         conta.DsStatus = ContaAPagar.PAGO;
         conta.DtPagamento = DateOnly.FromDateTime(DateTime.Today);
         if (conta.VlPago == 0) conta.VlPago = conta.VlValor;
-        conta.DtEdicao = DateTime.Now;
         await _db.SaveChangesAsync();
     }
 

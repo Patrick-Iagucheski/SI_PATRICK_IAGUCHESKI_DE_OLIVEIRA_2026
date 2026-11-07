@@ -77,14 +77,13 @@ public class CidadeBusiness
         Cidade registro;
         if (cidade.IdCidade == 0)
         {
-            registro = new Cidade { DtCriacao = DateTime.Now };
+            registro = new Cidade();
             _db.Cidades.Add(registro);
         }
         else
         {
             registro = await _db.Cidades.FindAsync(cidade.IdCidade)
                 ?? throw new ValidacaoException("Cidade não encontrada.", "Ela pode ter sido excluída por outra pessoa.");
-            registro.DtEdicao = DateTime.Now;
         }
 
         registro.NmCidade = nome;

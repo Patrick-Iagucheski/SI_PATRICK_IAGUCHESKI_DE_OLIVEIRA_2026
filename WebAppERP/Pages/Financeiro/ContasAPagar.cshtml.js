@@ -87,6 +87,7 @@ async function buscarContas() {
 }
 
 function abrirEdicao(i) {
+    mostrarRegistro('modalConta', resultadosBusca[i].registro);
     const c = resultadosBusca[i];
     editarConta(
         c.id, c.conta || '', c.documento || '', c.idFornecedor, (c.idForma ?? ''),

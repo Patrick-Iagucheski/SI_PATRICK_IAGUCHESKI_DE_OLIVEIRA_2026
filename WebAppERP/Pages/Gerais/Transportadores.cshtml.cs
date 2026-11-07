@@ -43,7 +43,7 @@ public class TransportadoresModel : PaginaBase
         var lista = await _transportador.Pesquisar(id, termo);
         return new JsonResult(lista.Select(t => new
         {
-            id = t.IdTransportador,
+            id = t.IdTransportador, registro = Module.Registro(t),
             nome = t.DsRazaoSocial,
             documento = t.NrCpfCnpj,
             endereco = t.DsEndereco,

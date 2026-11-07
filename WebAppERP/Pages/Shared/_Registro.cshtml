@@ -1,0 +1,26 @@
+﻿@model object
+@*
+    Bloco "Registro": quem incluiu e quem alterou por ultimo. Fica logo abaixo
+    das Observacoes, como ultimo item do cadastro.
+    - Nos modais: <partial name="_Registro" /> (o modelo da pagina nao e um
+      registro). O module.js preenche ao abrir para editar (mostrarRegistro) e
+      esconde no cadastro novo.
+    - Nas telas de edicao (Compra, Venda): <partial name="_Registro" model="registro" />
+      ja vem preenchido do servidor.
+*@
+@{
+    var registro = Model as WebAppERP.Models.EntidadeComRegistro;
+}
+<div class="mt-4 @(registro == null ? "d-none" : "")" data-registro-bloco>
+    <h6 class="text-primary border-bottom pb-1 mb-2"><i class="bi bi-clock-history me-1"></i>Registro</h6>
+    <div class="small text-muted fst-italic" data-registro-texto>
+        @if (registro != null)
+        {
+            <div>Incluído@(registro.UsuarioInclusao != null ? " por " : "")<strong>@registro.UsuarioInclusao?.NmUsuario</strong> em @registro.DtCriacao.ToString("dd/MM/yyyy HH:mm")</div>
+            @if (registro.DtEdicao != null)
+            {
+                <div>Alterado@(registro.UsuarioEdicao != null ? " por " : "")<strong>@registro.UsuarioEdicao?.NmUsuario</strong> em @registro.DtEdicao.Value.ToString("dd/MM/yyyy HH:mm")</div>
+            }
+        }
+    </div>
+</div>

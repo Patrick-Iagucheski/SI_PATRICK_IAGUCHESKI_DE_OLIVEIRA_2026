@@ -80,6 +80,7 @@
                             <td class="text-center">
                                 <button class="btn btn-icon btn-outline-primary" title="Editar"
                                         data-bs-toggle="modal" data-bs-target="#modalCargo"
+                                        data-registro="@Module.RegistroJson(c)"
                                         onclick="editarCargo(@c.IdCargo,'@c.NmCargo.Replace("'", "\\'")','@(c.DsCargo?.Replace("'", "\\'").Replace("\r", " ").Replace("\n", " "))','@(c.VlComissaoPadrao?.ToString("F2", System.Globalization.CultureInfo.InvariantCulture) ?? "")','@c.FlAtivo')">
                                     <i class="bi bi-pencil"></i>
                                 </button>
@@ -136,6 +137,7 @@
                             </div>
                         </div>
                     </div>
+                    <partial name="_Registro" />
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>

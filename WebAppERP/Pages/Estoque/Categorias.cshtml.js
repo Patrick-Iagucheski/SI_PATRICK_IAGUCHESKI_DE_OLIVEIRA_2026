@@ -55,6 +55,7 @@ async function buscarCategorias() {
 }
 
 function abrirEdicao(i) {
+    mostrarRegistro('modalCategoria', resultadosBusca[i].registro);
     const c = resultadosBusca[i];
     editarCategoria(c.id, c.nome || '', (c.ativo ? 'True' : 'False'));
     bootstrap.Modal.getOrCreateInstance(document.getElementById('modalCategoria')).show();

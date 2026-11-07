@@ -13,6 +13,7 @@ function editarPorId(id) {
 }
 
 function abrirEdicao(i) {
+    mostrarRegistro('modalFornecedor', resultadosBusca[i].registro);
     editarFornecedor(resultadosBusca[i]);
     bootstrap.Modal.getOrCreateInstance(document.getElementById('modalFornecedor')).show();
 }

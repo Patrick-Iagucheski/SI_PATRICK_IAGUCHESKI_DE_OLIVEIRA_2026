@@ -66,14 +66,13 @@ public class EstadoBusiness
         Estado registro;
         if (estado.IdEstado == 0)
         {
-            registro = new Estado { DtCriacao = DateTime.Now };
+            registro = new Estado();
             _db.Estados.Add(registro);
         }
         else
         {
             registro = await _db.Estados.FindAsync(estado.IdEstado)
                 ?? throw new ValidacaoException("Estado não encontrado.", "Ele pode ter sido excluído por outra pessoa.");
-            registro.DtEdicao = DateTime.Now;
         }
 
         registro.NmEstado = nome;

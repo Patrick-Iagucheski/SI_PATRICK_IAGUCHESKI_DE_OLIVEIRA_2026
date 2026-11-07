@@ -84,7 +84,7 @@ public class CondicoesPagamentoModel : PaginaBase
         var lista = await _condicao.Buscar(id, condicao, incluirInativos);
         return new JsonResult(lista.Select(c => new
         {
-            id = c.IdCondicaoPagamento,
+            id = c.IdCondicaoPagamento, registro = Module.Registro(c),
             nome = c.DsCondicao,
             juro = c.VlJuro,
             multa = c.VlMulta,

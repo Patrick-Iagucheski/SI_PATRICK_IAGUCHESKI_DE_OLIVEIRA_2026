@@ -98,6 +98,7 @@
                             <td class="text-center">
                                 <button class="btn btn-icon btn-outline-primary" title="Editar"
                                         data-bs-toggle="modal" data-bs-target="#modalFuncionario"
+                                        data-registro="@Module.RegistroJson(f)"
                                         onclick="editarFunc(@f.IdFuncionario,'@f.NmFuncionario.Replace("'", "\\'")','@f.NrCpf','@f.NrTelefone','@f.DsEmail','@f.DsEndereco?.Replace("'", "\\'")','@f.DsBairro?.Replace("'", "\\'")','@(f.IdCidade?.ToString() ?? "")','@f.NrCEP','@(f.DtNascimento?.ToString("yyyy-MM-dd") ?? "")','@f.DtAdmissao.ToString("yyyy-MM-dd")','@(f.DtDemissao?.ToString("yyyy-MM-dd") ?? "")','@f.IdCargo','@(f.VlSalario?.ToString("F2", inv) ?? "")','@(f.VlComissao?.ToString("F2", inv) ?? "")','@f.DsObservacao?.Replace("'", "\\'")','@f.FlAtivo','@f.NmApelido?.Replace("'", "\\'")','@f.NrRG','@f.NrNumero','@f.DsComplemento?.Replace("'", "\\'")','@f.DsSexo')">
                                     <i class="bi bi-pencil"></i>
                                 </button>

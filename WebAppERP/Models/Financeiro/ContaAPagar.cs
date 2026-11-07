@@ -5,7 +5,7 @@ namespace WebAppERP.Models.Financeiro;
 
 // Conta a pagar financeira (modelo autonomo, chave surrogate idContaPagar).
 [Table("tbFinContasAPagar")]
-public class ContaAPagar
+public class ContaAPagar : EntidadeComRegistro
 {
     // Situacoes do titulo (DsStatus). VENCIDA nao e gravada: e calculada na tela
     // para titulo pendente com vencimento ja passado.
@@ -64,12 +64,6 @@ public class ContaAPagar
     [Column("dsObservacao")]
     [MaxLength(500)]
     public string? DsObservacao { get; set; }
-
-    [Column("dtCriacao")]
-    public DateTime DtCriacao { get; set; } = DateTime.Now;
-
-    [Column("dtEdicao")]
-    public DateTime? DtEdicao { get; set; }
 
     // ===== Origem: compra que gerou o titulo =====
     // Preenchido apenas quando o titulo nasce da finalizacao de uma compra.

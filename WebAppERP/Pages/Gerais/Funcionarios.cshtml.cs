@@ -77,7 +77,7 @@ public class FuncionariosModel : PaginaBase
         var lista = await _funcionario.Buscar(id, nome, apelido, cpf, incluirInativos);
         return new JsonResult(lista.Select(f => new
         {
-            id = f.IdFuncionario,
+            id = f.IdFuncionario, registro = Module.Registro(f),
             nome = f.NmFuncionario,
             apelido = f.NmApelido,
             cpf = f.NrCpf,

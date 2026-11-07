@@ -78,6 +78,7 @@ async function buscarCondicoes() {
 }
 
 function abrirEdicao(i) {
+    mostrarRegistro('modalCondicao', resultadosBusca[i].registro);
     const c = resultadosBusca[i];
     editarCondicaoPorRegistro(c);
     bootstrap.Modal.getOrCreateInstance(document.getElementById('modalCondicao')).show();

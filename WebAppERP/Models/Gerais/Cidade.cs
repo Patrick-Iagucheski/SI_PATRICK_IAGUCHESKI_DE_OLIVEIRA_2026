@@ -4,7 +4,7 @@ using System.ComponentModel.DataAnnotations.Schema;
 namespace WebAppERP.Models.Gerais;
 
 [Table("tbGerCidades")]
-public class Cidade
+public class Cidade : EntidadeComRegistro
 {
     [Key]
     [Column("idCidade")]
@@ -19,13 +19,4 @@ public class Cidade
 
     [ForeignKey("IdEstado")]
     public Estado? Estado { get; set; }
-
-    [Column("dtCriacao")]
-    public DateTime DtCriacao { get; set; } = DateTime.Now;
-
-    [Column("idUsuarioEdicao")]
-    public int? IdUsuarioEdicao { get; set; }
-
-    [Column("dtEdicao")]
-    public DateTime? DtEdicao { get; set; }
 }

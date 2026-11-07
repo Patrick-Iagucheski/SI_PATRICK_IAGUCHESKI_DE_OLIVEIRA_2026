@@ -160,6 +160,7 @@
                                 }
                                 <button class="btn btn-icon btn-outline-primary" title="Editar"
                                         data-bs-toggle="modal" data-bs-target="#modalConta"
+                                        data-registro="@Module.RegistroJson(c)"
                                         onclick="editarConta(@c.IdContaPagar,'@c.DsConta.Replace("'", "\\'")','@(c.NrDocumento?.Replace("'", "\\'"))',@c.IdFornecedor,'@(c.IdFormaPagamento?.ToString())','@(c.DtEmissao?.ToString("yyyy-MM-dd"))','@(c.DtVencimento?.ToString("yyyy-MM-dd"))','@(c.DtPagamento?.ToString("yyyy-MM-dd"))','@c.VlValor.ToString(inv)','@c.VlPago.ToString(inv)','@c.DsStatus','@(c.FlAtivo ? "true" : "false")','@(c.DsObservacao?.Replace("'", "\\'").Replace("\n", " ").Replace("\r", " "))')">
                                     <i class="bi bi-pencil"></i>
                                 </button>
@@ -274,6 +275,7 @@
                             <textarea class="form-control" rows="2" asp-for="ContaForm.DsObservacao" id="contaDsObservacao" placeholder="Detalhes da conta, negociacao ou baixa"></textarea>
                         </div>
                     </div>
+                    <partial name="_Registro" />
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>

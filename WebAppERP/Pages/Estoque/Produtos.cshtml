@@ -90,6 +90,7 @@
                             <td class="text-center">
                                 <button class="btn btn-icon btn-outline-primary" title="Editar"
                                         data-bs-toggle="modal" data-bs-target="#modalProduto"
+                                        data-registro="@Module.RegistroJson(p)"
                                         onclick="editarProduto(@p.IdProduto,'@p.DsProduto.Replace("'", "\\'")','@(p.IdMarca?.ToString() ?? "")','@(p.IdCategoria?.ToString() ?? "")','@p.SgUnidade','@Inv(p.VlCusto)','@Inv(p.VlVendaMinimo)','@Inv(p.VlVenda)','@Inv(p.PcComissao)','@Inv(p.VlDesconto)','@Inv(p.QtSaldo)','@p.DsDescricao?.Replace("'", "\\'").Replace("\r", " ").Replace("\n", " ")','@p.DsImagem','@p.FlAtivo')">
                                     <i class="bi bi-pencil"></i>
                                 </button>

@@ -49,12 +49,11 @@ public class EmpresaBusiness
         var empresa = await _db.Empresa.OrderBy(e => e.IdEmpresa).FirstOrDefaultAsync();
         if (empresa == null)
         {
-            empresa = new Empresa { DtCriacao = DateTime.Now };
+            empresa = new Empresa();
             _db.Empresa.Add(empresa);
         }
         else
         {
-            empresa.DtEdicao = DateTime.Now;
         }
 
         empresa.NmEmpresa = nome;

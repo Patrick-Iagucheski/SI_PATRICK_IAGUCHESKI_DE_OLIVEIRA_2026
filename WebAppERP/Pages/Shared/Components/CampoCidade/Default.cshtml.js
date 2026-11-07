@@ -154,6 +154,7 @@ function abrirCadastroCidade(c) {
     elLocalidade('cidNome').value = c ? c.nome : '';
     if (c && c.idEstado) selecionarNoSelect('cidEstado', c.idEstado, c.estado + (c.detalhe ? ' / ' + c.detalhe : ''));
     else elLocalidade('cidEstado').value = '';
+    mostrarRegistro('modalCidadeRapido', c?.registro);
     abrirModalEmpilhado('modalCidadeRapido');
 }
 
@@ -165,6 +166,7 @@ function abrirCadastroEstado(e) {
     elLocalidade('estUF').value = e ? (e.detalhe || '') : '';
     if (e && e.idPais) selecionarNoSelect('estPais', e.idPais, e.pais || String(e.idPais));
     else elLocalidade('estPais').value = '';
+    mostrarRegistro('modalEstadoRapido', e?.registro);
     abrirModalEmpilhado('modalEstadoRapido');
 }
 
@@ -176,6 +178,7 @@ function abrirCadastroPais(p) {
     elLocalidade('paisSigla').value = p ? (p.detalhe || '') : '';
     elLocalidade('paisDDI').value = p ? (p.ddi || '') : '';
     elLocalidade('paisMoeda').value = p ? (p.moeda || '') : '';
+    mostrarRegistro('modalPaisRapido', p?.registro);
     abrirModalEmpilhado('modalPaisRapido');
 }
 

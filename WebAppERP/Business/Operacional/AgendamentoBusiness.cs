@@ -118,12 +118,11 @@ public class AgendamentoBusiness
 
         if (registro == null)
         {
-            registro = new Agendamento { DtCriacao = DateTime.Now };
+            registro = new Agendamento();
             _db.Agendamentos.Add(registro);
         }
         else
         {
-            registro.DtEdicao = DateTime.Now;
         }
 
         registro.IdCliente = cliente.IdCliente;
@@ -185,7 +184,6 @@ public class AgendamentoBusiness
         }
 
         agendamento.TpStatus = status;
-        agendamento.DtEdicao = DateTime.Now;
         await _db.SaveChangesAsync();
 
         return status switch

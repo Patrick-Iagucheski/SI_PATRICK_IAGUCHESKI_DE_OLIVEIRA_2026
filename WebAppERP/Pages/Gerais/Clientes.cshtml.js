@@ -72,6 +72,7 @@ async function buscarClientes() {
 }
 
 function abrirEdicao(i) {
+    mostrarRegistro('modalCliente', resultadosBusca[i].registro);
     editarCliente(resultadosBusca[i]);
     bootstrap.Modal.getOrCreateInstance(document.getElementById('modalCliente')).show();
 }

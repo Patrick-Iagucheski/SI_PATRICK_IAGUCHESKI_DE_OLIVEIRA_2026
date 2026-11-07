@@ -427,6 +427,10 @@
         <div class="card-body">
             <h6 class="fw-bold mb-3"><i class="bi bi-chat-left-text me-2"></i>Observação</h6>
             <textarea class="form-control" asp-for="DsObservacao" rows="3" maxlength="500" disabled="@ro"></textarea>
+            @if (Model.Vm.Edicao)
+            {
+                <partial name="_Registro" model="Model.Vm.Compra" />
+            }
         </div>
     </div>
     </fieldset>

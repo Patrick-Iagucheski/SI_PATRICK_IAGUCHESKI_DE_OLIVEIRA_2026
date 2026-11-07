@@ -70,6 +70,7 @@
                             <td class="text-center">
                                 <button class="btn btn-icon btn-outline-primary" title="Editar"
                                         data-bs-toggle="modal" data-bs-target="#modalTransportador"
+                                        data-registro="@Module.RegistroJson(t)"
                                         onclick="editarTransportador(@t.IdTransportador, '@t.DsRazaoSocial?.Replace("'", "\\'")','@t.NrCpfCnpj','@t.DsEndereco?.Replace("'", "\\'")','@(t.IdCidade?.ToString() ?? "")','@t.NrInscEstadual')">
                                     <i class="bi bi-pencil"></i>
                                 </button>

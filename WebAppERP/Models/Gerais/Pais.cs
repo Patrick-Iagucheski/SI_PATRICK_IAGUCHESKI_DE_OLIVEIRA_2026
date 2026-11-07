@@ -4,7 +4,7 @@ using System.ComponentModel.DataAnnotations.Schema;
 namespace WebAppERP.Models.Gerais;
 
 [Table("tbGerPaises")]
-public class Pais
+public class Pais : EntidadeComRegistro
 {
     [Key]
     [Column("idPais")]

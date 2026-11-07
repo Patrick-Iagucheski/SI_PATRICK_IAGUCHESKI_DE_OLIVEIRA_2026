@@ -68,6 +68,7 @@
                             <td class="text-center">
                                 <button class="btn btn-icon btn-outline-primary" title="Editar"
                                         data-bs-toggle="modal" data-bs-target="#modalPais"
+                                        data-registro="@Module.RegistroJson(p)"
                                         onclick="editarPais(@p.IdPais, '@p.NmPais.Replace("'", "\\'")','@p.SgPais','@p.NrDDI','@p.DsMoeda?.Replace("'", "\\'")')">
                                     <i class="bi bi-pencil"></i>
                                 </button>
@@ -123,6 +124,7 @@
                             <input type="text" class="form-control" asp-for="PaisForm.DsMoeda" id="formDsMoeda" placeholder="Real" />
                         </div>
                     </div>
+                    <partial name="_Registro" />
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>

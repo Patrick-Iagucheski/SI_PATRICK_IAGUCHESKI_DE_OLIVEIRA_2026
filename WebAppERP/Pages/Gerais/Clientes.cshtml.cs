@@ -52,6 +52,7 @@ public class ClientesModel : PaginaBase
     public static object Registro(Cliente c) => new
     {
         id = c.IdCliente,
+        registro = Module.Registro(c),
         nome = c.NmCliente,
         tipoPessoa = c.TpPessoa,
         cpf = c.NrCpf,

@@ -4,7 +4,7 @@ using System.ComponentModel.DataAnnotations.Schema;
 namespace WebAppERP.Models.Operacional;
 
 [Table("tbOpeVeiculos")]
-public class Veiculo
+public class Veiculo : EntidadeComRegistro
 {
     [Key]
     [Column("idVeiculo")]

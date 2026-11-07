@@ -9,7 +9,7 @@ namespace WebAppERP.Models.Compras;
 // Numero + Serie + Modelo + Fornecedor, garantida pela PK do banco.
 [PrimaryKey(nameof(NrNota), nameof(NrSerie), nameof(NrModelo), nameof(IdFornecedor))]
 [Table("tbCmpCompras")]
-public class Compra
+public class Compra : EntidadeComRegistro
 {
     // Situacoes da compra (TpStatus)
     public const string RASCUNHO   = "RASCUNHO";
@@ -90,15 +90,6 @@ public class Compra
 
     [Column("flAtivo")]
     public bool FlAtivo { get; set; } = true;
-
-    [Column("dtCriacao")]
-    public DateTime DtCriacao { get; set; } = DateTime.Now;
-
-    [Column("idUsuarioEdicao")]
-    public int? IdUsuarioEdicao { get; set; }
-
-    [Column("dtEdicao")]
-    public DateTime? DtEdicao { get; set; }
 
     public List<CompraItem> Itens { get; set; } = [];
     public List<CompraPagamento> Pagamentos { get; set; } = [];

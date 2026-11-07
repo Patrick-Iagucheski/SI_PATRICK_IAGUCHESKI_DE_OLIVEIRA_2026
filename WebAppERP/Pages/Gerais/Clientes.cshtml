@@ -108,6 +108,7 @@
                             <td class="text-center">
                                 <button class="btn btn-icon btn-outline-primary" title="Editar"
                                         data-bs-toggle="modal" data-bs-target="#modalCliente"
+                                        data-registro="@Module.RegistroJson(c)"
                                         data-cliente="@System.Text.Json.JsonSerializer.Serialize(ClientesModel.Registro(c))"
                                         onclick="editarCliente(JSON.parse(this.dataset.cliente))">
                                     <i class="bi bi-pencil"></i>

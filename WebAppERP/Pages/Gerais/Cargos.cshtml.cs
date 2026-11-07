@@ -28,7 +28,7 @@ public class CargosModel : PaginaBase
         var lista = await _cargo.Buscar(id, termo, incluirInativos);
         return new JsonResult(lista.Select(c => new
         {
-            id = c.IdCargo,
+            id = c.IdCargo, registro = Module.Registro(c),
             nome = c.NmCargo,
             desc = c.DsCargo,
             comissao = c.VlComissaoPadrao,

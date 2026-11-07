@@ -4,7 +4,7 @@ using System.ComponentModel.DataAnnotations.Schema;
 namespace WebAppERP.Models.Gerais;
 
 [Table("tbGerTransportadores")]
-public class Transportador
+public class Transportador : EntidadeComRegistro
 {
     [Key]
     [Column("idTransportador")]

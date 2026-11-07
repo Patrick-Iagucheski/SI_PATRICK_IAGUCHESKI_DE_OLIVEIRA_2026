@@ -28,7 +28,7 @@ public class MarcasModel : PaginaBase
         var lista = await _marca.Buscar(id, termo, incluirInativos);
         return new JsonResult(lista.Select(m => new
         {
-            id = m.IdMarca,
+            id = m.IdMarca, registro = Module.Registro(m),
             nome = m.NmMarca,
             ativo = m.FlAtivo
         }));

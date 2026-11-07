@@ -61,14 +61,13 @@ public class MarcaBusiness
         Marca registro;
         if (marca.IdMarca == 0)
         {
-            registro = new Marca { DtCriacao = DateTime.Now };
+            registro = new Marca();
             _db.Marcas.Add(registro);
         }
         else
         {
             registro = await _db.Marcas.FindAsync(marca.IdMarca)
                 ?? throw new ValidacaoException("Marca não encontrada.", "Ela pode ter sido excluída por outra pessoa.");
-            registro.DtEdicao = DateTime.Now;
         }
 
         registro.NmMarca = nome;

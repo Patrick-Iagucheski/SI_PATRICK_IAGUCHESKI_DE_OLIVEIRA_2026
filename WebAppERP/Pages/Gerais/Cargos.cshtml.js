@@ -60,6 +60,7 @@ async function buscarCargos() {
 }
 
 function abrirEdicao(i) {
+    mostrarRegistro('modalCargo', resultadosBusca[i].registro);
     const c = resultadosBusca[i];
     editarCargo(
         c.id, c.nome || '', c.desc || '',

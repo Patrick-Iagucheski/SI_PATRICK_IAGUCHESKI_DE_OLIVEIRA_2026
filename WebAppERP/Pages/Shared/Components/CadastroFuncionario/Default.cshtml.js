@@ -80,6 +80,7 @@ function abrirCadastroCargo(c) {
     document.getElementById('crNome').value = c ? c.nome : '';
     document.getElementById('crDesc').value = c ? (c.desc || '') : '';
     document.getElementById('crComissao').value = c && c.comissao != null ? c.comissao : '';
+    mostrarRegistro('modalCargoRapido', c?.registro);
     abrirModalEmpilhado('modalCargoRapido');
 }
 

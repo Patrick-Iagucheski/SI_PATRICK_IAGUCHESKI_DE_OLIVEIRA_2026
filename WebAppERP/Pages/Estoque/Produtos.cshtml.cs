@@ -101,7 +101,7 @@ public class ProdutosModel : PaginaBase
         var lista = await _produto.Buscar(id, termo, incluirInativos);
         return new JsonResult(lista.Select(p => new
         {
-            id = p.IdProduto,
+            id = p.IdProduto, registro = Module.Registro(p),
             nome = p.DsProduto,
             idMarca = p.IdMarca,
             marca = p.Marca?.NmMarca,

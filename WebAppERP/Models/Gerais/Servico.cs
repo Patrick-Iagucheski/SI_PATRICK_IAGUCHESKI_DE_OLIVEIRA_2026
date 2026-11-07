@@ -4,7 +4,7 @@ using System.ComponentModel.DataAnnotations.Schema;
 namespace WebAppERP.Models.Gerais;
 
 [Table("tbGerServicos")]
-public class Servico
+public class Servico : EntidadeComRegistro
 {
     [Key]
     [Column("idServico")]
@@ -30,13 +30,4 @@ public class Servico
 
     [Column("flAtivo")]
     public bool FlAtivo { get; set; } = true;
-
-    [Column("dtCriacao")]
-    public DateTime DtCriacao { get; set; } = DateTime.Now;
-
-    [Column("idUsuarioEdicao")]
-    public int? IdUsuarioEdicao { get; set; }
-
-    [Column("dtEdicao")]
-    public DateTime? DtEdicao { get; set; }
 }

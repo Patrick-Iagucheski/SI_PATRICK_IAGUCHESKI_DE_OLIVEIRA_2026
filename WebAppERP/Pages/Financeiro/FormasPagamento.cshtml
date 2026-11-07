@@ -93,6 +93,7 @@
                                 </form>
                                 <button class="btn btn-icon btn-outline-primary" title="Editar"
                                         data-bs-toggle="modal" data-bs-target="#modalForma"
+                                        data-registro="@Module.RegistroJson(f)"
                                         onclick="editarForma(@f.IdFormaPagamento, '@f.DsFormaPagamento.Replace("'", "\\'")','@f.FlAtivo')">
                                     <i class="bi bi-pencil"></i>
                                 </button>

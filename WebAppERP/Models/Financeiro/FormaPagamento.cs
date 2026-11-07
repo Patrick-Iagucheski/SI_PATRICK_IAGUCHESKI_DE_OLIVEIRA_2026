@@ -4,7 +4,7 @@ using System.ComponentModel.DataAnnotations.Schema;
 namespace WebAppERP.Models.Financeiro;
 
 [Table("tbFinFormasPagamento")]
-public class FormaPagamento
+public class FormaPagamento : EntidadeComRegistro
 {
     [Key]
     [Column("idFormaPagamento")]
@@ -16,7 +16,4 @@ public class FormaPagamento
 
     [Column("flAtivo")]
     public bool FlAtivo { get; set; } = true;
-
-    [Column("dtCriacao")]
-    public DateTime DtCriacao { get; set; } = DateTime.Now;
 }

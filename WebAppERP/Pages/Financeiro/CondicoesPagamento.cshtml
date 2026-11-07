@@ -116,6 +116,7 @@
                                 </form>
                                 <button class="btn btn-icon btn-outline-primary" title="Editar"
                                         data-bs-toggle="modal" data-bs-target="#modalCondicao"
+                                        data-registro="@Module.RegistroJson(c)"
                                         onclick="editarCondicao(@c.IdCondicaoPagamento,'@c.DsCondicao.Replace("'", "\\'")','@c.VlJuro.ToString(inv)','@c.VlMulta.ToString(inv)','@c.VlDesconto.ToString(inv)','@(c.FlAtivo ? "true" : "false")', PARCELAS_MAP[@c.IdCondicaoPagamento])">
                                     <i class="bi bi-pencil"></i>
                                 </button>

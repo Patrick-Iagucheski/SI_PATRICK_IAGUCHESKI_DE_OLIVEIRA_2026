@@ -207,7 +207,6 @@ public class CompraBusiness
                 NrSerie = chave.NrSerie,
                 NrModelo = chave.NrModelo,
                 IdFornecedor = chave.IdFornecedor,
-                DtCriacao = DateTime.Now
             };
             _db.Compras.Add(compra);
         }
@@ -216,7 +215,6 @@ public class CompraBusiness
             compra = existente;
             _db.CompraItens.RemoveRange(existente.Itens);
             _db.CompraPagamentos.RemoveRange(existente.Pagamentos);
-            compra.DtEdicao = DateTime.Now;
 
             // Descarrega as exclusoes ANTES de inserir as novas linhas. As PKs de
             // item e parcela sao deterministicas (nrItem/nrParcela 1..n), entao
@@ -310,12 +308,10 @@ public class CompraBusiness
             {
                 conta.DsStatus = ContaAPagar.CANCELADO;
                 conta.FlAtivo = false;
-                conta.DtEdicao = DateTime.Now;
             }
         }
 
         compra.TpStatus = Compra.CANCELADA;
-        compra.DtEdicao = DateTime.Now;
 
         await _db.SaveChangesAsync();
         await tx.CommitAsync();
@@ -537,7 +533,6 @@ public class CompraBusiness
                 FlAtivo = true,
                 DsObservacao = Module.Truncar($"Gerado automaticamente pela compra "
                                      + $"{compra.NrModelo}/{compra.NrSerie}/{compra.NrNota}.", 500),
-                DtCriacao = DateTime.Now,
 
                 // Vinculo com a compra de origem.
                 NrNota = compra.NrNota,

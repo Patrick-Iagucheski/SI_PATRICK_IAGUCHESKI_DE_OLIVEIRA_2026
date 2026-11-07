@@ -35,7 +35,7 @@ public class LocalidadesModel : PaginaBase
         var lista = await _cidade.Buscar(id, termo, uf);
         return new JsonResult(lista.Select(c => new
         {
-            id = c.IdCidade, nome = c.NmCidade, detalhe = c.Estado?.SgUF,
+            id = c.IdCidade, registro = Module.Registro(c), nome = c.NmCidade, detalhe = c.Estado?.SgUF,
             idEstado = c.IdEstado, estado = c.Estado?.NmEstado
         }));
     }
@@ -45,7 +45,7 @@ public class LocalidadesModel : PaginaBase
         var lista = await _estado.Buscar(id, termo);
         return new JsonResult(lista.Select(e => new
         {
-            id = e.IdEstado, nome = e.NmEstado, detalhe = e.SgUF,
+            id = e.IdEstado, registro = Module.Registro(e), nome = e.NmEstado, detalhe = e.SgUF,
             idPais = e.IdPais, pais = e.Pais?.NmPais
         }));
     }
@@ -55,7 +55,7 @@ public class LocalidadesModel : PaginaBase
         var lista = await _pais.Buscar(id, termo);
         return new JsonResult(lista.Select(p => new
         {
-            id = p.IdPais, nome = p.NmPais, detalhe = p.SgPais, ddi = p.NrDDI, moeda = p.DsMoeda
+            id = p.IdPais, registro = Module.Registro(p), nome = p.NmPais, detalhe = p.SgPais, ddi = p.NrDDI, moeda = p.DsMoeda
         }));
     }
 

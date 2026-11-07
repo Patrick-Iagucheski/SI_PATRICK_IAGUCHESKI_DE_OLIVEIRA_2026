@@ -422,7 +422,12 @@ function abrirPesquisaComCadastro(cfg, opcoes) {
         celulas: cfg.celulas,
         inativos: cfg.inativos,
         selecionar: opcoes.selecionar,
-        editar: temCadastro ? reg => { estado.emEdicao = true; cfg.preencher(reg); abrirModalEmpilhado(cfg.modal); } : null,
+        editar: temCadastro ? reg => {
+            estado.emEdicao = true;
+            cfg.preencher(reg);
+            mostrarRegistro(cfg.modal, reg.registro);
+            abrirModalEmpilhado(cfg.modal);
+        } : null,
         novo: temCadastro ? () => { estado.emEdicao = false; cfg.limpar(); abrirModalEmpilhado(cfg.modal); } : null,
         excluir: temCadastro ? { url: cfg.urlExcluir, nome: cfg.nome, depois: reg => opcoes.excluido?.(reg) } : null
     });
@@ -623,6 +628,31 @@ document.addEventListener('show.bs.modal', e => {
 document.addEventListener('hidden.bs.modal', () => {
     if (document.querySelector('.modal.show')) document.body.classList.add('modal-open');
 });
+
+// ===== Registro (quem incluiu / alterou) =====
+// Bloco _Registro.cshtml no fim dos modais de cadastro. registro: o objeto de
+// Module.Registro (incluidoPor, incluidoEm, alteradoPor, alteradoEm); sem ele
+// (cadastro novo) o bloco some. Botao Editar com data-registro (grades montadas
+// no Razor) preenche sozinho ao abrir o modal; a busca por JS e a pesquisa
+// chamam mostrarRegistro antes de abrir.
+function mostrarRegistro(idModal, registro) {
+    const modal = document.getElementById(idModal);
+    const bloco = modal && [...modal.querySelectorAll('[data-registro-bloco]')].find(b => b.closest('.modal') === modal);
+    if (!bloco) return;
+    const linha = (acao, por, em) => '<div>' + acao + (por ? ' por <strong>' + escaparHtml(por) + '</strong>' : '') + ' em ' + escaparHtml(em) + '</div>';
+    let html = '';
+    if (registro?.incluidoEm) html += linha('Incluído', registro.incluidoPor, registro.incluidoEm);
+    if (registro?.alteradoEm) html += linha('Alterado', registro.alteradoPor, registro.alteradoEm);
+    bloco.querySelector('[data-registro-texto]').innerHTML = html;
+    bloco.classList.toggle('d-none', !html);
+}
+
+document.addEventListener('show.bs.modal', e => {
+    const botao = e.relatedTarget?.closest?.('[data-registro]');
+    if (botao) mostrarRegistro(e.target.id, JSON.parse(botao.dataset.registro));
+});
+// Ao fechar, o bloco some (o proximo "Novo" abre sem registro).
+document.addEventListener('hidden.bs.modal', e => { if (e.target.id) mostrarRegistro(e.target.id, null); });
 
 // Ao abrir um modal, some o erro da tentativa anterior.
 document.addEventListener('show.bs.modal', e => {

@@ -57,7 +57,7 @@ public class FornecedoresModel : PaginaBase
         var lista = await _fornecedor.Buscar(id, razao, fantasia, documento, incluirInativos);
         return new JsonResult(lista.Select(f => new
         {
-            id = f.IdFornecedor,
+            id = f.IdFornecedor, registro = Module.Registro(f),
             tipoPessoa = f.TpPessoa,
             razaoSocial = f.DsRazaoSocial,
             nomeFantasia = f.DsNomeFantasia,

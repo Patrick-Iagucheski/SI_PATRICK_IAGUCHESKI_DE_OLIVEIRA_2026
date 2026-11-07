@@ -93,6 +93,7 @@ function abrirCadastroAuxProduto(tipo, reg) {
     document.getElementById(a.pref + 'Titulo').textContent = (reg ? 'Editar ' : 'Cadastrar ') + a.nome;
     document.getElementById(a.pref + 'Id').value = reg ? reg.id : 0;
     document.getElementById(a.pref + 'Nome').value = reg ? reg.nome : '';
+    mostrarRegistro('modal' + a.nome + 'Rapido', reg?.registro);
     abrirModalEmpilhado('modal' + a.nome + 'Rapido');
 }
 

@@ -43,6 +43,6 @@ public class FormasPagamentoModel : PaginaBase
     public async Task<IActionResult> OnGetBuscarFormas(int? id, string? termo, bool incluirInativos = false)
     {
         var lista = await _forma.Pesquisar(id, termo, incluirInativos);
-        return new JsonResult(lista.Select(f => new { id = f.IdFormaPagamento, nome = f.DsFormaPagamento, ativo = f.FlAtivo }));
+        return new JsonResult(lista.Select(f => new { id = f.IdFormaPagamento, registro = Module.Registro(f), nome = f.DsFormaPagamento, ativo = f.FlAtivo }));
     }
 }

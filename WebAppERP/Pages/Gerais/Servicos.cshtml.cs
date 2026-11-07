@@ -43,7 +43,7 @@ public class ServicosModel : PaginaBase
         var lista = await _servico.Pesquisar(id, termo, incluirInativos);
         return new JsonResult(lista.Select(s => new
         {
-            id = s.IdServico,
+            id = s.IdServico, registro = Module.Registro(s),
             nome = s.DsServico,
             descricao = s.DsDescricao,
             valor = s.VlServico,
