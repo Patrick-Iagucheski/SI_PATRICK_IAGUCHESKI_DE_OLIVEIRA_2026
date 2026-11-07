@@ -48,6 +48,23 @@ function mascaraRG(v) {
         .replace(/\.(\d{3})(\d)/, '.$1-$2');
 }
 
+// ============================================================
+// Status dos cadastros: checkbox "Inativo"
+// ============================================================
+// Marcado = inativo; desmarcado = ativo (cadastro novo vem desmarcado). O que
+// vai para o servidor e o campo escondido FlAtivo (id do campo), que o
+// checkbox (data-inativo-de="id") mantem atualizado.
+function definirAtivo(id, ativo) {
+    document.getElementById(id).value = ativo ? 'true' : 'false';
+    const caixa = document.querySelector('[data-inativo-de="' + id + '"]');
+    if (caixa) caixa.checked = !ativo;
+}
+
+document.addEventListener('change', e => {
+    const id = e.target.dataset?.inativoDe;
+    if (id) document.getElementById(id).value = e.target.checked ? 'false' : 'true';
+});
+
 // Liga a mascara ao campo: formata a cada tecla digitada.
 function aplicarMascara(id, fn) {
     const el = document.getElementById(id);

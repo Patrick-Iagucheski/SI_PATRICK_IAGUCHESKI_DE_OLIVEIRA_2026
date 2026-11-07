@@ -36,9 +36,31 @@ public class Cliente
     [MaxLength(12)]
     public string? NrRG { get; set; }
 
-    [Column("nrTelefone")]
+    // Pessoa juridica: nome fantasia e inscricoes (mesmos tamanhos do fornecedor).
+    [Column("dsNomeFantasia")]
+    [MaxLength(150)]
+    public string? DsNomeFantasia { get; set; }
+
+    [Column("nrInscEstadual")]
+    [MaxLength(13)]
+    public string? NrInscEstadual { get; set; }
+
+    [Column("nrInscMunicipal")]
+    [MaxLength(15)]
+    public string? NrInscMunicipal { get; set; }
+
+    // Contato (mesmo padrao do fornecedor): fixo, celular/WhatsApp e site.
+    [Column("nrTelefoneFixo")]
     [MaxLength(11)]
-    public string? NrTelefone { get; set; }
+    public string? NrTelefoneFixo { get; set; }
+
+    [Column("nrCelular")]
+    [MaxLength(11)]
+    public string? NrCelular { get; set; }
+
+    [Column("dsSite")]
+    [MaxLength(150)]
+    public string? DsSite { get; set; }
 
     [Column("dsEmail")]
     [MaxLength(150)]
@@ -76,6 +98,14 @@ public class Cliente
     [Column("dsSexo")]
     [MaxLength(1)]
     public string? DsSexo { get; set; }
+
+    // Condicao de pagamento padrao do cliente (opcional), como no fornecedor.
+    // Coluna criada em Database/Migracoes/1794061500000_Alter_Table_tbGerClientes_Condicao_Pagamento.sql.
+    [Column("idCondicaoPagamento")]
+    public int? IdCondicaoPagamento { get; set; }
+
+    [ForeignKey("IdCondicaoPagamento")]
+    public CondicaoPagamento? CondicaoPagamento { get; set; }
 
     [Column("dsObservacao")]
     [MaxLength(500)]

@@ -14,7 +14,7 @@ function limparFormServico() {
     document.getElementById('sValor').value = '';
     document.getElementById('sDuracao').value = '';
     document.getElementById('sCat').value = '';
-    document.getElementById('sAtivo').value = 'true';
+    definirAtivo('sAtivo', true);
 }
 
 function editarServico(id, nome, desc, valor, duracao, cat, ativo) {
@@ -25,7 +25,7 @@ function editarServico(id, nome, desc, valor, duracao, cat, ativo) {
     document.getElementById('sValor').value = valor ?? '';
     document.getElementById('sDuracao').value = duracao ?? '';
     document.getElementById('sCat').value = cat || '';
-    document.getElementById('sAtivo').value = (ativo === true || ativo === 'True') ? 'true' : 'false';
+    definirAtivo('sAtivo', ativo === true || ativo === 'True');
 }
 
 // ===== Pesquisa de servico (a lupa do campo de servico de outras telas) =====

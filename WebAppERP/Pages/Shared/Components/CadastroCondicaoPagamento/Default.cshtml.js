@@ -75,7 +75,7 @@ function limparFormCondicao() {
     document.getElementById('condIdCondicao').value = '0';
     document.getElementById('condCodigoDisplay').value = '';
     document.getElementById('condDsCondicao').value = '';
-    document.getElementById('condFlAtivo').value = 'true';
+    definirAtivo('condFlAtivo', true);
     document.getElementById('condVlJuro').value = '0';
     document.getElementById('condVlMulta').value = '0';
     document.getElementById('condVlDesconto').value = '0';
@@ -89,7 +89,7 @@ function editarCondicao(id, nome, juro, multa, desc, ativo, parcelas) {
     document.getElementById('condIdCondicao').value = id;
     document.getElementById('condCodigoDisplay').value = id;
     document.getElementById('condDsCondicao').value = nome;
-    document.getElementById('condFlAtivo').value = ativo;
+    definirAtivo('condFlAtivo', ativo === 'true');
     document.getElementById('condVlJuro').value = juro;
     document.getElementById('condVlMulta').value = multa;
     document.getElementById('condVlDesconto').value = desc;

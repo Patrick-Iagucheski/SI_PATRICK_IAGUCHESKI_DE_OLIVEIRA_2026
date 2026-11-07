@@ -11,14 +11,14 @@ function limparFormForma() {
     document.getElementById('fpTitulo').innerHTML = '<i class="bi bi-credit-card me-2"></i>Nova Forma de Pagamento';
     document.getElementById('fpId').value = '0';
     document.getElementById('fpNome').value = '';
-    document.getElementById('fpAtivo').value = 'true';
+    definirAtivo('fpAtivo', true);
 }
 
 function editarForma(id, desc, ativo) {
     document.getElementById('fpTitulo').innerHTML = '<i class="bi bi-pencil me-2"></i>Editar Forma de Pagamento';
     document.getElementById('fpId').value = id;
     document.getElementById('fpNome').value = desc || '';
-    document.getElementById('fpAtivo').value = (ativo === true || ativo === 'True') ? 'true' : 'false';
+    definirAtivo('fpAtivo', ativo === true || ativo === 'True');
 }
 
 // ===== Pesquisa de forma de pagamento (a lupa do campo de forma) =====

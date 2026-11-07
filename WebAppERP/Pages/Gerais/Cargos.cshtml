@@ -128,10 +128,12 @@
                         </div>
                         <div class="col-md-6">
                             <label class="form-label">Status</label>
-                            <select class="form-select" asp-for="CargoForm.FlAtivo" id="cAtivo">
-                                <option value="true">Ativo</option>
-                                <option value="false">Inativo</option>
-                            </select>
+                            @* Marcado = inativo. O valor gravado (FlAtivo) vai no campo escondido (definirAtivo, module.js). *@
+                            <input type="hidden" asp-for="CargoForm.FlAtivo" id="cAtivo" />
+                            <div class="form-check mt-2">
+                                <input class="form-check-input" type="checkbox" id="cAtivoInativo" data-inativo-de="cAtivo" checked="@(!Model.CargoForm.FlAtivo)" />
+                                <label class="form-check-label" for="cAtivoInativo">Inativo</label>
+                            </div>
                         </div>
                     </div>
                 </div>

@@ -75,7 +75,7 @@ function limparForm() {
     document.getElementById('cNome').value = '';
     document.getElementById('cDesc').value = '';
     document.getElementById('cComissao').value = '';
-    document.getElementById('cAtivo').value = 'true';
+    definirAtivo('cAtivo', true);
 }
 
 function editarCargo(id, nome, desc, comissao, ativo) {
@@ -84,6 +84,6 @@ function editarCargo(id, nome, desc, comissao, ativo) {
     document.getElementById('cNome').value = nome;
     document.getElementById('cDesc').value = desc;
     document.getElementById('cComissao').value = comissao;
-    document.getElementById('cAtivo').value = ativo === 'True' ? 'true' : 'false';
+    definirAtivo('cAtivo', ativo === 'True');
 }
 

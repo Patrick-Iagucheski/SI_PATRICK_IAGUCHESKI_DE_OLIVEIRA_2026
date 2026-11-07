@@ -54,59 +54,36 @@
                             <input type="text" class="form-control" asp-for="FornecedorForm.DsContatoPrincipal" id="formDsContatoPrincipal" maxlength="120" />
                         </div>
 
-                        <div class="col-md-3 doc-wrap" id="wrapCnpj">
+                        <div class="col-md-4 doc-wrap" id="wrapCnpj">
                             <label class="form-label">CNPJ *</label>
                             <input type="text" class="form-control" asp-for="FornecedorForm.NrCNPJ" id="formNrCNPJ" maxlength="18" placeholder="00.000.000/0000-00" required />
                         </div>
-                        <div class="col-md-3 doc-wrap d-none" id="wrapCpf">
+                        <div class="col-md-4 doc-wrap d-none" id="wrapCpf">
                             <label class="form-label">CPF *</label>
                             <input type="text" class="form-control" asp-for="FornecedorForm.NrCpf" id="formNrCpf" maxlength="14" placeholder="000.000.000-00" />
                         </div>
-                        <div class="col-md-3 doc-wrap d-none" id="wrapDoc">
+                        <div class="col-md-4 doc-wrap d-none" id="wrapDoc">
                             <label class="form-label" id="lblDoc">Documento</label>
                             <input type="text" class="form-control" asp-for="FornecedorForm.NrDocumento" id="formNrDocumento" maxlength="30" placeholder="Documento" />
                         </div>
                         <!-- Slot A: Inscricao Estadual (PJ / Estrangeiro / Outro) ou RG (Pessoa Fisica) -->
-                        <div class="col-md-3 doc-wrap" id="wrapInscEstadual">
+                        <div class="col-md-4 doc-wrap" id="wrapInscEstadual">
                             <label class="form-label">Inscrição Estadual</label>
                             <input type="text" class="form-control" asp-for="FornecedorForm.NrInscEstadual" id="formNrInscEstadual" maxlength="13" placeholder="8 a 13 dígitos" />
                         </div>
-                        <div class="col-md-3 doc-wrap d-none" id="wrapRG">
+                        <div class="col-md-4 doc-wrap d-none" id="wrapRG">
                             <label class="form-label">RG</label>
                             <input type="text" class="form-control" asp-for="FornecedorForm.NrRG" id="formNrRG" maxlength="12" placeholder="00.000.000-0" />
                         </div>
 
                         <!-- Slot B: Inscricao Municipal (PJ) ou Data de Nascimento (Pessoa Fisica / Estrangeiro / Outro) -->
-                        <div class="col-md-3 doc-wrap" id="wrapInscMunicipal">
+                        <div class="col-md-4 doc-wrap" id="wrapInscMunicipal">
                             <label class="form-label">Inscrição Municipal</label>
                             <input type="text" class="form-control" asp-for="FornecedorForm.NrInscMunicipal" id="formNrInscMunicipal" maxlength="15" placeholder="7 a 15 caracteres" />
                         </div>
-                        <div class="col-md-3 doc-wrap d-none" id="wrapDataNasc">
+                        <div class="col-md-4 doc-wrap d-none" id="wrapDataNasc">
                             <label class="form-label">Data de Nascimento</label>
                             <input type="date" class="form-control" asp-for="FornecedorForm.DtNascimento" id="formDtNascimento" />
-                        </div>
-                        <div class="col-md-3">
-                            <label class="form-label">Status</label>
-                            <select class="form-select" asp-for="FornecedorForm.FlAtivo" id="formFlAtivo">
-                                <option value="true">Ativo</option>
-                                <option value="false">Inativo</option>
-                            </select>
-                        </div>
-                        <!-- Condicao de pagamento padrao (so as ja cadastradas e ativas) -->
-                        <div class="col-md-6">
-                            <label class="form-label">Condição de Pagamento</label>
-                            <select class="form-select" asp-for="FornecedorForm.IdCondicaoPagamento" id="formIdCondicaoPagamento"
-                                    data-pesquisa="abrirPesquisaCondicao(opcoesDoSelect('formIdCondicaoPagamento'))" data-titulo-pesquisa="Pesquisar condição de pagamento">
-                                <option value="">Selecione</option>
-                                @foreach (var condicao in Model.Condicoes)
-                                {
-                                    <option value="@condicao.IdCondicaoPagamento">@condicao.DsCondicao</option>
-                                }
-                            </select>
-                        </div>
-                        <div class="col-12">
-                            <label class="form-label">Observações</label>
-                            <textarea class="form-control" rows="2" asp-for="FornecedorForm.DsObservacao" id="formDsObservacao" maxlength="500"></textarea>
                         </div>
                     </div>
 
@@ -208,6 +185,36 @@
                         <div class="col-md-8">
                             <label class="form-label">Chave PIX</label>
                             <input type="text" class="form-control" asp-for="FornecedorForm.DsChavePix" id="formDsChavePix" maxlength="100" />
+                        </div>
+                    </div>
+
+                    <!-- Condicao de pagamento | Status (sempre logo acima das Observacoes)
+                         e Observacoes (sempre o ultimo campo do cadastro) -->
+                    <div class="row g-3 mt-1">
+                        <!-- Condicao de pagamento padrao (so as ja cadastradas e ativas) -->
+                        <div class="col-md-9">
+                            <label class="form-label">Condição de Pagamento</label>
+                            <select class="form-select" asp-for="FornecedorForm.IdCondicaoPagamento" id="formIdCondicaoPagamento"
+                                    data-pesquisa="abrirPesquisaCondicao(opcoesDoSelect('formIdCondicaoPagamento'))" data-titulo-pesquisa="Pesquisar condição de pagamento">
+                                <option value="">Selecione</option>
+                                @foreach (var condicao in Model.Condicoes)
+                                {
+                                    <option value="@condicao.IdCondicaoPagamento">@condicao.DsCondicao</option>
+                                }
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Status</label>
+                            @* Marcado = inativo. O valor gravado (FlAtivo) vai no campo escondido (definirAtivo, module.js). *@
+                            <input type="hidden" asp-for="FornecedorForm.FlAtivo" id="formFlAtivo" />
+                            <div class="form-check mt-2">
+                                <input class="form-check-input" type="checkbox" id="formFlAtivoInativo" data-inativo-de="formFlAtivo" checked="@(!Model.FornecedorForm.FlAtivo)" />
+                                <label class="form-check-label" for="formFlAtivoInativo">Inativo</label>
+                            </div>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label">Observações</label>
+                            <textarea class="form-control" rows="2" asp-for="FornecedorForm.DsObservacao" id="formDsObservacao" maxlength="500"></textarea>
                         </div>
                     </div>
                 </div>

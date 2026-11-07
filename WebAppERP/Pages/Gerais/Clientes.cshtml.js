@@ -23,7 +23,7 @@ function montarLinha(f, i) {
         '<td><strong>' + escaparHtml(f.nome || '') + '</strong></td>' +
         '<td>' + tipoLabel(f.tipoPessoa) + '</td>' +
         '<td class="text-nowrap">' + documentoCliente(f) + '</td>' +
-        '<td class="text-nowrap">' + (f.tel ? mascaraTelefone(f.tel) : '-') + '</td>' +
+        '<td class="text-nowrap">' + telefoneCliente(f) + '</td>' +
         '<td>' + escaparHtml(f.email || '-') + '</td>' +
         '<td>' + escaparHtml(f.cidadeNome || '-') + '</td>' +
         '<td>' + statusBadge(f.ativo) + '</td>' +
@@ -72,7 +72,7 @@ async function buscarClientes() {
 }
 
 function abrirEdicao(i) {
-    editarClientePorRegistro(resultadosBusca[i]);
+    editarCliente(resultadosBusca[i]);
     bootstrap.Modal.getOrCreateInstance(document.getElementById('modalCliente')).show();
 }
 

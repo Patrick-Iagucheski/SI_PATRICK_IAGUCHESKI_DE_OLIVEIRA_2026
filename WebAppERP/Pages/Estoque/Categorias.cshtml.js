@@ -66,7 +66,7 @@ function limparForm() {
     document.getElementById('cId').value = '0';
     document.getElementById('cCodigoDisplay').value = '';
     document.getElementById('cNome').value = '';
-    document.getElementById('cAtivo').value = 'true';
+    definirAtivo('cAtivo', true);
 }
 
 function editarCategoria(id, nome, ativo) {
@@ -74,6 +74,6 @@ function editarCategoria(id, nome, ativo) {
     document.getElementById('cId').value = id;
     document.getElementById('cCodigoDisplay').value = id;
     document.getElementById('cNome').value = nome;
-    document.getElementById('cAtivo').value = ativo === 'True' ? 'true' : 'false';
+    definirAtivo('cAtivo', ativo === 'True');
 }
 

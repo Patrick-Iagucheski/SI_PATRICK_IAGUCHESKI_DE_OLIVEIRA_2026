@@ -109,10 +109,6 @@
                         }
                     </select>
                 </div>
-                <div class="col-md-4">
-                    <label class="form-label">Observação</label>
-                    <input type="text" class="form-control" asp-for="DsObservacao" disabled="@ro" />
-                </div>
             </div>
         </div>
     </div>
@@ -204,8 +200,16 @@
         </div>
     </div>
 
-    <!-- Rodape Financeiro -->
+    <!-- Rodape: Observacao (sempre o ultimo campo) | Totais -->
     <div class="row g-3 justify-content-end">
+        <div class="col-md-8">
+            <div class="card h-100">
+                <div class="card-body">
+                    <label class="form-label">Observação</label>
+                    <textarea class="form-control" rows="4" asp-for="DsObservacao" maxlength="500" disabled="@ro"></textarea>
+                </div>
+            </div>
+        </div>
         <div class="col-md-4">
             <div class="card">
                 <div class="card-body">

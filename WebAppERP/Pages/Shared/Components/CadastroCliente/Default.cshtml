@@ -19,8 +19,17 @@
                 </div>
                 <div class="modal-body">
                     <input type="hidden" asp-for="ClienteForm.IdCliente" id="cliIdCliente" />
+
+                    <!-- ===== Dados Cadastrais ===== -->
+                    <!-- Layout por tipo (toggleTipoPessoaCliente):
+                         Juridica:    Razao Social | Nome Fantasia
+                                      CNPJ | Insc. Estadual | Insc. Municipal
+                         Fisica:      CPF | RG | Sexo | Nascimento
+                         Estrangeiro: Documento | Sexo | Nascimento
+                         Depois: Endereco, Contato, Condicao de Pagamento | Status e,
+                         no fim, Observacoes. -->
+                    <h6 class="text-primary border-bottom pb-1 mb-3"><i class="bi bi-card-list me-1"></i>Dados Cadastrais</h6>
                     <div class="row g-3">
-                        <!-- Codigo (somente leitura) | Tipo de Pessoa | Nome -->
                         <div class="col-md-2">
                             <label class="form-label">Código</label>
                             <input type="text" class="form-control bg-light" id="cliCodigoDisplay" placeholder="(novo)" readonly />
@@ -33,12 +42,17 @@
                                 <option value="E">Estrangeiro / Outro</option>
                             </select>
                         </div>
+                        <!-- Juridica: Razao Social desce para a linha do Nome Fantasia -->
+                        <div class="w-100 m-0 d-none" id="cliQuebraNome"></div>
                         <div class="col-md-6">
                             <label class="form-label" id="cliLblNome">Nome Completo *</label>
                             <input type="text" class="form-control" asp-for="ClienteForm.NmCliente" id="cliNmCliente" maxlength="200" required />
                         </div>
 
-                        <!-- Documento (CPF / CNPJ / Outro) | RG | Sexo | Nascimento -->
+                        <div class="col-md-6 d-none" id="cliWrapFantasia">
+                            <label class="form-label">Nome Fantasia</label>
+                            <input type="text" class="form-control" asp-for="ClienteForm.DsNomeFantasia" id="cliDsNomeFantasia" maxlength="150" />
+                        </div>
                         <div class="col-md-3" id="cliWrapCpf">
                             <label class="form-label">CPF *</label>
                             <input type="text" class="form-control" asp-for="ClienteForm.NrCpf" id="cliNrCpf" maxlength="14" placeholder="000.000.000-00" required />
@@ -51,11 +65,19 @@
                             <label class="form-label">Documento</label>
                             <input type="text" class="form-control" asp-for="ClienteForm.NrDocumento" id="cliNrDocumento" maxlength="30" placeholder="Documento" />
                         </div>
-                        <div class="col-md-3">
+                        <div class="col-md-3 d-none" id="cliWrapInscEstadual">
+                            <label class="form-label">Inscrição Estadual</label>
+                            <input type="text" class="form-control" asp-for="ClienteForm.NrInscEstadual" id="cliNrInscEstadual" maxlength="13" placeholder="8 a 13 dígitos" />
+                        </div>
+                        <div class="col-md-3 d-none" id="cliWrapInscMunicipal">
+                            <label class="form-label">Inscrição Municipal</label>
+                            <input type="text" class="form-control" asp-for="ClienteForm.NrInscMunicipal" id="cliNrInscMunicipal" maxlength="15" placeholder="7 a 15 caracteres" />
+                        </div>
+                        <div class="col-md-3" id="cliWrapRG">
                             <label class="form-label">RG</label>
                             <input type="text" class="form-control" asp-for="ClienteForm.NrRG" id="cliNrRG" maxlength="12" placeholder="00.000.000-0" />
                         </div>
-                        <div class="col-md-3">
+                        <div class="col-md-3" id="cliWrapSexo">
                             <label class="form-label">Sexo</label>
                             <select class="form-select" asp-for="ClienteForm.DsSexo" id="cliDsSexo">
                                 <option value="">Selecione</option>
@@ -64,59 +86,85 @@
                                 <option value="O">Outro</option>
                             </select>
                         </div>
-                        <div class="col-md-3">
+                        <div class="col-md-3" id="cliWrapNascimento">
                             <label class="form-label">Data de Nascimento</label>
                             <input type="date" class="form-control" asp-for="ClienteForm.DtNascimento" id="cliDtNascimento" />
                         </div>
+                    </div>
 
-                        <!-- Telefone | E-mail -->
-                        <div class="col-md-4">
-                            <label class="form-label">Telefone</label>
-                            <input type="text" class="form-control" asp-for="ClienteForm.NrTelefone" id="cliNrTelefone" maxlength="15" placeholder="(00) 00000-0000" />
-                        </div>
-                        <div class="col-md-8">
-                            <label class="form-label">E-mail</label>
-                            <input type="email" class="form-control" asp-for="ClienteForm.DsEmail" id="cliDsEmail" maxlength="150" />
-                        </div>
-
-                        <!-- Endereco | Numero -->
-                        <div class="col-md-8">
-                            <label class="form-label">Endereço</label>
-                            <input type="text" class="form-control" asp-for="ClienteForm.DsEndereco" id="cliDsEndereco" maxlength="200" />
-                        </div>
-                        <div class="col-md-4">
-                            <label class="form-label">Número</label>
-                            <input type="text" class="form-control" asp-for="ClienteForm.NrNumero" id="cliNrNumero" maxlength="10" />
-                        </div>
-
-                        <!-- Complemento | Bairro -->
-                        <div class="col-md-6">
-                            <label class="form-label">Complemento</label>
-                            <input type="text" class="form-control" asp-for="ClienteForm.DsComplemento" id="cliDsComplemento" maxlength="100" />
-                        </div>
-                        <div class="col-md-6">
-                            <label class="form-label">Bairro</label>
-                            <input type="text" class="form-control" asp-for="ClienteForm.DsBairro" id="cliDsBairro" maxlength="100" />
-                        </div>
-
-                        <!-- Cidade (cadastro rapido) | CEP | Status -->
-                        <div class="col-md-6">
-                            <label class="form-label">Cidade</label>
-                            @await Component.InvokeAsync("CampoCidade", new { nome = "ClienteForm.IdCidade", id = "cliIdCidade" })
-                        </div>
+                    <!-- ===== Endereco ===== -->
+                    <h6 class="text-primary border-bottom pb-1 mb-3 mt-4"><i class="bi bi-geo-alt me-1"></i>Endereço</h6>
+                    <div class="row g-3">
                         <div class="col-md-3">
                             <label class="form-label">CEP</label>
                             <input type="text" class="form-control" asp-for="ClienteForm.NrCEP" id="cliNrCEP" maxlength="9" placeholder="00000-000" />
                         </div>
+                        <div class="col-md-7">
+                            <label class="form-label">Logradouro</label>
+                            <input type="text" class="form-control" asp-for="ClienteForm.DsEndereco" id="cliDsEndereco" maxlength="200" />
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label">Número</label>
+                            <input type="text" class="form-control" asp-for="ClienteForm.NrNumero" id="cliNrNumero" maxlength="10" />
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Complemento</label>
+                            <input type="text" class="form-control" asp-for="ClienteForm.DsComplemento" id="cliDsComplemento" maxlength="100" />
+                        </div>
                         <div class="col-md-3">
-                            <label class="form-label">Status</label>
-                            <select class="form-select" asp-for="ClienteForm.FlAtivo" id="cliFlAtivo">
-                                <option value="true">Ativo</option>
-                                <option value="false">Inativo</option>
+                            <label class="form-label">Bairro</label>
+                            <input type="text" class="form-control" asp-for="ClienteForm.DsBairro" id="cliDsBairro" maxlength="100" />
+                        </div>
+                        <div class="col-md-5">
+                            <label class="form-label">Cidade</label>
+                            @await Component.InvokeAsync("CampoCidade", new { nome = "ClienteForm.IdCidade", id = "cliIdCidade" })
+                        </div>
+                    </div>
+
+                    <!-- ===== Contato ===== -->
+                    <h6 class="text-primary border-bottom pb-1 mb-3 mt-4"><i class="bi bi-telephone me-1"></i>Contato</h6>
+                    <div class="row g-3">
+                        <div class="col-md-3">
+                            <label class="form-label">Telefone Fixo</label>
+                            <input type="text" class="form-control" asp-for="ClienteForm.NrTelefoneFixo" id="cliNrTelefoneFixo" maxlength="15" placeholder="(00) 0000-0000" />
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Celular/WhatsApp</label>
+                            <input type="text" class="form-control" asp-for="ClienteForm.NrCelular" id="cliNrCelular" maxlength="15" placeholder="(00) 00000-0000" />
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">E-mail</label>
+                            <input type="email" class="form-control" asp-for="ClienteForm.DsEmail" id="cliDsEmail" maxlength="150" />
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Site</label>
+                            <input type="text" class="form-control" asp-for="ClienteForm.DsSite" id="cliDsSite" maxlength="150" placeholder="www.exemplo.com.br" />
+                        </div>
+                    </div>
+
+                    <!-- Condicao de pagamento | Status (sempre logo acima das Observacoes)
+                         e Observacoes (sempre o ultimo campo do cadastro) -->
+                    <div class="row g-3 mt-1">
+                        <div class="col-md-9">
+                            <label class="form-label">Condição de Pagamento</label>
+                            <select class="form-select" asp-for="ClienteForm.IdCondicaoPagamento" id="cliIdCondicaoPagamento"
+                                    data-pesquisa="abrirPesquisaCondicao(opcoesDoSelect('cliIdCondicaoPagamento'))" data-titulo-pesquisa="Pesquisar condição de pagamento">
+                                <option value="">Clique no + para pesquisar a condição</option>
+                                @foreach (var condicao in Model.Condicoes)
+                                {
+                                    <option value="@condicao.IdCondicaoPagamento">@condicao.DsCondicao</option>
+                                }
                             </select>
                         </div>
-
-                        <!-- Observacoes -->
+                        <div class="col-md-3" id="cliWrapStatus">
+                            <label class="form-label">Status</label>
+                            @* Marcado = inativo. O valor gravado (FlAtivo) vai no campo escondido (definirAtivo, module.js). *@
+                            <input type="hidden" asp-for="ClienteForm.FlAtivo" id="cliFlAtivo" />
+                            <div class="form-check mt-2">
+                                <input class="form-check-input" type="checkbox" id="cliFlAtivoInativo" data-inativo-de="cliFlAtivo" checked="@(!Model.ClienteForm.FlAtivo)" />
+                                <label class="form-check-label" for="cliFlAtivoInativo">Inativo</label>
+                            </div>
+                        </div>
                         <div class="col-12">
                             <label class="form-label">Observações</label>
                             <textarea class="form-control" rows="2" asp-for="ClienteForm.DsObservacao" id="cliDsObservacao" maxlength="500"></textarea>
@@ -131,6 +179,11 @@
         </div>
     </div>
 </div>
+
+@* Cadastro de condicao de pagamento (componente compartilhado com a tela de
+   Condicoes de Pagamento), aberto pela pesquisa do campo Condicao de Pagamento.
+   Fica fora do modal do cliente: modal dentro de modal nao abre direito. *@
+@await Component.InvokeAsync("CadastroCondicaoPagamento", new { modo = "ajax" })
 
 @if (Model.IncluirScript)
 {

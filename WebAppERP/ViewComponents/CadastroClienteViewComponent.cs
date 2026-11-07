@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.Mvc;
+using WebAppERP.Business.Financeiro;
 using WebAppERP.ViewModels;
 
 namespace WebAppERP.ViewComponents;
@@ -9,9 +10,17 @@ namespace WebAppERP.ViewComponents;
 // por pagina. A gravacao fica no Business (chamado pela tela /Gerais/Clientes).
 public class CadastroClienteViewComponent : ComponenteBase
 {
-    public IViewComponentResult Invoke(string modo = "post")
+    private readonly CondicaoPagamentoBusiness _condicao;
+
+    public CadastroClienteViewComponent(CondicaoPagamentoBusiness condicao) => _condicao = condicao;
+
+    public async Task<IViewComponentResult> InvokeAsync(string modo = "post")
     {
-        var vm = new CadastroClienteViewModel { Modo = modo == "ajax" ? "ajax" : "post" };
+        var vm = new CadastroClienteViewModel
+        {
+            Modo = modo == "ajax" ? "ajax" : "post",
+            Condicoes = await _condicao.Listar(somenteAtivas: true)
+        };
 
         // O script entra so na primeira vez que o componente aparece na pagina.
         vm.IncluirScript = PrimeiraVezNaPagina();

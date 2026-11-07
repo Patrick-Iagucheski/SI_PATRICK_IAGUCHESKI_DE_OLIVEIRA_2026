@@ -92,7 +92,7 @@
                             <td><strong>@c.NmCliente</strong></td>
                             <td>@TipoPessoaLabel(c.TpPessoa)</td>
                             <td class="text-nowrap">@Module.OuTraco(DocumentoExibicao(c))</td>
-                            <td class="text-nowrap">@Module.OuTraco(Module.FormatarTelefone(c.NrTelefone))</td>
+                            <td class="text-nowrap">@Module.OuTraco(Module.FormatarTelefone(c.NrCelular ?? c.NrTelefoneFixo))</td>
                             <td>@(c.DsEmail ?? "-")</td>
                             <td>@Module.OuTraco(Module.CidadeUf(c.Cidade))</td>
                             <td>
@@ -108,7 +108,8 @@
                             <td class="text-center">
                                 <button class="btn btn-icon btn-outline-primary" title="Editar"
                                         data-bs-toggle="modal" data-bs-target="#modalCliente"
-                                        onclick="editarCliente(@c.IdCliente,'@c.NmCliente.Replace("'", "\\'")','@c.TpPessoa','@c.NrCpf','@c.NrCnpj','@c.NrDocumento?.Replace("'", "\\'")','@c.NrRG','@c.NrTelefone','@c.DsEmail','@c.DsEndereco?.Replace("'", "\\'")','@c.NrNumero','@c.DsComplemento?.Replace("'", "\\'")','@c.DsBairro?.Replace("'", "\\'")','@(c.IdCidade?.ToString() ?? "")','@c.NrCEP','@(c.DtNascimento?.ToString("yyyy-MM-dd") ?? "")','@c.DsSexo','@c.DsObservacao?.Replace("'", "\\'")','@c.FlAtivo')">
+                                        data-cliente="@System.Text.Json.JsonSerializer.Serialize(ClientesModel.Registro(c))"
+                                        onclick="editarCliente(JSON.parse(this.dataset.cliente))">
                                     <i class="bi bi-pencil"></i>
                                 </button>
                                 <form method="post" asp-page-handler="Excluir" class="d-inline" onsubmit="return confirm('Deseja realmente excluir este cliente?')">

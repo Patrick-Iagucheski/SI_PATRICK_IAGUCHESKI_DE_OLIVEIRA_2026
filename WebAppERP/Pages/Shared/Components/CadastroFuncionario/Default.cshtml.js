@@ -15,7 +15,7 @@ function limparFormFuncionario() {
         document.getElementById(id).value = '';
     });
     document.getElementById('fId').value = '0';
-    document.getElementById('fAtivo').value = 'true';
+    definirAtivo('fAtivo', true);
     limparCidade('fCidade');
 }
 
@@ -43,7 +43,7 @@ function editarFunc(id,nome,cpf,tel,email,end,bairro,cidade,cep,nasc,adm,dem,idC
     document.getElementById('fSal').value = sal;
     document.getElementById('fCom').value = com;
     document.getElementById('fObs').value = obs;
-    document.getElementById('fAtivo').value = ativo === 'True' ? 'true' : 'false';
+    definirAtivo('fAtivo', ativo === 'True');
 }
 
 // ===== Cargo: pesquisa (a lupa do campo) e cadastro rapido =====

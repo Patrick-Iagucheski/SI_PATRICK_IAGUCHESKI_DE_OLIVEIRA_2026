@@ -17,14 +17,18 @@ public class CadastroCondicaoPagamentoViewComponent : ComponenteBase
 
     public async Task<IViewComponentResult> InvokeAsync(string modo = "post")
     {
+        // Cliente e fornecedor trazem este cadastro junto: o modal (ids unicos)
+        // entra so uma vez por pagina.
+        if (!PrimeiraVezNaPagina())
+            return Content(string.Empty);
+
         var vm = new CadastroCondicaoPagamentoViewModel
         {
             Modo = modo == "ajax" ? "ajax" : "post",
             Formas = await _forma.Listar(somenteAtivas: true)
         };
 
-        // O script entra so na primeira vez que o componente aparece na pagina.
-        vm.IncluirScript = PrimeiraVezNaPagina();
+        vm.IncluirScript = true;
 
         return View(vm);
     }

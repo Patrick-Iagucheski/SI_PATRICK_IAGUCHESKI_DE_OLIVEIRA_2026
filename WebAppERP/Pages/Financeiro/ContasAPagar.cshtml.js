@@ -110,7 +110,7 @@ function limparFormConta() {
     document.getElementById('contaDsStatus').value = 'PENDENTE';
     document.getElementById('contaVlValor').value = '0';
     document.getElementById('contaVlPago').value = '0';
-    document.getElementById('contaFlAtivo').value = 'true';
+    definirAtivo('contaFlAtivo', true);
     document.getElementById('contaDsObservacao').value = '';
 }
 
@@ -128,7 +128,7 @@ function editarConta(id, conta, doc, idForn, idForma, emissao, venc, pgto, valor
     document.getElementById('contaDsStatus').value = status || 'PENDENTE';
     document.getElementById('contaVlValor').value = valor;
     document.getElementById('contaVlPago').value = pago;
-    document.getElementById('contaFlAtivo').value = ativo;
+    definirAtivo('contaFlAtivo', ativo === 'true');
     document.getElementById('contaDsObservacao').value = obs || '';
 }
 

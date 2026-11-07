@@ -127,7 +127,7 @@ function limparFormProduto() {
         document.getElementById(id).value = '';
     });
     document.getElementById('prodIdProduto').value = '0';
-    document.getElementById('prodFlAtivo').value = 'true';
+    definirAtivo('prodFlAtivo', true);
     esconderImagem();
 }
 
@@ -153,7 +153,7 @@ function editarProduto(id, nome, idMarca, idCategoria, unidade, custo, vendaMin,
     document.getElementById('prodDsDescricao').value = descricao || '';
     document.getElementById('prodDsImagem').value = imagem || '';
     document.getElementById('prodImagemUpload').value = '';
-    document.getElementById('prodFlAtivo').value = ativo === 'True' ? 'true' : 'false';
+    definirAtivo('prodFlAtivo', ativo === 'True');
 
     if (imagem) { mostrarImagem(imagem); }
     else { esconderImagem(); }

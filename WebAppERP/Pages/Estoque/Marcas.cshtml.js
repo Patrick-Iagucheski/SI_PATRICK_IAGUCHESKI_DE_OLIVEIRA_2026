@@ -66,7 +66,7 @@ function limparForm() {
     document.getElementById('mId').value = '0';
     document.getElementById('mCodigoDisplay').value = '';
     document.getElementById('mNome').value = '';
-    document.getElementById('mAtivo').value = 'true';
+    definirAtivo('mAtivo', true);
 }
 
 function editarMarca(id, nome, ativo) {
@@ -74,6 +74,6 @@ function editarMarca(id, nome, ativo) {
     document.getElementById('mId').value = id;
     document.getElementById('mCodigoDisplay').value = id;
     document.getElementById('mNome').value = nome;
-    document.getElementById('mAtivo').value = ativo === 'True' ? 'true' : 'false';
+    definirAtivo('mAtivo', ativo === 'True');
 }
 

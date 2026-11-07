@@ -44,28 +44,39 @@ public class ClientesModel : PaginaBase
         int? id, string? nome, string? documento, string? email, bool incluirInativos = false)
     {
         var lista = await _cliente.Buscar(id, nome, documento, email, incluirInativos);
-        return new JsonResult(lista.Select(c => new
-        {
-            id = c.IdCliente,
-            nome = c.NmCliente,
-            tipoPessoa = c.TpPessoa,
-            cpf = c.NrCpf,
-            cnpj = c.NrCnpj,
-            documento = c.NrDocumento,
-            rg = c.NrRG,
-            tel = c.NrTelefone,
-            email = c.DsEmail,
-            end = c.DsEndereco,
-            numero = c.NrNumero,
-            complemento = c.DsComplemento,
-            bairro = c.DsBairro,
-            idCidade = c.IdCidade,
-            cidadeNome = Module.CidadeUf(c.Cidade),
-            cep = c.NrCEP,
-            nasc = c.DtNascimento,
-            sexo = c.DsSexo,
-            obs = c.DsObservacao,
-            ativo = c.FlAtivo
-        }));
+        return new JsonResult(lista.Select(Registro));
     }
+
+    // Cliente no formato que o componente usa para editar (editarCliente no
+    // Default.cshtml.js): o mesmo para a busca e para as linhas iniciais da grade.
+    public static object Registro(Cliente c) => new
+    {
+        id = c.IdCliente,
+        nome = c.NmCliente,
+        tipoPessoa = c.TpPessoa,
+        cpf = c.NrCpf,
+        cnpj = c.NrCnpj,
+        documento = c.NrDocumento,
+        rg = c.NrRG,
+        nomeFantasia = c.DsNomeFantasia,
+        inscEstadual = c.NrInscEstadual,
+        inscMunicipal = c.NrInscMunicipal,
+        telefoneFixo = c.NrTelefoneFixo,
+        celular = c.NrCelular,
+        site = c.DsSite,
+        email = c.DsEmail,
+        end = c.DsEndereco,
+        numero = c.NrNumero,
+        complemento = c.DsComplemento,
+        bairro = c.DsBairro,
+        idCidade = c.IdCidade,
+        cidadeNome = Module.CidadeUf(c.Cidade),
+        cep = c.NrCEP,
+        nasc = c.DtNascimento,
+        sexo = c.DsSexo,
+        idCondicaoPagamento = c.IdCondicaoPagamento,
+        condicaoNome = c.CondicaoPagamento?.DsCondicao,
+        obs = c.DsObservacao,
+        ativo = c.FlAtivo
+    };
 }

@@ -20,6 +20,7 @@ public class ClienteBusiness
     public async Task<List<Cliente>> Listar() =>
         await _db.Clientes
             .Include(c => c.Cidade).ThenInclude(c => c!.Estado)
+            .Include(c => c.CondicaoPagamento)
             .Where(c => c.FlAtivo)
             .OrderBy(c => c.NmCliente)
             .ToListAsync();
@@ -30,6 +31,7 @@ public class ClienteBusiness
     {
         var query = _db.Clientes
             .Include(c => c.Cidade).ThenInclude(c => c!.Estado)
+            .Include(c => c.CondicaoPagamento)
             .Where(c => c.FlAtivo != somenteInativos);
 
         if (id.HasValue)
@@ -91,7 +93,12 @@ public class ClienteBusiness
         registro.NrCnpj = cliente.NrCnpj;
         registro.NrDocumento = cliente.NrDocumento;
         registro.NrRG = cliente.NrRG;
-        registro.NrTelefone = cliente.NrTelefone;
+        registro.DsNomeFantasia = cliente.DsNomeFantasia;
+        registro.NrInscEstadual = cliente.NrInscEstadual;
+        registro.NrInscMunicipal = cliente.NrInscMunicipal;
+        registro.NrTelefoneFixo = cliente.NrTelefoneFixo;
+        registro.NrCelular = cliente.NrCelular;
+        registro.DsSite = cliente.DsSite;
         registro.DsEmail = cliente.DsEmail;
         registro.DsEndereco = cliente.DsEndereco;
         registro.NrNumero = cliente.NrNumero;
@@ -101,6 +108,7 @@ public class ClienteBusiness
         registro.NrCEP = cliente.NrCEP;
         registro.DtNascimento = cliente.DtNascimento;
         registro.DsSexo = cliente.DsSexo;
+        registro.IdCondicaoPagamento = cliente.IdCondicaoPagamento;
         registro.DsObservacao = cliente.DsObservacao;
         registro.FlAtivo = cliente.FlAtivo;
 
@@ -119,15 +127,26 @@ public class ClienteBusiness
 
         c.NrCpf = Module.SomenteNumeros(c.NrCpf);
         c.NrCnpj = Module.SomenteNumeros(c.NrCnpj);
-        c.NrTelefone = Module.SomenteNumeros(c.NrTelefone);
+        c.NrTelefoneFixo = Module.SomenteNumeros(c.NrTelefoneFixo);
+        c.NrCelular = Module.SomenteNumeros(c.NrCelular);
         c.NrCEP = Module.SomenteNumeros(c.NrCEP);
         c.NrRG = Module.SomenteNumeros(c.NrRG);
 
+        // So fica o que vale para o tipo: RG so na fisica; sexo e nascimento
+        // nao existem na juridica; nome fantasia e inscricoes so na juridica.
         switch (tipo)
         {
-            case "F": c.NrCnpj = null; c.NrDocumento = null; break;
-            case "J": c.NrCpf = null; c.NrDocumento = null; break;
-            default: c.NrCpf = null; c.NrCnpj = null; break;   // E
+            case "F":
+                c.NrCnpj = null; c.NrDocumento = null;
+                c.DsNomeFantasia = null; c.NrInscEstadual = null; c.NrInscMunicipal = null;
+                break;
+            case "J":
+                c.NrCpf = null; c.NrDocumento = null; c.NrRG = null; c.DsSexo = null; c.DtNascimento = null;
+                break;
+            default:   // E
+                c.NrCpf = null; c.NrCnpj = null; c.NrRG = null;
+                c.DsNomeFantasia = null; c.NrInscEstadual = null; c.NrInscMunicipal = null;
+                break;
         }
 
         c.NmCliente = Module.Truncar(c.NmCliente?.Trim(), 200) ?? string.Empty;
@@ -135,7 +154,12 @@ public class ClienteBusiness
         c.NrCnpj = Module.Truncar(c.NrCnpj, 14);
         c.NrDocumento = Module.Truncar(c.NrDocumento, 20);
         c.NrRG = Module.Truncar(c.NrRG, 12);
-        c.NrTelefone = Module.Truncar(c.NrTelefone, 11);
+        c.DsNomeFantasia = Module.Truncar(c.DsNomeFantasia?.Trim(), 150);
+        c.NrInscEstadual = Module.Truncar(c.NrInscEstadual?.Trim(), 13);
+        c.NrInscMunicipal = Module.Truncar(c.NrInscMunicipal?.Trim(), 15);
+        c.NrTelefoneFixo = Module.Truncar(c.NrTelefoneFixo, 11);
+        c.NrCelular = Module.Truncar(c.NrCelular, 11);
+        c.DsSite = Module.Truncar(c.DsSite?.Trim(), 150);
         c.DsEmail = Module.Truncar(c.DsEmail, 150);
         c.DsEndereco = Module.Truncar(c.DsEndereco, 200);
         c.NrNumero = Module.Truncar(c.NrNumero, 10);
@@ -166,7 +190,18 @@ public class ClienteBusiness
                 throw new ValidacaoException("Informe o CNPJ do cliente.");
             if (!Module.CnpjValido(c.NrCnpj))
                 throw new ValidacaoException("CNPJ inválido. Verifique os números informados.");
+
+            // Inscricoes opcionais, validadas quando preenchidas (mesma regra do fornecedor).
+            if (!string.IsNullOrEmpty(c.NrInscEstadual) && (c.NrInscEstadual.Length < 8 || !c.NrInscEstadual.All(char.IsDigit)))
+                throw new ValidacaoException("Inscrição Estadual deve ter de 8 a 13 dígitos.");
+            if (!string.IsNullOrEmpty(c.NrInscMunicipal) && c.NrInscMunicipal.Length < 7)
+                throw new ValidacaoException("Inscrição Municipal deve ter de 7 a 15 caracteres.");
         }
+
+        // Condicao de pagamento vem da pesquisa do campo; so aceita uma ja cadastrada e ativa.
+        if (c.IdCondicaoPagamento is int idCondicao
+            && !await _db.CondicoesPagamento.AnyAsync(x => x.IdCondicaoPagamento == idCondicao && x.FlAtivo))
+            throw new ValidacaoException("Condição de pagamento inválida.");
 
         if (!string.IsNullOrWhiteSpace(c.DsEmail) && !new EmailAddressAttribute().IsValid(c.DsEmail))
             throw new ValidacaoException("E-mail inválido. Verifique o formato (exemplo: nome@dominio.com).");

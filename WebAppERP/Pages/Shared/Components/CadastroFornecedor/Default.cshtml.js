@@ -77,7 +77,7 @@ function limparFormFornecedor() {
     });
     document.getElementById('formId').value = '0';
     document.getElementById('formTpPessoa').value = 'J';
-    document.getElementById('formFlAtivo').value = 'true';
+    definirAtivo('formFlAtivo', true);
     limparCidade('formIdCidade');
     toggleTipoPessoaFornecedor();
 }
@@ -117,7 +117,7 @@ function editarFornecedor(f) {
     document.getElementById('formTpChavePix').value = f.tipoChavePix || '';
     document.getElementById('formDsChavePix').value = f.chavePix || '';
     aplicarMascaraPix();
-    document.getElementById('formFlAtivo').value = (f.ativo === true || f.ativo === 'True') ? 'true' : 'false';
+    definirAtivo('formFlAtivo', f.ativo === true || f.ativo === 'True');
     toggleTipoPessoaFornecedor();
 }
 
