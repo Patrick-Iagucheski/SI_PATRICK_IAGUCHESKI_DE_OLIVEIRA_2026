@@ -141,6 +141,7 @@ const PESQUISA_FORNECEDOR = {
     titulo: 'Pesquisar Fornecedor',
     // Mesma busca da tela de Fornecedores (so ativos, sem diferenciar acento).
     url: () => urlFornecedores('BuscarFornecedores'),
+    inativos: 'Exibir Fornecedores Inativos',
     filtros: [
         { param: 'id', rotulo: 'ID', tipo: 'number', col: 2 },
         { param: 'razao', rotulo: 'Razão Social', col: 4 },

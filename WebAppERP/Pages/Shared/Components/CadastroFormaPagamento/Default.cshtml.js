@@ -28,6 +28,7 @@ const PESQUISA_FORMA = {
     titulo: 'Pesquisar Forma de Pagamento',
     // So ativas, sem diferenciar acento.
     url: () => urlFormas('BuscarFormas'),
+    inativos: 'Exibir Formas Inativas',
     filtros: [
         { param: 'id', rotulo: 'ID', tipo: 'number', col: 2 },
         { param: 'termo', rotulo: 'Descrição', col: 6 }

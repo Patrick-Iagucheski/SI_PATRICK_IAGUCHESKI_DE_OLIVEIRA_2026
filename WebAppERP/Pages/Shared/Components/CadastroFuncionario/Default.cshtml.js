@@ -58,6 +58,7 @@ function abrirPesquisaCargo() {
         chave: 'cargo',
         titulo: 'Pesquisar Cargo',
         url: () => urlCargos('BuscarCargos'),
+        inativos: 'Exibir Cargos Inativos',
         filtros: [
             { param: 'id', rotulo: 'ID', tipo: 'number', col: 2 },
             { param: 'termo', rotulo: 'Cargo / Descrição', col: 6 }
@@ -133,6 +134,7 @@ const PESQUISA_FUNCIONARIO = {
     titulo: 'Pesquisar Funcionário',
     // Mesma busca da tela de Funcionarios (so ativos, sem diferenciar acento).
     url: () => urlFuncionarios('BuscarFuncionarios'),
+    inativos: 'Exibir Funcionários Inativos',
     filtros: [
         { param: 'id', rotulo: 'ID', tipo: 'number', col: 2 },
         { param: 'nome', rotulo: 'Nome', col: 4 },

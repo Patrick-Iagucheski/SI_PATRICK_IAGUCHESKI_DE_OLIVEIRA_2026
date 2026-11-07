@@ -59,8 +59,8 @@ function urlProdutos(handler) {
 // Editar e Novo abrem o cadastro rapido, a lixeira usa o Excluir da tela de
 // Marcas / Categorias (regras do Business).
 const AUX_PRODUTO = {
-    marca:     { nome: 'Marca',     select: 'prodIdMarca',     pref: 'marca',     tela: 'urlMarcas',     busca: 'BuscarMarcas',     rapido: 'MarcaRapido',     dto: ['idMarca', 'nmMarca'] },
-    categoria: { nome: 'Categoria', select: 'prodIdCategoria', pref: 'categoria', tela: 'urlCategorias', busca: 'BuscarCategorias', rapido: 'CategoriaRapido', dto: ['idCategoria', 'nmCategoria'] }
+    marca:     { nome: 'Marca',     plural: 'Marcas',     select: 'prodIdMarca',     pref: 'marca',     tela: 'urlMarcas',     busca: 'BuscarMarcas',     rapido: 'MarcaRapido',     dto: ['idMarca', 'nmMarca'] },
+    categoria: { nome: 'Categoria', plural: 'Categorias', select: 'prodIdCategoria', pref: 'categoria', tela: 'urlCategorias', busca: 'BuscarCategorias', rapido: 'CategoriaRapido', dto: ['idCategoria', 'nmCategoria'] }
 };
 
 function urlTelaProduto(tela, handler) {
@@ -73,6 +73,7 @@ function abrirPesquisaAuxProduto(tipo) {
         chave: tipo,
         titulo: 'Pesquisar ' + a.nome,
         url: () => urlTelaProduto(a.tela, a.busca),
+        inativos: 'Exibir ' + a.plural + ' Inativas',
         filtros: [
             { param: 'id', rotulo: 'ID', tipo: 'number', col: 2 },
             { param: 'termo', rotulo: a.nome, col: 6 }
@@ -172,6 +173,7 @@ const PESQUISA_PRODUTO = {
     titulo: 'Pesquisar Produto',
     // Mesma busca da tela de Produtos (so ativos, sem diferenciar acento).
     url: () => urlProdutos('BuscarProdutos'),
+    inativos: 'Exibir Produtos Inativos',
     filtros: [
         { param: 'id', rotulo: 'ID', tipo: 'number', col: 2 },
         { param: 'termo', rotulo: 'Produto / Marca / Categoria', col: 6 }

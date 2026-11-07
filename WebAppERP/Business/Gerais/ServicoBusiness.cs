@@ -22,10 +22,11 @@ public class ServicoBusiness
             .OrderBy(s => s.DsServico)
             .ToListAsync();
 
-    // Pesquisa rapida (lupa do campo de servico): so ativos, por codigo, nome ou categoria.
-    public async Task<List<Servico>> Pesquisar(int? id, string? termo)
+    // Pesquisa (campo de servico): por codigo, nome ou categoria. Sem
+    // "inativos" marcado traz so os ativos; marcado, so os inativos.
+    public async Task<List<Servico>> Pesquisar(int? id, string? termo, bool somenteInativos = false)
     {
-        var query = _db.Servicos.Where(s => s.FlAtivo);
+        var query = _db.Servicos.Where(s => s.FlAtivo != somenteInativos);
 
         if (id.HasValue)
             query = query.Where(s => s.IdServico == id.Value);

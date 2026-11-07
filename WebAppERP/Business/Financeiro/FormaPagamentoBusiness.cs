@@ -23,11 +23,11 @@ public class FormaPagamentoBusiness
             .OrderBy(f => f.DsFormaPagamento)
             .ToListAsync();
 
-    // Pesquisa (lupa dos campos de forma): so ativas, por codigo ou descricao
-    // (sem diferenciar acento).
-    public async Task<List<FormaPagamento>> Pesquisar(int? id, string? termo)
+    // Pesquisa (campos de forma): por codigo ou descricao (sem diferenciar
+    // acento). Sem "inativas" marcado traz so as ativas; marcado, so as inativas.
+    public async Task<List<FormaPagamento>> Pesquisar(int? id, string? termo, bool somenteInativas = false)
     {
-        var query = _db.FormasPagamento.Where(f => f.FlAtivo);
+        var query = _db.FormasPagamento.Where(f => f.FlAtivo != somenteInativas);
 
         if (id.HasValue)
             query = query.Where(f => f.IdFormaPagamento == id.Value);

@@ -117,6 +117,7 @@ const PESQUISA_CLIENTE = {
     titulo: 'Pesquisar Cliente',
     // Mesma busca da tela de Clientes (so ativos, sem diferenciar acento).
     url: () => urlClientes('BuscarClientes'),
+    inativos: 'Exibir Clientes Inativos',
     filtros: [
         { param: 'id', rotulo: 'ID', tipo: 'number', col: 2 },
         { param: 'nome', rotulo: 'Nome', col: 4 },

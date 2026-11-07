@@ -207,6 +207,10 @@ function secaoDoCampo(id) {
 //   houver cadastro, editar(reg), novo() e excluir: { url(), nome(reg),
 //   depois(reg) } (lixeira: usa o Excluir da tela do cadastro, com as regras do
 //   Business; depois limpa o campo de quem chamou se o registro estava nele).
+//   inativos: texto do checkbox "Exibir ... Inativos" (cadastros com ativo /
+//   inativo). Marcado, envia incluirInativos=true e lista so os inativos, como
+//   nas telas de cadastro; inativo pode ser editado (para reativar), mas nao
+//   selecionado.
 // Busca no botao Buscar ou no Enter, como nas telas de cadastro, e ao abrir
 // ja lista os registros disponiveis.
 const pesquisas = {};
@@ -230,6 +234,10 @@ function abrirPesquisa(cfg) {
         cfg.colunas.map((c, i) => '<th' + (i === 0 ? ' style="width: 90px;"' : '') + '>' + c + '</th>').join('') +
         '<th class="text-center" style="width: 150px;">Ações</th>';
     modal.querySelector('[data-novo]').classList.toggle('d-none', !cfg.novo);
+    const inativos = modal.querySelector('[data-inativos]');
+    inativos.classList.toggle('d-none', !cfg.inativos);
+    inativos.querySelector('input').checked = false;
+    inativos.querySelector('label').textContent = cfg.inativos || '';
 
     bootstrap.Modal.getOrCreateInstance(modal).show();
     recarregarPesquisa(cfg.chave);
@@ -245,7 +253,8 @@ async function recarregarPesquisa(chave) {
 
     const params = new URLSearchParams();
     modal.querySelectorAll('[data-param]').forEach(i => {
-        if (i.value.trim()) params.append(i.dataset.param, i.value.trim());
+        if (i.type === 'checkbox') { if (i.checked) params.append(i.dataset.param, 'true'); }
+        else if (i.value.trim()) params.append(i.dataset.param, i.value.trim());
     });
 
     exibirErro(modal, null);
@@ -264,9 +273,11 @@ async function recarregarPesquisa(chave) {
                 '<td class="text-center text-nowrap">' +
                     (cfg.editar ? '<button type="button" class="btn btn-icon btn-outline-primary me-1" data-acao="editar" title="Editar"><i class="bi bi-pencil"></i></button>' : '') +
                     (cfg.excluir ? '<button type="button" class="btn btn-icon btn-outline-danger me-1" data-acao="excluir" title="Excluir"><i class="bi bi-trash"></i></button>' : '') +
-                    '<button type="button" class="btn btn-icon btn-outline-success" data-acao="selecionar" title="Selecionar"><i class="bi bi-check-lg"></i></button>' +
+                    (reg.ativo === false
+                        ? '<span class="badge-status badge-inativo ms-1">Inativo</span>'
+                        : '<button type="button" class="btn btn-icon btn-outline-success" data-acao="selecionar" title="Selecionar"><i class="bi bi-check-lg"></i></button>') +
                 '</td>';
-            tr.querySelector('[data-acao="selecionar"]').addEventListener('click', () => {
+            tr.querySelector('[data-acao="selecionar"]')?.addEventListener('click', () => {
                 cfg.selecionar(reg);
                 fecharPesquisa(chave);
             });
@@ -392,6 +403,7 @@ function abrirPesquisaComCadastro(cfg, opcoes) {
         filtros: cfg.filtros,
         colunas: cfg.colunas,
         celulas: cfg.celulas,
+        inativos: cfg.inativos,
         selecionar: opcoes.selecionar,
         editar: temCadastro ? reg => { estado.emEdicao = true; cfg.preencher(reg); abrirModalEmpilhado(cfg.modal); } : null,
         novo: temCadastro ? () => { estado.emEdicao = false; cfg.limpar(); abrirModalEmpilhado(cfg.modal); } : null,
@@ -555,9 +567,15 @@ function criarModalPesquisa(chave) {
             '<div class="modal-body">' +
                 '<div class="card mb-3"><div class="card-body py-3">' +
                     '<div class="row g-2 align-items-end" data-filtros></div>' +
-                    '<div class="d-flex justify-content-end gap-2 mt-3">' +
-                        '<button type="button" class="btn btn-outline-primary d-none" data-novo><i class="bi bi-plus-lg me-1"></i>Novo</button>' +
-                        '<button type="button" class="btn btn-primary" data-buscar><i class="bi bi-search me-1"></i>Buscar</button>' +
+                    '<div class="d-flex justify-content-between align-items-center gap-2 mt-3">' +
+                        '<div class="form-check mb-0 d-none" data-inativos>' +
+                            '<input class="form-check-input" type="checkbox" id="pesquisa-' + chave + '-inativos" data-param="incluirInativos" />' +
+                            '<label class="form-check-label" for="pesquisa-' + chave + '-inativos"></label>' +
+                        '</div>' +
+                        '<div class="d-flex gap-2 ms-auto">' +
+                            '<button type="button" class="btn btn-outline-primary d-none" data-novo><i class="bi bi-plus-lg me-1"></i>Novo</button>' +
+                            '<button type="button" class="btn btn-primary" data-buscar><i class="bi bi-search me-1"></i>Buscar</button>' +
+                        '</div>' +
                     '</div>' +
                 '</div></div>' +
                 '<div class="table-responsive busca-resultados"><table class="table">' +
@@ -566,6 +584,8 @@ function criarModalPesquisa(chave) {
             '</div>' +
         '</div></div>';
     modal.querySelector('[data-buscar]').addEventListener('click', () => recarregarPesquisa(chave));
+    // Como nas telas: marcar ou desmarcar os inativos ja refaz a busca.
+    modal.querySelector('[data-inativos] input').addEventListener('change', () => recarregarPesquisa(chave));
     modal.querySelector('[data-novo]').addEventListener('click', () => pesquisas[chave].novo());
     document.body.appendChild(modal);
     return modal;

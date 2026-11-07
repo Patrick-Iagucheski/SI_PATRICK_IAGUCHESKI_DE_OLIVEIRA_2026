@@ -134,6 +134,7 @@ const PESQUISA_CONDICAO = {
     chave: 'condicao',
     titulo: 'Pesquisar Condição de Pagamento',
     url: () => urlCondicoes('BuscarCondicoes'),
+    inativos: 'Exibir Condições Inativas',
     filtros: [
         { param: 'id', rotulo: 'ID', tipo: 'number', col: 2 },
         { param: 'condicao', rotulo: 'Condição', col: 6 }

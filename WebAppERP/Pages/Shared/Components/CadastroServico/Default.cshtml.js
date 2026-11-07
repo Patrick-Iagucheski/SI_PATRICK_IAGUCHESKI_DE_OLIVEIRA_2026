@@ -35,6 +35,7 @@ const PESQUISA_SERVICO = {
     titulo: 'Pesquisar Serviço',
     // Mesma busca da tela de Servicos (so ativos, sem diferenciar acento).
     url: () => urlServicos('BuscarServicos'),
+    inativos: 'Exibir Serviços Inativos',
     filtros: [
         { param: 'id', rotulo: 'ID', tipo: 'number', col: 2 },
         { param: 'termo', rotulo: 'Serviço / Categoria', col: 6 }

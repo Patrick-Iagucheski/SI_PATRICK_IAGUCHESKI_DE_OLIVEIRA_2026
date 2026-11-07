@@ -36,11 +36,11 @@ public class ServicosModel : PaginaBase
             return new { sucesso = true, id = s.IdServico, nome = s.DsServico, valor = s.VlServico, duracao = s.NrDuracaoMin };
         });
 
-    // Pesquisa (componente): so ativos, por codigo ou nome, com os dados que a
-    // grade e o Editar usam.
-    public async Task<IActionResult> OnGetBuscarServicos(int? id, string? termo)
+    // Pesquisa (componente): por codigo, nome ou categoria, com os dados que a
+    // grade e o Editar usam. incluirInativos: so os inativos.
+    public async Task<IActionResult> OnGetBuscarServicos(int? id, string? termo, bool incluirInativos = false)
     {
-        var lista = await _servico.Pesquisar(id, termo);
+        var lista = await _servico.Pesquisar(id, termo, incluirInativos);
         return new JsonResult(lista.Select(s => new
         {
             id = s.IdServico,
