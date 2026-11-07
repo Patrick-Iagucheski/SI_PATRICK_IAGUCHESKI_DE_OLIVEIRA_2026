@@ -129,13 +129,13 @@
     {
         "dadosIniciais": @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.Fornecedores.Select(f => new {
             id = f.IdFornecedor, tipoPessoa = f.TpPessoa, razaoSocial = f.DsRazaoSocial, nomeFantasia = f.DsNomeFantasia,
-            contatoPrincipal = f.DsContatoPrincipal, cpf = f.NrCpf, cnpj = f.NrCNPJ, documento = f.NrDocumento,
+            cpf = f.NrCpf, cnpj = f.NrCNPJ, documento = f.NrDocumento,
             inscEstadual = f.NrInscEstadual, inscMunicipal = f.NrInscMunicipal, rg = f.NrRG,
             dataNascimento = f.DtNascimento != null ? f.DtNascimento.Value.ToString("yyyy-MM-dd") : null,
             email = f.DsEmail, observacao = f.DsObservacao,
             cep = f.NrCEP, endereco = f.DsEndereco, numero = f.NrNumero, complemento = f.DsComplemento, bairro = f.DsBairro,
-            idCidade = f.IdCidade, idCondicaoPagamento = f.IdCondicaoPagamento, cidadeNome =f.Cidade != null ? f.Cidade.NmCidade + " / " + f.Cidade.Estado?.SgUF : null,
-            telefoneFixo = f.NrTelefoneFixo, celular = f.NrCelular, whatsApp = f.NrWhatsApp,
+            idCidade = f.IdCidade, idCondicaoPagamento = f.IdCondicaoPagamento, cidadeNome = Module.CidadeUf(f.Cidade),
+            telefoneFixo = f.NrTelefoneFixo, celular = f.NrCelular, site = f.DsSite,
             banco = f.DsBanco, agencia = f.NrAgencia, tipoConta = f.TpConta, conta = f.NrConta, digitoConta = f.NrDigitoConta,
             tipoChavePix = f.TpChavePix, chavePix = f.DsChavePix, ativo = f.FlAtivo
         })))

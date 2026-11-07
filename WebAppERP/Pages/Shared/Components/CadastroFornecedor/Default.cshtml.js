@@ -9,7 +9,6 @@ aplicarMascara('formNrCNPJ', mascaraCNPJ);
 aplicarMascara('formNrCEP', mascaraCEP);
 aplicarMascara('formNrTelefoneFixo', mascaraTelefone);
 aplicarMascara('formNrCelular', mascaraTelefone);
-aplicarMascara('formNrWhatsApp', mascaraTelefone);
 aplicarMascara('formNrRG', mascaraRG);
 
 // ===== Tipo de Pessoa: alterna documento e os campos especificos =====
@@ -24,6 +23,12 @@ function toggleTipoPessoaFornecedor() {
     document.getElementById('wrapDoc').classList.toggle('d-none', !(tipo === 'E' || tipo === 'O'));
     document.getElementById('lblDoc').textContent = tipo === 'E' ? 'Documento Internacional' : 'Documento';
     document.getElementById('lblRazao').textContent = tipo === 'J' ? 'Razão Social *' : 'Nome / Razão Social *';
+
+    // Nome Fantasia so na juridica, ao lado da Razao Social (que desce para a
+    // linha dele). Escondido, o campo e limpo para nao gravar valor de outro tipo.
+    document.getElementById('wrapFantasia').classList.toggle('d-none', !ehJ);
+    document.getElementById('formQuebraRazao').classList.toggle('d-none', !ehJ);
+    if (!ehJ) document.getElementById('formDsNomeFantasia').value = '';
 
     // Slot A: Inscricao Estadual (J / E / O) ou RG (F)
     document.getElementById('wrapInscEstadual').classList.toggle('d-none', ehF);
@@ -72,7 +77,7 @@ document.querySelector('#modalFornecedor form')?.addEventListener('submit', func
 
 function limparFormFornecedor() {
     document.getElementById('fornTitulo').innerHTML = '<i class="bi bi-truck me-2"></i>Novo Fornecedor';
-    ['formDsRazaoSocial','formDsNomeFantasia','formDsContatoPrincipal','formNrCNPJ','formNrCpf','formNrDocumento','formNrInscEstadual','formNrInscMunicipal','formNrRG','formDtNascimento','formDsObservacao','formNrCEP','formDsEndereco','formNrNumero','formDsComplemento','formDsBairro','formIdCondicaoPagamento','formNrTelefoneFixo','formNrCelular','formNrWhatsApp','formDsEmail','formDsBanco','formNrAgencia','formTpConta','formNrConta','formNrDigitoConta','formTpChavePix','formDsChavePix','formCodigoDisplay'].forEach(id => {
+    ['formDsRazaoSocial','formDsNomeFantasia','formNrCNPJ','formNrCpf','formNrDocumento','formNrInscEstadual','formNrInscMunicipal','formNrRG','formDtNascimento','formDsObservacao','formNrCEP','formDsEndereco','formNrNumero','formDsComplemento','formDsBairro','formIdCondicaoPagamento','formNrTelefoneFixo','formNrCelular','formDsEmail','formDsSite','formDsBanco','formNrAgencia','formTpConta','formNrConta','formNrDigitoConta','formTpChavePix','formDsChavePix','formCodigoDisplay'].forEach(id => {
         document.getElementById(id).value = '';
     });
     document.getElementById('formId').value = '0';
@@ -89,7 +94,6 @@ function editarFornecedor(f) {
     document.getElementById('formTpPessoa').value = f.tipoPessoa || 'J';
     document.getElementById('formDsRazaoSocial').value = f.razaoSocial || '';
     document.getElementById('formDsNomeFantasia').value = f.nomeFantasia || '';
-    document.getElementById('formDsContatoPrincipal').value = f.contatoPrincipal || '';
     document.getElementById('formNrCNPJ').value = mascaraCNPJ(f.cnpj || '');
     document.getElementById('formNrCpf').value = mascaraCPF(f.cpf || '');
     document.getElementById('formNrDocumento').value = f.documento || '';
@@ -108,7 +112,7 @@ function editarFornecedor(f) {
     document.getElementById('formIdCondicaoPagamento').value = f.idCondicaoPagamento || '';
     document.getElementById('formNrTelefoneFixo').value = mascaraTelefone(f.telefoneFixo || '');
     document.getElementById('formNrCelular').value = mascaraTelefone(f.celular || '');
-    document.getElementById('formNrWhatsApp').value = mascaraTelefone(f.whatsApp || '');
+    document.getElementById('formDsSite').value = f.site || '';
     document.getElementById('formDsBanco').value = f.banco || '';
     document.getElementById('formNrAgencia').value = f.agencia || '';
     document.getElementById('formTpConta').value = f.tipoConta || '';

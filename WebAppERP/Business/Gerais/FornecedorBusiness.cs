@@ -97,7 +97,6 @@ public class FornecedorBusiness
         registro.TpPessoa = fornecedor.TpPessoa;
         registro.DsRazaoSocial = fornecedor.DsRazaoSocial;
         registro.DsNomeFantasia = fornecedor.DsNomeFantasia;
-        registro.DsContatoPrincipal = fornecedor.DsContatoPrincipal;
         registro.NrCpf = fornecedor.NrCpf;
         registro.NrCNPJ = fornecedor.NrCNPJ;
         registro.NrDocumento = fornecedor.NrDocumento;
@@ -117,7 +116,7 @@ public class FornecedorBusiness
         registro.IdCondicaoPagamento = fornecedor.IdCondicaoPagamento;
         registro.NrTelefoneFixo = fornecedor.NrTelefoneFixo;
         registro.NrCelular = fornecedor.NrCelular;
-        registro.NrWhatsApp = fornecedor.NrWhatsApp;
+        registro.DsSite = fornecedor.DsSite;
         registro.DsBanco = fornecedor.DsBanco;
         registro.NrAgencia = fornecedor.NrAgencia;
         registro.TpConta = fornecedor.TpConta;
@@ -144,22 +143,23 @@ public class FornecedorBusiness
         f.NrCEP = Module.SomenteNumeros(f.NrCEP);
         f.NrTelefoneFixo = Module.SomenteNumeros(f.NrTelefoneFixo);
         f.NrCelular = Module.SomenteNumeros(f.NrCelular);
-        f.NrWhatsApp = Module.SomenteNumeros(f.NrWhatsApp);
         f.NrRG = Module.SomenteNumeros(f.NrRG);
 
-        // PJ (J)  -> CNPJ, Inscricao Estadual, Inscricao Municipal
+        // PJ (J)  -> CNPJ, Nome Fantasia, Inscricao Estadual, Inscricao Municipal
         // PF (F)  -> CPF, RG, Data de Nascimento
         // E / O   -> Documento, Inscricao Estadual, Data de Nascimento
         switch (tipo)
         {
             case "F":
                 f.NrCNPJ = null; f.NrDocumento = null; f.NrInscEstadual = null; f.NrInscMunicipal = null;
+                f.DsNomeFantasia = null;
                 break;
             case "J":
                 f.NrCpf = null; f.NrDocumento = null; f.NrRG = null; f.DtNascimento = null;
                 break;
             default:
                 f.NrCpf = null; f.NrCNPJ = null; f.NrRG = null; f.NrInscMunicipal = null;
+                f.DsNomeFantasia = null;
                 break;
         }
 
@@ -170,7 +170,6 @@ public class FornecedorBusiness
 
         f.DsRazaoSocial = Module.Truncar(f.DsRazaoSocial?.Trim(), 200) ?? string.Empty;
         f.DsNomeFantasia = Module.Truncar(f.DsNomeFantasia, 150);
-        f.DsContatoPrincipal = Module.Truncar(f.DsContatoPrincipal, 120);
         f.NrCpf = Module.Truncar(f.NrCpf, 11);
         f.NrCNPJ = Module.Truncar(f.NrCNPJ, 14);
         f.NrDocumento = Module.Truncar(f.NrDocumento, 30);
@@ -186,7 +185,7 @@ public class FornecedorBusiness
         f.DsBairro = Module.Truncar(f.DsBairro, 100);
         f.NrTelefoneFixo = Module.Truncar(f.NrTelefoneFixo, 11);
         f.NrCelular = Module.Truncar(f.NrCelular, 11);
-        f.NrWhatsApp = Module.Truncar(f.NrWhatsApp, 11);
+        f.DsSite = Module.Truncar(f.DsSite?.Trim(), 150);
         f.DsBanco = Module.Truncar(f.DsBanco, 60);
         f.NrAgencia = Module.Truncar(f.NrAgencia, 10);
         f.NrConta = Module.Truncar(f.NrConta, 20);

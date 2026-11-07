@@ -25,6 +25,13 @@
                     <input type="hidden" asp-for="FornecedorForm.IdFornecedor" id="formId" />
 
                     <!-- ===== Dados Cadastrais ===== -->
+                    <!-- Layout por tipo (toggleTipoPessoaFornecedor), igual ao do cliente:
+                         Juridica:  Razao Social | Nome Fantasia
+                                    CNPJ | Insc. Estadual | Insc. Municipal
+                         Fisica:    CPF | RG | Nascimento
+                         Estrangeiro / Outro: Documento | Insc. Estadual | Nascimento
+                         Depois: Endereco, Contato, Dados Bancarios, PIX,
+                         Condicao de Pagamento | Status e, no fim, Observacoes. -->
                     <h6 class="text-primary border-bottom pb-1 mb-3"><i class="bi bi-card-list me-1"></i>Dados Cadastrais</h6>
                     <div class="row g-3">
                         <div class="col-md-2">
@@ -40,18 +47,15 @@
                                 <option value="O">Outro</option>
                             </select>
                         </div>
+                        <!-- Juridica: Razao Social desce para a linha do Nome Fantasia -->
+                        <div class="w-100 m-0" id="formQuebraRazao"></div>
                         <div class="col-md-6">
                             <label class="form-label" id="lblRazao">Razão Social *</label>
                             <input type="text" class="form-control" asp-for="FornecedorForm.DsRazaoSocial" id="formDsRazaoSocial" maxlength="200" required />
                         </div>
-
-                        <div class="col-md-6">
+                        <div class="col-md-6" id="wrapFantasia">
                             <label class="form-label">Nome Fantasia</label>
                             <input type="text" class="form-control" asp-for="FornecedorForm.DsNomeFantasia" id="formDsNomeFantasia" maxlength="150" />
-                        </div>
-                        <div class="col-md-6">
-                            <label class="form-label">Contato Principal</label>
-                            <input type="text" class="form-control" asp-for="FornecedorForm.DsContatoPrincipal" id="formDsContatoPrincipal" maxlength="120" />
                         </div>
 
                         <div class="col-md-4 doc-wrap" id="wrapCnpj">
@@ -124,16 +128,16 @@
                             <input type="text" class="form-control" asp-for="FornecedorForm.NrTelefoneFixo" id="formNrTelefoneFixo" maxlength="15" placeholder="(00) 0000-0000" />
                         </div>
                         <div class="col-md-3">
-                            <label class="form-label">Celular</label>
+                            <label class="form-label">Celular/WhatsApp</label>
                             <input type="text" class="form-control" asp-for="FornecedorForm.NrCelular" id="formNrCelular" maxlength="15" placeholder="(00) 00000-0000" />
                         </div>
                         <div class="col-md-3">
-                            <label class="form-label">WhatsApp</label>
-                            <input type="text" class="form-control" asp-for="FornecedorForm.NrWhatsApp" id="formNrWhatsApp" maxlength="15" placeholder="(00) 00000-0000" />
+                            <label class="form-label">E-mail</label>
+                            <input type="email" class="form-control" asp-for="FornecedorForm.DsEmail" id="formDsEmail" maxlength="150" />
                         </div>
                         <div class="col-md-3">
-                            <label class="form-label">E-mail Principal</label>
-                            <input type="email" class="form-control" asp-for="FornecedorForm.DsEmail" id="formDsEmail" maxlength="150" />
+                            <label class="form-label">Site</label>
+                            <input type="text" class="form-control" asp-for="FornecedorForm.DsSite" id="formDsSite" maxlength="150" placeholder="www.exemplo.com.br" />
                         </div>
                     </div>
 

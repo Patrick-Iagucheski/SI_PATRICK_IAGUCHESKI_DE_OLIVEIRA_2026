@@ -25,9 +25,6 @@ public class Fornecedor
     [MaxLength(150)]
     public string? DsNomeFantasia { get; set; }
 
-    [Column("dsContatoPrincipal")]
-    [MaxLength(120)]
-    public string? DsContatoPrincipal { get; set; }
 
     [Column("nrCpf")]
     [MaxLength(11)]
@@ -116,9 +113,12 @@ public class Fornecedor
     [MaxLength(11)]
     public string? NrCelular { get; set; }
 
-    [Column("nrWhatsApp")]
-    [MaxLength(11)]
-    public string? NrWhatsApp { get; set; }
+    // Site (Database/Migracoes/1794062400000_Alter_Table_tbGerFornecedores_Contato.sql).
+    // Celular e WhatsApp sao um campo so (nrCelular); nrWhatsApp e
+    // dsContatoPrincipal ficaram no banco, mas nao sao mais usados.
+    [Column("dsSite")]
+    [MaxLength(150)]
+    public string? DsSite { get; set; }
 
     // ===== Dados Bancarios =====
 
