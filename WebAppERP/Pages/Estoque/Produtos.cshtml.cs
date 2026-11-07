@@ -38,7 +38,7 @@ public class ProdutosModel : PaginaBase
     public Task<IActionResult> OnPost() =>
         Executar(() => _produto.Salvar(ProdutoForm, ImagemUpload), ProdutoForm.IdProduto == 0 ? "Produto cadastrado com sucesso." : "Produto atualizado com sucesso.");
 
-    // Cadastro pelo componente em modo AJAX (ex.: botao + da pesquisa de
+    // Cadastro pelo componente em modo AJAX (ex.: Novo/Editar da pesquisa de
     // produto na Compra). Mesmas regras do OnPost, mas responde JSON
     // para a tela de origem nao ser recarregada.
     public Task<IActionResult> OnPostSalvarAjax() =>
@@ -51,7 +51,9 @@ public class ProdutosModel : PaginaBase
                 id = produto.IdProduto,
                 nome = produto.DsProduto,
                 unidade = produto.SgUnidade,
-                custo = produto.VlCusto
+                custo = produto.VlCusto,
+                venda = produto.VlVenda,
+                estoque = produto.QtSaldo
             };
         });
 
@@ -63,13 +65,14 @@ public class ProdutosModel : PaginaBase
     // ============================================================
     public class MarcaRapidoDto
     {
+        public int IdMarca { get; set; }
         public string NmMarca { get; set; } = string.Empty;
     }
 
     public Task<IActionResult> OnPostMarcaRapido([FromBody] MarcaRapidoDto dto) =>
         ExecutarJson(async () =>
         {
-            var marca = await _marca.Salvar(new Marca { NmMarca = dto?.NmMarca ?? string.Empty, FlAtivo = true });
+            var marca = await _marca.Salvar(new Marca { IdMarca = dto?.IdMarca ?? 0, NmMarca = dto?.NmMarca ?? string.Empty, FlAtivo = true });
             return new { sucesso = true, id = marca.IdMarca, nome = marca.NmMarca };
         });
 
@@ -78,13 +81,14 @@ public class ProdutosModel : PaginaBase
     // ============================================================
     public class CategoriaRapidoDto
     {
+        public int IdCategoria { get; set; }
         public string NmCategoria { get; set; } = string.Empty;
     }
 
     public Task<IActionResult> OnPostCategoriaRapido([FromBody] CategoriaRapidoDto dto) =>
         ExecutarJson(async () =>
         {
-            var categoria = await _categoria.Salvar(new Categoria { NmCategoria = dto?.NmCategoria ?? string.Empty, FlAtivo = true });
+            var categoria = await _categoria.Salvar(new Categoria { IdCategoria = dto?.IdCategoria ?? 0, NmCategoria = dto?.NmCategoria ?? string.Empty, FlAtivo = true });
             return new { sucesso = true, id = categoria.IdCategoria, nome = categoria.NmCategoria };
         });
 

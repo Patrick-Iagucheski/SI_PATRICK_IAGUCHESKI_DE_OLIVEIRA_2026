@@ -53,9 +53,9 @@ public class CondicoesPagamentoModel : PaginaBase
         Executar(() => _condicao.Salvar(CondicaoForm, ParcelasDaTela()),
             CondicaoForm.IdCondicaoPagamento == 0 ? "Condição de pagamento cadastrada com sucesso." : "Condição de pagamento atualizada com sucesso.");
 
-    // Cadastro pelo componente em modo AJAX (ex.: botao + da condicao no
-    // cadastro de fornecedor e na Compra). Mesmas regras do OnPost, mas
-    // responde JSON para a tela de origem nao ser recarregada.
+    // Cadastro pelo componente em modo AJAX (pesquisa de condicao do cadastro
+    // de fornecedor e da Compra). Mesmas regras do OnPost, mas responde JSON
+    // para a tela de origem nao ser recarregada.
     public Task<IActionResult> OnPostSalvarAjax() =>
         ExecutarJson(async () =>
         {
@@ -85,7 +85,7 @@ public class CondicoesPagamentoModel : PaginaBase
         return new JsonResult(lista.Select(c => new
         {
             id = c.IdCondicaoPagamento,
-            condicao = c.DsCondicao,
+            nome = c.DsCondicao,
             juro = c.VlJuro,
             multa = c.VlMulta,
             desconto = c.VlDesconto,

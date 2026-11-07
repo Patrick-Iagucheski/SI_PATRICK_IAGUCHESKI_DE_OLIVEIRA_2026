@@ -5,7 +5,7 @@ using WebAppERP.Business.Gerais;
 namespace WebAppERP.Pages.Gerais;
 
 // Handlers AJAX do componente CampoCidade (ViewComponents/CampoCidadeViewComponent):
-// busca da droplist de cidade/estado/pais e cadastro rapido dos tres.
+// pesquisa de cidade/estado/pais e cadastro rapido dos tres.
 // Todas as telas com campo de cidade (Clientes, Funcionarios, Fornecedores,
 // Transportadores, Compra) usam estes mesmos handlers. As regras ficam nas
 // classes Business, as mesmas das telas de Cidades, Estados e Paises.
@@ -25,10 +25,10 @@ public class LocalidadesModel : PaginaBase
     public IActionResult OnGet() => RedirectToPage("/Gerais/Cidades");
 
     // ============================================================
-    // Busca da droplist e da pesquisa (cidade / estado / pais)
+    // Busca da pesquisa (cidade / estado / pais)
     // ============================================================
-    // nome + detalhe (UF ou sigla) servem a droplist; os demais campos servem a
-    // grade da pesquisa e o cadastro aberto pelo Editar.
+    // nome + detalhe (UF ou sigla) formam o texto do campo; os demais campos
+    // servem a grade da pesquisa e o cadastro aberto pelo Editar.
     // id: tambem usado ao editar um registro que so tem o idCidade, para exibir o nome.
     public async Task<IActionResult> OnGetBuscarCidades(int? id, string? termo, string? uf)
     {

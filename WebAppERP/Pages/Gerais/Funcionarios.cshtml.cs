@@ -17,7 +17,6 @@ public class FuncionariosModel : PaginaBase
     }
 
     public List<Funcionario> Funcionarios { get; set; } = [];
-    public List<Cargo> Cargos { get; set; } = [];
 
     [BindProperty]
     public Funcionario FuncionarioForm { get; set; } = new();
@@ -26,9 +25,6 @@ public class FuncionariosModel : PaginaBase
     {
         // Por padrao a listagem mostra apenas ativos (checkbox de inativos desmarcada).
         Funcionarios = await _funcionario.Listar();
-
-        // Apenas cargos ativos no dropdown.
-        Cargos = await _cargo.Listar();
     }
 
     public Task<IActionResult> OnPost() =>
@@ -37,11 +33,21 @@ public class FuncionariosModel : PaginaBase
     public Task<IActionResult> OnPostExcluir(int id) =>
         Executar(() => _funcionario.Excluir(id), "Funcionário excluído com sucesso.");
 
+    // Cadastro pelo componente em modo AJAX (pesquisas de funcionario de outras
+    // telas). Mesmas regras do OnPost, mas responde JSON para a tela de origem.
+    public Task<IActionResult> OnPostSalvarAjax() =>
+        ExecutarJson(async () =>
+        {
+            var f = await _funcionario.Salvar(FuncionarioForm);
+            return new { sucesso = true, id = f.IdFuncionario, nome = f.NmFuncionario };
+        });
+
     // ============================================================
     // Cadastro rapido de Cargo via AJAX (mesmas regras da tela de Cargos)
     // ============================================================
     public class CargoRapidoDto
     {
+        public int IdCargo { get; set; }
         public string NmCargo { get; set; } = string.Empty;
         public string? DsCargo { get; set; }
         public decimal? VlComissaoPadrao { get; set; }
@@ -52,6 +58,7 @@ public class FuncionariosModel : PaginaBase
         {
             var cargo = await _cargo.Salvar(new Cargo
             {
+                IdCargo = dto?.IdCargo ?? 0,
                 NmCargo = dto?.NmCargo ?? string.Empty,
                 DsCargo = dto?.DsCargo,
                 VlComissaoPadrao = dto?.VlComissaoPadrao,

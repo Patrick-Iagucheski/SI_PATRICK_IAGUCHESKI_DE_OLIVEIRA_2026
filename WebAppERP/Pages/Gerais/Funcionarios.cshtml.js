@@ -1,94 +1,5 @@
-﻿// Script da tela Funcionários (Pages/Gerais/Funcionarios.cshtml).
-
-// ===== Mascaras (funcoes em wwwroot/js/module.js; no banco salva so numeros) =====
-aplicarMascara('fCpf', mascaraCPF);
-aplicarMascara('fCep', mascaraCEP);
-aplicarMascara('fTel', mascaraTelefone);
-aplicarMascara('fRg', mascaraRG);
-
-function limparForm() {
-    document.getElementById('modalTitle').innerHTML = '<i class="bi bi-person-badge me-2"></i>Novo Funcionário';
-    ['fId','fNome','fApelido','fCpf','fRg','fSexo','fTel','fEmail','fEnd','fBairro','fNumero','fComplemento','fCep','fNasc','fAdm','fDem','fCargo','fSal','fCom','fObs','fCodigoDisplay'].forEach(id => {
-        document.getElementById(id).value = '';
-    });
-    document.getElementById('fId').value = '0';
-    document.getElementById('fAtivo').value = 'true';
-    limparCidade('fCidade');
-}
-
-function editarFunc(id,nome,cpf,tel,email,end,bairro,cidade,cep,nasc,adm,dem,idCargo,sal,com,obs,ativo,apelido,rg,numero,complemento,sexo) {
-    document.getElementById('modalTitle').innerHTML = '<i class="bi bi-pencil me-2"></i>Editar Funcionário';
-    document.getElementById('fId').value = id;
-    document.getElementById('fCodigoDisplay').value = id;
-    document.getElementById('fNome').value = nome;
-    document.getElementById('fApelido').value = apelido;
-    document.getElementById('fCpf').value = mascaraCPF(cpf || '');
-    document.getElementById('fRg').value = mascaraRG(rg || '');
-    document.getElementById('fSexo').value = sexo || '';
-    document.getElementById('fTel').value = mascaraTelefone(tel || '');
-    document.getElementById('fEmail').value = email;
-    document.getElementById('fEnd').value = end;
-    document.getElementById('fBairro').value = bairro;
-    document.getElementById('fNumero').value = numero;
-    document.getElementById('fComplemento').value = complemento;
-    definirCidade('fCidade', cidade);
-    document.getElementById('fCep').value = mascaraCEP(cep || '');
-    document.getElementById('fNasc').value = nasc;
-    document.getElementById('fAdm').value = adm;
-    document.getElementById('fDem').value = dem;
-    document.getElementById('fCargo').value = idCargo;
-    document.getElementById('fSal').value = sal;
-    document.getElementById('fCom').value = com;
-    document.getElementById('fObs').value = obs;
-    document.getElementById('fAtivo').value = ativo === 'True' ? 'true' : 'false';
-}
-
-// ===== Cadastro rapido de Cargo (AJAX) - sem sair da tela de Funcionarios =====
-async function salvarCargoRapido() {
-    const nome = document.getElementById('crNome').value.trim();
-    const desc = document.getElementById('crDesc').value.trim();
-    const comissao = document.getElementById('crComissao').value;
-    const msg = document.getElementById('crMsg');
-    const btn = document.getElementById('btnSalvarCargoRapido');
-    msg.innerHTML = '';
-
-    if (!nome) {
-        msg.innerHTML = alertaErro('Informe o nome do cargo.');
-        return;
-    }
-
-    btn.disabled = true;
-    try {
-        const data = await postJson('?handler=CargoRapido', {
-            nmCargo: nome,
-            dsCargo: desc || null,
-            vlComissaoPadrao: comissao ? parseFloat(comissao) : null
-        });
-
-        if (!data.sucesso) {
-            msg.innerHTML = alertaErro(data.mensagem);
-            return;
-        }
-
-        // Adiciona o novo cargo no dropdown e ja o seleciona automaticamente
-        const sel = document.getElementById('fCargo');
-        const opt = document.createElement('option');
-        opt.value = data.id;
-        opt.textContent = data.nome;
-        sel.appendChild(opt);
-        sel.value = data.id;
-
-        // Limpa e fecha o modal de cadastro rapido
-        document.getElementById('crNome').value = '';
-        document.getElementById('crDesc').value = '';
-        document.getElementById('crComissao').value = '';
-        bootstrap.Modal.getInstance(document.getElementById('modalCargoRapido')).hide();
-    } catch (e) {
-        msg.innerHTML = alertaErro('Erro ao salvar o cargo. Tente novamente.');
-    } finally {
-        btn.disabled = false;
-    }
-}
+﻿// Script da tela Funcionarios (Pages/Gerais/Funcionarios.cshtml).
+// Modal de cadastro: componente CadastroFuncionario (mascaras, limpar, editar e cargo).
 
 // ===== Busca de Funcionario (filtros na pagina -> atualiza a grid principal via AJAX) =====
 let resultadosBusca = [];
@@ -115,7 +26,7 @@ function montarLinha(f, i) {
         '<td>' + statusBadge(f.ativo) + '</td>' +
         '<td class="text-center">' +
             '<button class="btn btn-icon btn-outline-primary" title="Editar" onclick="abrirEdicao(' + i + ')"><i class="bi bi-pencil"></i></button> ' +
-            '<form method="post" action="?handler=Excluir" class="d-inline" onsubmit="return confirm(\'Deseja realmente excluir este funcionario?\')">' +
+            '<form method="post" action="?handler=Excluir" class="d-inline" onsubmit="return confirm(\'Deseja realmente excluir este funcionário?\')">' +
                 campoToken() +
                 '<input type="hidden" name="id" value="' + f.id + '">' +
                 '<button type="submit" class="btn btn-icon btn-outline-danger" title="Excluir"><i class="bi bi-trash"></i></button>' +
@@ -158,14 +69,7 @@ async function buscarFuncionarios() {
 }
 
 function abrirEdicao(i) {
-    const f = resultadosBusca[i];
-    editarFunc(
-        f.id, f.nome || '', f.cpf || '', f.tel || '', f.email || '',
-        f.end || '', f.bairro || '', (f.idCidade ?? ''), f.cep || '',
-        f.nasc || '', f.adm || '', f.dem || '', (f.idCargo ?? ''),
-        (f.sal ?? ''), (f.com ?? ''), f.obs || '', (f.ativo ? 'True' : 'False'),
-        f.apelido || '', f.rg || '', f.numero || '', f.complemento || '', f.sexo || ''
-    );
+    editarFuncionarioPorRegistro(resultadosBusca[i]);
     bootstrap.Modal.getOrCreateInstance(document.getElementById('modalFuncionario')).show();
 }
 

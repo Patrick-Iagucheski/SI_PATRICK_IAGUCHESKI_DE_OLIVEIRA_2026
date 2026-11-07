@@ -3,42 +3,18 @@
 @{
     ViewData["Title"] = "Clientes";
 
-    string FormatarCPF(string? v)
-    {
-        var d = new string((v ?? "").Where(char.IsDigit).ToArray());
-        return d.Length == 11
-            ? $"{d[..3]}.{d.Substring(3, 3)}.{d.Substring(6, 3)}-{d.Substring(9, 2)}"
-            : (string.IsNullOrEmpty(v) ? "" : v);
-    }
-
-    string FormatarCNPJ(string? v)
-    {
-        var d = new string((v ?? "").Where(char.IsDigit).ToArray());
-        return d.Length == 14
-            ? $"{d[..2]}.{d.Substring(2, 3)}.{d.Substring(5, 3)}/{d.Substring(8, 4)}-{d.Substring(12, 2)}"
-            : (string.IsNullOrEmpty(v) ? "" : v);
-    }
-
-    string FormatarTelefone(string? v)
-    {
-        var d = new string((v ?? "").Where(char.IsDigit).ToArray());
-        if (d.Length == 11) return $"({d[..2]}) {d.Substring(2, 5)}-{d.Substring(7, 4)}";
-        if (d.Length == 10) return $"({d[..2]}) {d.Substring(2, 4)}-{d.Substring(6, 4)}";
-        return string.IsNullOrEmpty(v) ? "-" : v;
-    }
-
     string TipoPessoaLabel(string? t) => t switch
     {
-        "J" => "Juridica",
+        "J" => "Jurídica",
         "E" => "Estrangeiro",
-        _ => "Fisica"
+        _ => "Física"
     };
 
     string DocumentoExibicao(Cliente c) => c.TpPessoa switch
     {
-        "J" => FormatarCNPJ(c.NrCnpj),
+        "J" => Module.FormatarCnpj(c.NrCnpj),
         "E" => c.NrDocumento ?? "",
-        _ => FormatarCPF(c.NrCpf)
+        _ => Module.FormatarCpf(c.NrCpf)
     };
 }
 
@@ -47,7 +23,7 @@
         <h1 class="page-title">Clientes</h1>
         <p class="page-subtitle">Gerencie os clientes cadastrados no sistema</p>
     </div>
-    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#modalCliente" onclick="limparForm()">
+    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#modalCliente" onclick="limparFormCliente()">
         <i class="bi bi-plus-lg me-1"></i> Novo Cliente
     </button>
 </div>
@@ -115,10 +91,10 @@
                             <td>@c.IdCliente</td>
                             <td><strong>@c.NmCliente</strong></td>
                             <td>@TipoPessoaLabel(c.TpPessoa)</td>
-                            <td class="text-nowrap">@(string.IsNullOrEmpty(DocumentoExibicao(c)) ? "-" : DocumentoExibicao(c))</td>
-                            <td class="text-nowrap">@FormatarTelefone(c.NrTelefone)</td>
+                            <td class="text-nowrap">@Module.OuTraco(DocumentoExibicao(c))</td>
+                            <td class="text-nowrap">@Module.OuTraco(Module.FormatarTelefone(c.NrTelefone))</td>
                             <td>@(c.DsEmail ?? "-")</td>
-                            <td>@(c.Cidade != null ? $"{c.Cidade.NmCidade}/{c.Cidade.Estado?.SgUF}" : "-")</td>
+                            <td>@Module.OuTraco(Module.CidadeUf(c.Cidade))</td>
                             <td>
                                 @if (c.FlAtivo)
                                 {
@@ -154,129 +130,8 @@
     </div>
 </div>
 
-<!-- Modal Novo/Editar Cliente -->
-<div class="modal fade" id="modalCliente" tabindex="-1">
-    <div class="modal-dialog modal-lg">
-        <div class="modal-content">
-            <form method="post" data-modal-ajax>
-                <div class="modal-header">
-                    <h5 class="modal-title" id="modalTitle"><i class="bi bi-person-plus me-2"></i>Novo Cliente</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                </div>
-                <div class="modal-body">
-                    <input type="hidden" asp-for="ClienteForm.IdCliente" id="formIdCliente" />
-                    <div class="row g-3">
-                        <!-- Codigo (somente leitura) | Tipo de Pessoa | Nome -->
-                        <div class="col-md-2">
-                            <label class="form-label">Código</label>
-                            <input type="text" class="form-control bg-light" id="formCodigoDisplay" placeholder="(novo)" readonly />
-                        </div>
-                        <div class="col-md-4">
-                            <label class="form-label">Tipo de Pessoa *</label>
-                            <select class="form-select" asp-for="ClienteForm.TpPessoa" id="formTpPessoa" onchange="toggleTipoPessoa()">
-                                <option value="F">Pessoa Física</option>
-                                <option value="J">Pessoa Jurídica</option>
-                                <option value="E">Estrangeiro / Outro</option>
-                            </select>
-                        </div>
-                        <div class="col-md-6">
-                            <label class="form-label" id="lblNome">Nome Completo *</label>
-                            <input type="text" class="form-control" asp-for="ClienteForm.NmCliente" id="formNmCliente" maxlength="200" required />
-                        </div>
-
-                        <!-- Documento (CPF / CNPJ / Outro) | RG | Sexo | Nascimento -->
-                        <div class="col-md-3" id="wrapCpf">
-                            <label class="form-label">CPF *</label>
-                            <input type="text" class="form-control" asp-for="ClienteForm.NrCpf" id="formNrCpf" maxlength="14" placeholder="000.000.000-00" required />
-                        </div>
-                        <div class="col-md-3 d-none" id="wrapCnpj">
-                            <label class="form-label">CNPJ *</label>
-                            <input type="text" class="form-control" asp-for="ClienteForm.NrCnpj" id="formNrCnpj" maxlength="18" placeholder="00.000.000/0000-00" />
-                        </div>
-                        <div class="col-md-3 d-none" id="wrapDoc">
-                            <label class="form-label">Documento</label>
-                            <input type="text" class="form-control" asp-for="ClienteForm.NrDocumento" id="formNrDocumento" maxlength="30" placeholder="Documento" />
-                        </div>
-                        <div class="col-md-3">
-                            <label class="form-label">RG</label>
-                            <input type="text" class="form-control" asp-for="ClienteForm.NrRG" id="formNrRG" maxlength="12" placeholder="00.000.000-0" />
-                        </div>
-                        <div class="col-md-3">
-                            <label class="form-label">Sexo</label>
-                            <select class="form-select" asp-for="ClienteForm.DsSexo" id="formDsSexo">
-                                <option value="">Selecione</option>
-                                <option value="M">Masculino</option>
-                                <option value="F">Feminino</option>
-                                <option value="O">Outro</option>
-                            </select>
-                        </div>
-                        <div class="col-md-3">
-                            <label class="form-label">Data de Nascimento</label>
-                            <input type="date" class="form-control" asp-for="ClienteForm.DtNascimento" id="formDtNascimento" />
-                        </div>
-
-                        <!-- Telefone | E-mail -->
-                        <div class="col-md-4">
-                            <label class="form-label">Telefone</label>
-                            <input type="text" class="form-control" asp-for="ClienteForm.NrTelefone" id="formNrTelefone" maxlength="15" placeholder="(00) 00000-0000" />
-                        </div>
-                        <div class="col-md-8">
-                            <label class="form-label">E-mail</label>
-                            <input type="email" class="form-control" asp-for="ClienteForm.DsEmail" id="formDsEmail" maxlength="150" />
-                        </div>
-
-                        <!-- Endereco | Numero -->
-                        <div class="col-md-8">
-                            <label class="form-label">Endereço</label>
-                            <input type="text" class="form-control" asp-for="ClienteForm.DsEndereco" id="formDsEndereco" maxlength="200" />
-                        </div>
-                        <div class="col-md-4">
-                            <label class="form-label">Número</label>
-                            <input type="text" class="form-control" asp-for="ClienteForm.NrNumero" id="formNrNumero" maxlength="10" />
-                        </div>
-
-                        <!-- Complemento | Bairro -->
-                        <div class="col-md-6">
-                            <label class="form-label">Complemento</label>
-                            <input type="text" class="form-control" asp-for="ClienteForm.DsComplemento" id="formDsComplemento" maxlength="100" />
-                        </div>
-                        <div class="col-md-6">
-                            <label class="form-label">Bairro</label>
-                            <input type="text" class="form-control" asp-for="ClienteForm.DsBairro" id="formDsBairro" maxlength="100" />
-                        </div>
-
-                        <!-- Cidade (cadastro rapido) | CEP | Status -->
-                        <div class="col-md-6">
-                            <label class="form-label">Cidade</label>
-                            @await Component.InvokeAsync("CampoCidade", new { nome = "ClienteForm.IdCidade", id = "formIdCidade", idCidade = Model.ClienteForm.IdCidade })
-                        </div>
-                        <div class="col-md-3">
-                            <label class="form-label">CEP</label>
-                            <input type="text" class="form-control" asp-for="ClienteForm.NrCEP" id="formNrCEP" maxlength="9" placeholder="00000-000" />
-                        </div>
-                        <div class="col-md-3">
-                            <label class="form-label">Status</label>
-                            <select class="form-select" asp-for="ClienteForm.FlAtivo" id="formFlAtivo">
-                                <option value="true">Ativo</option>
-                                <option value="false">Inativo</option>
-                            </select>
-                        </div>
-
-                        <!-- Observacoes -->
-                        <div class="col-12">
-                            <label class="form-label">Observações</label>
-                            <textarea class="form-control" rows="2" asp-for="ClienteForm.DsObservacao" id="formDsObservacao" maxlength="500"></textarea>
-                        </div>
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                    <button type="submit" class="btn btn-primary"><i class="bi bi-check-lg me-1"></i>Salvar</button>
-                </div>
-            </form>
-        </div>
-    </div>
-</div>
+<!-- Modal Novo/Editar (Cliente): componente compartilhado -->
+@await Component.InvokeAsync("CadastroCliente", new { modo = "post" })
 
 @section Scripts {
     <script src="~/Pages/Gerais/Clientes.cshtml.js" asp-append-version="true"></script>

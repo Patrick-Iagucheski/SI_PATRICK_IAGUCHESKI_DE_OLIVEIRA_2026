@@ -29,4 +29,20 @@ public class FormasPagamentoModel : PaginaBase
 
     public Task<IActionResult> OnPostExcluir(int id) =>
         Executar(() => _forma.Excluir(id), "Forma de pagamento excluída com sucesso.");
+
+    // Cadastro pelo componente em modo AJAX (pesquisa de forma de outras
+    // telas). Mesmas regras do OnPost, mas responde JSON para a tela de origem.
+    public Task<IActionResult> OnPostSalvarAjax() =>
+        ExecutarJson(async () =>
+        {
+            var f = await _forma.Salvar(FormaForm);
+            return new { sucesso = true, id = f.IdFormaPagamento, nome = f.DsFormaPagamento, ativo = f.FlAtivo };
+        });
+
+    // Pesquisa (componente): so ativas, por codigo ou descricao.
+    public async Task<IActionResult> OnGetBuscarFormas(int? id, string? termo)
+    {
+        var lista = await _forma.Pesquisar(id, termo);
+        return new JsonResult(lista.Select(f => new { id = f.IdFormaPagamento, nome = f.DsFormaPagamento, ativo = f.FlAtivo }));
+    }
 }

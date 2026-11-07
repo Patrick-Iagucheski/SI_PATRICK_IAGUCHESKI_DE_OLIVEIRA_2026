@@ -1,0 +1,57 @@
+﻿@model WebAppERP.ViewModels.CadastroTransportadorViewModel
+@*
+    Componente de cadastro de transportadora (ViewComponents/CadastroTransportadorViewComponent).
+    Traz o proprio script (Default.cshtml.js, nesta pasta), incluido uma vez por
+    pagina. Modo "ajax": o Salvar grava pelo module.js e dispara o evento
+    'transportador:salvo' (detail: id, nome), sem recarregar a tela.
+*@
+
+<div class="modal fade" id="modalTransportador" tabindex="-1"
+     data-url-transportadores="@Url.Page("/Gerais/Transportadores")">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <form method="post" data-modal-ajax asp-page="/Gerais/Transportadores"
+                  asp-page-handler="@(Model.Modo == "ajax" ? "SalvarAjax" : null)"
+                  data-evento="@(Model.Modo == "ajax" ? "transportador:salvo" : null)">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="trTitulo"><i class="bi bi-truck-front me-2"></i>Novo Transportador</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <input type="hidden" asp-for="TransportadorForm.IdTransportador" id="trId" />
+                    <div class="row g-3">
+                        <div class="col-md-8">
+                            <label class="form-label">Razão Social *</label>
+                            <input type="text" class="form-control" asp-for="TransportadorForm.DsRazaoSocial" id="trRazao" maxlength="200" required />
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">CPF / CNPJ *</label>
+                            <input type="text" class="form-control" asp-for="TransportadorForm.NrCpfCnpj" id="trDoc" maxlength="18" placeholder="000.000.000-00" required />
+                        </div>
+                        <div class="col-md-7">
+                            <label class="form-label">Endereço</label>
+                            <input type="text" class="form-control" asp-for="TransportadorForm.DsEndereco" id="trEndereco" />
+                        </div>
+                        <div class="col-md-5">
+                            <label class="form-label">Cidade</label>
+                            @await Component.InvokeAsync("CampoCidade", new { nome = "TransportadorForm.IdCidade", id = "trCidade" })
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Inscrição Estadual</label>
+                            <input type="text" class="form-control" asp-for="TransportadorForm.NrInscEstadual" id="trIE" maxlength="20" />
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary"><i class="bi bi-check-lg me-1"></i>Salvar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@if (Model.IncluirScript)
+{
+    <script src="~/Pages/Shared/Components/CadastroTransportador/Default.cshtml.js" asp-append-version="true"></script>
+}

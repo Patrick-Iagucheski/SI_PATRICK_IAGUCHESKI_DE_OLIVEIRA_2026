@@ -15,19 +15,15 @@ public class CompraModel : PaginaBase
     private readonly CompraBusiness _business;
     private readonly FornecedorBusiness _fornecedor;
     private readonly CondicaoPagamentoBusiness _condicao;
-    private readonly ServicoBusiness _servico;
     private readonly TransportadorBusiness _transportador;
-    private readonly ProdutoBusiness _produto;
 
     public CompraModel(CompraBusiness business, FornecedorBusiness fornecedor, CondicaoPagamentoBusiness condicao,
-        ServicoBusiness servico, TransportadorBusiness transportador, ProdutoBusiness produto)
+        TransportadorBusiness transportador)
     {
         _business = business;
         _fornecedor = fornecedor;
         _condicao = condicao;
-        _servico = servico;
         _transportador = transportador;
-        _produto = produto;
     }
 
     private static readonly JsonSerializerOptions JsonOpts = new() { PropertyNameCaseInsensitive = true };
@@ -297,42 +293,11 @@ public class CompraModel : PaginaBase
     }
 
     // ============================================================
-    // Consultas AJAX usadas pelos campos de pesquisa da tela
-    // (mesmo padrao de OnGetBuscarContas em ContasAPagar)
+    // Consultas AJAX da tela (as pesquisas de fornecedor, transportadora,
+    // produto e servico usam as buscas das telas de cadastro, pelos componentes)
     // ============================================================
 
     private Task<int?> GetCondicaoFornecedor(int idFornecedor) => _fornecedor.GetCondicaoPagamento(idFornecedor);
-
-    public async Task<IActionResult> OnGetBuscarFornecedor(int? id, string? termo)
-    {
-        var lista = await _fornecedor.Pesquisar(id, termo);
-        return new JsonResult(lista.Select(f => new { id = f.IdFornecedor, nome = f.DsRazaoSocial, fantasia = f.DsNomeFantasia }));
-    }
-
-    public async Task<IActionResult> OnGetBuscarTransportador(int? id, string? termo)
-    {
-        var lista = await _transportador.Pesquisar(id, termo);
-        return new JsonResult(lista.Select(t => new { id = t.IdTransportador, nome = t.DsRazaoSocial }));
-    }
-
-    public async Task<IActionResult> OnGetBuscarProduto(int? id, string? termo)
-    {
-        var lista = await _produto.Pesquisar(id, termo);
-        return new JsonResult(lista.Select(p => new
-        {
-            id = p.IdProduto,
-            nome = p.DsProduto,
-            unidade = p.SgUnidade,
-            custo = p.VlCusto ?? 0,
-            saldo = p.QtSaldo ?? 0
-        }));
-    }
-
-    public async Task<IActionResult> OnGetBuscarServico(int? id, string? termo)
-    {
-        var lista = await _servico.Pesquisar(id, termo);
-        return new JsonResult(lista.Select(s => new { id = s.IdServico, nome = s.DsServico, valor = s.VlServico }));
-    }
 
     // Parcelas sugeridas a partir da condicao de pagamento escolhida.
     // Usa as parcelas ja cadastradas em tbFinCondicoesPagamentoParcelas

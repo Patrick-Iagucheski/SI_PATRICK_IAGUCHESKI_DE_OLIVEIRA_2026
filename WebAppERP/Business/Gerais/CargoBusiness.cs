@@ -3,8 +3,8 @@ using WebAppERP.Data;
 
 namespace WebAppERP.Business.Gerais;
 
-// Regras de negocio do cargo. Usada pela tela de Cargos e pelo "+" de cargo
-// dentro do cadastro de Funcionarios: as duas passam pelas mesmas validacoes.
+// Regras de negocio do cargo. Usada pela tela de Cargos e pela pesquisa de
+// cargo do cadastro de Funcionarios: as duas passam pelas mesmas validacoes.
 public class CargoBusiness
 {
     private readonly AppDbContext _db;

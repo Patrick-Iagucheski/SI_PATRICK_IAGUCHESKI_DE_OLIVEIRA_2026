@@ -9,7 +9,7 @@
         <h1 class="page-title">Formas de Pagamento</h1>
         <p class="page-subtitle">Gerencie as formas de pagamento aceitas no sistema</p>
     </div>
-    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#modalForma" onclick="limparForm()">
+    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#modalForma" onclick="limparFormForma()">
         <i class="bi bi-plus-lg me-1"></i> Nova Forma
     </button>
 </div>
@@ -115,39 +115,8 @@
     </div>
 </div>
 
-<!-- Modal Nova/Editar Forma -->
-<div class="modal fade" id="modalForma" tabindex="-1">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <form method="post" data-modal-ajax>
-                <div class="modal-header">
-                    <h5 class="modal-title" id="modalTitle"><i class="bi bi-credit-card me-2"></i>Nova Forma de Pagamento</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                </div>
-                <div class="modal-body">
-                    <input type="hidden" asp-for="FormaForm.IdFormaPagamento" id="formIdForma" />
-                    <div class="row g-3">
-                        <div class="col-12">
-                            <label class="form-label">Descrição *</label>
-                            <input type="text" class="form-control" asp-for="FormaForm.DsFormaPagamento" id="formDsForma" maxlength="100" required />
-                        </div>
-                        <div class="col-12">
-                            <label class="form-label">Status</label>
-                            <select class="form-select" asp-for="FormaForm.FlAtivo" id="formFlAtivo">
-                                <option value="true">Ativo</option>
-                                <option value="false">Inativo</option>
-                            </select>
-                        </div>
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                    <button type="submit" class="btn btn-primary"><i class="bi bi-check-lg me-1"></i>Salvar</button>
-                </div>
-            </form>
-        </div>
-    </div>
-</div>
+<!-- Modal Novo/Editar (Forma de Pagamento): componente compartilhado -->
+@await Component.InvokeAsync("CadastroFormaPagamento", new { modo = "post" })
 
 @section Scripts {
     <script src="~/Pages/Financeiro/FormasPagamento.cshtml.js" asp-append-version="true"></script>

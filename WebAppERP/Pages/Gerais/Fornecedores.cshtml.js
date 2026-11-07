@@ -18,18 +18,12 @@ function abrirEdicao(i) {
 }
 
 // ===== Busca de Fornecedores via AJAX =====
-aplicarMascara('buscaDocumento', mascaraCNPJ);
+aplicarMascara('buscaDocumento', mascaraCpfCnpj);
 ['buscaId', 'buscaRazao', 'buscaFantasia', 'buscaDocumento'].forEach(id => {
     document.getElementById(id)?.addEventListener('keydown', e => {
         if (e.key === 'Enter') { e.preventDefault(); buscarFornecedores(); }
     });
 });
-
-function documentoExibicao(f) {
-    if (f.tipoPessoa === 'F') return f.cpf ? mascaraCPF(f.cpf) : '-';
-    if (f.tipoPessoa === 'E' || f.tipoPessoa === 'O') return f.documento || '-';
-    return f.cnpj ? mascaraCNPJ(f.cnpj) : '-';
-}
 
 function montarLinha(f, i) {
     const tel = f.celular || f.telefoneFixo;
@@ -37,7 +31,7 @@ function montarLinha(f, i) {
         '<td>' + f.id + '</td>' +
         '<td><strong>' + escaparHtml(f.razaoSocial || '') + '</strong></td>' +
         '<td>' + escaparHtml(f.nomeFantasia || '-') + '</td>' +
-        '<td>' + documentoExibicao(f) + '</td>' +
+        '<td>' + documentoFornecedor(f) + '</td>' +
         '<td>' + (tel ? mascaraTelefone(tel) : '-') + '</td>' +
         '<td>' + escaparHtml(f.cidadeNome || '-') + '</td>' +
         '<td>' + statusBadge(f.ativo) + '</td>' +

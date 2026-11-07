@@ -62,13 +62,7 @@ async function buscarProdutos() {
 }
 
 function abrirEdicao(i) {
-    const p = resultadosBusca[i];
-    editarProduto(
-        p.id, p.nome || '', (p.idMarca ?? ''), (p.idCategoria ?? ''), p.unidade || '',
-        (p.custo ?? ''), (p.vendaMin ?? ''), (p.venda ?? ''), (p.comissao ?? ''),
-        (p.desconto ?? ''), (p.estoque ?? ''), p.descricao || '', p.imagem || '',
-        (p.ativo ? 'True' : 'False')
-    );
+    editarProdutoPorRegistro(resultadosBusca[i]);
     bootstrap.Modal.getOrCreateInstance(document.getElementById('modalProduto')).show();
 }
 

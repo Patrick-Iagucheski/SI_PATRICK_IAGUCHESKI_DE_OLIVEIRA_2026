@@ -96,39 +96,39 @@ function abrirEdicao(i) {
     bootstrap.Modal.getOrCreateInstance(document.getElementById('modalConta')).show();
 }
 
-function limparForm() {
-    document.getElementById('modalTitle').innerHTML = '<i class="bi bi-cash-stack me-2"></i>Nova Conta a Pagar';
-    document.getElementById('formIdConta').value = '0';
-    document.getElementById('formCodigoDisplay').value = '';
-    document.getElementById('formDsConta').value = '';
-    document.getElementById('formNrDocumento').value = '';
-    document.getElementById('formIdFornecedor').value = '';
-    document.getElementById('formIdFormaPagamento').value = '';
-    document.getElementById('formDtEmissao').value = '';
-    document.getElementById('formDtVencimento').value = '';
-    document.getElementById('formDtPagamento').value = '';
-    document.getElementById('formDsStatus').value = 'PENDENTE';
-    document.getElementById('formVlValor').value = '0';
-    document.getElementById('formVlPago').value = '0';
-    document.getElementById('formFlAtivo').value = 'true';
-    document.getElementById('formDsObservacao').value = '';
+function limparFormConta() {
+    document.getElementById('contaTitulo').innerHTML = '<i class="bi bi-cash-stack me-2"></i>Nova Conta a Pagar';
+    document.getElementById('contaIdConta').value = '0';
+    document.getElementById('contaCodigoDisplay').value = '';
+    document.getElementById('contaDsConta').value = '';
+    document.getElementById('contaNrDocumento').value = '';
+    document.getElementById('contaIdFornecedor').value = '';
+    document.getElementById('contaIdFormaPagamento').value = '';
+    document.getElementById('contaDtEmissao').value = '';
+    document.getElementById('contaDtVencimento').value = '';
+    document.getElementById('contaDtPagamento').value = '';
+    document.getElementById('contaDsStatus').value = 'PENDENTE';
+    document.getElementById('contaVlValor').value = '0';
+    document.getElementById('contaVlPago').value = '0';
+    document.getElementById('contaFlAtivo').value = 'true';
+    document.getElementById('contaDsObservacao').value = '';
 }
 
 function editarConta(id, conta, doc, idForn, idForma, emissao, venc, pgto, valor, pago, status, ativo, obs) {
-    document.getElementById('modalTitle').innerHTML = '<i class="bi bi-pencil me-2"></i>Editar Conta a Pagar';
-    document.getElementById('formIdConta').value = id;
-    document.getElementById('formCodigoDisplay').value = id;
-    document.getElementById('formDsConta').value = conta;
-    document.getElementById('formNrDocumento').value = doc || '';
-    document.getElementById('formIdFornecedor').value = idForn;
-    document.getElementById('formIdFormaPagamento').value = idForma || '';
-    document.getElementById('formDtEmissao').value = emissao || '';
-    document.getElementById('formDtVencimento').value = venc || '';
-    document.getElementById('formDtPagamento').value = pgto || '';
-    document.getElementById('formDsStatus').value = status || 'PENDENTE';
-    document.getElementById('formVlValor').value = valor;
-    document.getElementById('formVlPago').value = pago;
-    document.getElementById('formFlAtivo').value = ativo;
-    document.getElementById('formDsObservacao').value = obs || '';
+    document.getElementById('contaTitulo').innerHTML = '<i class="bi bi-pencil me-2"></i>Editar Conta a Pagar';
+    document.getElementById('contaIdConta').value = id;
+    document.getElementById('contaCodigoDisplay').value = id;
+    document.getElementById('contaDsConta').value = conta;
+    document.getElementById('contaNrDocumento').value = doc || '';
+    document.getElementById('contaIdFornecedor').value = idForn;
+    document.getElementById('contaIdFormaPagamento').value = idForma || '';
+    document.getElementById('contaDtEmissao').value = emissao || '';
+    document.getElementById('contaDtVencimento').value = venc || '';
+    document.getElementById('contaDtPagamento').value = pgto || '';
+    document.getElementById('contaDsStatus').value = status || 'PENDENTE';
+    document.getElementById('contaVlValor').value = valor;
+    document.getElementById('contaVlPago').value = pago;
+    document.getElementById('contaFlAtivo').value = ativo;
+    document.getElementById('contaDsObservacao').value = obs || '';
 }
 

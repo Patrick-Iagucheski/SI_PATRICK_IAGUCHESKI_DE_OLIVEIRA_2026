@@ -24,6 +24,11 @@ function mascaraCNPJ(v) {
         .replace(/(\d{4})(\d)/, '$1-$2');
 }
 
+// Campo que aceita CPF ou CNPJ: ate 11 digitos formata como CPF, depois como CNPJ.
+function mascaraCpfCnpj(v) {
+    return v.replace(/\D/g, '').length <= 11 ? mascaraCPF(v) : mascaraCNPJ(v);
+}
+
 // Fixo (10 digitos) ou celular (11 digitos).
 function mascaraTelefone(v) {
     v = v.replace(/\D/g, '').slice(0, 11);
@@ -116,7 +121,9 @@ function alertaErro(msg) {
 // Salvar dos modais de cadastro (<form method="post" data-modal-ajax>): grava
 // por AJAX em vez de recarregar a pagina. No erro, a mensagem aparece no topo
 // do modal, que continua aberto com tudo o que foi digitado; no sucesso, a
-// tela recarrega e mostra a mensagem verde. A validacao da propria tela
+// tela recarrega e mostra a mensagem verde. Componente aberto por outra tela
+// (form com data-evento, ex.: "transportador:salvo"): no sucesso o modal fecha
+// e o evento avisa quem abriu, com o registro gravado (detail), sem recarregar. A validacao da propria tela
 // (listener no form que chama preventDefault) roda antes e pode barrar o envio.
 document.addEventListener('submit', async e => {
     const form = e.target;
@@ -127,13 +134,20 @@ document.addEventListener('submit', async e => {
     exibirErro(form, null);
     if (botao) botao.disabled = true;
 
+    const evento = form.dataset.evento;
     try {
         const resp = await fetch(form.action, {
             method: 'POST',
             body: new FormData(form),
-            headers: { 'X-Requested-With': 'XMLHttpRequest' }
+            headers: evento ? { 'X-Requested-With': 'XMLHttpRequest' }
+                            : { 'X-Requested-With': 'XMLHttpRequest', 'X-Recarregar': '1' }
         });
         const data = await resp.json();
+        if (data.sucesso && evento) {
+            bootstrap.Modal.getInstance(form.closest('.modal'))?.hide();
+            document.dispatchEvent(new CustomEvent(evento, { detail: data }));
+            return;
+        }
         if (data.sucesso) { location.reload(); return; }
         exibirErro(form, data.mensagem);
     } catch {
@@ -150,6 +164,15 @@ document.addEventListener('submit', async e => {
 // digitado, e o aviso some quando o usuario volta a mexer nos campos dela.
 //   alvo: o <form> do modal ou a area (ex.: secaoDoCampo('itQt'))
 function exibirErro(alvo, msg) {
+    mostrarAviso(alvo, msg ? alertaErro(msg) : '');
+}
+
+// Confirmacao verde no mesmo lugar do erro (ex.: exclusao feita na pesquisa).
+function exibirSucesso(alvo, msg) {
+    mostrarAviso(alvo, '<div class="alert alert-success py-2 mb-3"><i class="bi bi-check-circle me-1"></i>' + escaparHtml(msg) + '</div>');
+}
+
+function mostrarAviso(alvo, html) {
     const corpo = alvo.querySelector('.modal-body') || alvo;
     let aviso = corpo.querySelector(':scope > .aviso-erro');
     if (!aviso) {
@@ -157,8 +180,8 @@ function exibirErro(alvo, msg) {
         aviso.className = 'aviso-erro';
         corpo.prepend(aviso);
     }
-    aviso.innerHTML = msg ? alertaErro(msg) : '';
-    if (!msg) return;
+    aviso.innerHTML = html;
+    if (!html) return;
     aviso.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
     const limpar = () => { aviso.innerHTML = ''; };
     corpo.addEventListener('input', limpar, { once: true });
@@ -181,7 +204,9 @@ function secaoDoCampo(id) {
 //   chave, titulo, url() (handler que devolve JSON), filtros
 //   [{ param, rotulo, tipo, col }], colunas, celulas(reg) (HTML ja escapado
 //   de cada coluna), selecionar(reg) (preenche o campo de quem chamou) e, se
-//   houver cadastro, editar(reg) e novo().
+//   houver cadastro, editar(reg), novo() e excluir: { url(), nome(reg),
+//   depois(reg) } (lixeira: usa o Excluir da tela do cadastro, com as regras do
+//   Business; depois limpa o campo de quem chamou se o registro estava nele).
 // Busca no botao Buscar ou no Enter, como nas telas de cadastro, e ao abrir
 // ja lista os registros disponiveis.
 const pesquisas = {};
@@ -203,7 +228,7 @@ function abrirPesquisa(cfg) {
     }));
     modal.querySelector('[data-cabecalho]').innerHTML =
         cfg.colunas.map((c, i) => '<th' + (i === 0 ? ' style="width: 90px;"' : '') + '>' + c + '</th>').join('') +
-        '<th class="text-center" style="width: 120px;">Ações</th>';
+        '<th class="text-center" style="width: 150px;">Ações</th>';
     modal.querySelector('[data-novo]').classList.toggle('d-none', !cfg.novo);
 
     bootstrap.Modal.getOrCreateInstance(modal).show();
@@ -223,6 +248,7 @@ async function recarregarPesquisa(chave) {
         if (i.value.trim()) params.append(i.dataset.param, i.value.trim());
     });
 
+    exibirErro(modal, null);
     corpo.innerHTML = '<tr><td colspan="' + colspan + '" class="text-center text-muted py-3">Buscando...</td></tr>';
     try {
         const url = cfg.url();
@@ -237,6 +263,7 @@ async function recarregarPesquisa(chave) {
             tr.innerHTML = cfg.celulas(reg).map(c => '<td>' + c + '</td>').join('') +
                 '<td class="text-center text-nowrap">' +
                     (cfg.editar ? '<button type="button" class="btn btn-icon btn-outline-primary me-1" data-acao="editar" title="Editar"><i class="bi bi-pencil"></i></button>' : '') +
+                    (cfg.excluir ? '<button type="button" class="btn btn-icon btn-outline-danger me-1" data-acao="excluir" title="Excluir"><i class="bi bi-trash"></i></button>' : '') +
                     '<button type="button" class="btn btn-icon btn-outline-success" data-acao="selecionar" title="Selecionar"><i class="bi bi-check-lg"></i></button>' +
                 '</td>';
             tr.querySelector('[data-acao="selecionar"]').addEventListener('click', () => {
@@ -244,6 +271,7 @@ async function recarregarPesquisa(chave) {
                 fecharPesquisa(chave);
             });
             tr.querySelector('[data-acao="editar"]')?.addEventListener('click', () => cfg.editar(reg));
+            tr.querySelector('[data-acao="excluir"]')?.addEventListener('click', () => excluirDaPesquisa(chave, reg));
             corpo.appendChild(tr);
         });
     } catch {
@@ -251,9 +279,266 @@ async function recarregarPesquisa(chave) {
     }
 }
 
+// Lixeira da pesquisa: o mesmo Excluir da tela do cadastro (regras do
+// Business, ex.: nao exclui pais com estado). A mensagem aparece no modal.
+async function excluirDaPesquisa(chave, reg) {
+    const cfg = pesquisas[chave];
+    const modal = document.getElementById('pesquisa-' + chave);
+    if (!confirm('Deseja realmente excluir "' + cfg.excluir.nome(reg) + '"?')) return;
+    exibirErro(modal, null);
+    try {
+        const resp = await fetch(cfg.excluir.url(), {
+            method: 'POST',
+            body: new URLSearchParams({ id: reg.id, __RequestVerificationToken: tokenAntiforgery() }),
+            headers: { 'X-Requested-With': 'XMLHttpRequest' }
+        });
+        const r = await resp.json();
+        if (!r.sucesso) { exibirErro(modal, r.mensagem); return; }
+        cfg.excluir.depois?.(reg);
+        await recarregarPesquisa(chave);
+        exibirSucesso(modal, r.mensagem || 'Registro excluído com sucesso.');
+    } catch {
+        exibirErro(modal, 'Não foi possível excluir. Tente novamente.');
+    }
+}
+
+// Campo <select> que recebe o registro escolhido ou cadastrado na pesquisa:
+// cria a opcao se ainda nao existe, atualiza o texto e seleciona.
+function selecionarNoSelect(id, valor, texto) {
+    const sel = document.getElementById(id);
+    if (!sel) return;
+    let opt = sel.querySelector('option[value="' + valor + '"]');
+    if (!opt) {
+        opt = document.createElement('option');
+        opt.value = valor;
+        sel.appendChild(opt);
+    }
+    opt.textContent = texto;
+    sel.value = valor;
+    sel.dispatchEvent(new Event('change', { bubbles: true }));
+}
+
+// Registro editado: so atualiza o texto da opcao (sem trocar a escolha).
+function renomearNoSelect(id, valor, texto) {
+    const sel = document.getElementById(id);
+    const opt = sel?.querySelector('option[value="' + valor + '"]');
+    if (!opt) return;
+    opt.textContent = texto;
+    // Campo de selecao com lupa: atualiza o texto exibido.
+    if (sel.value == valor) sel.value = sel.value;
+}
+
+// Registro excluido: sai do <select> (e o campo fica vazio se era o escolhido).
+function removerDoSelect(id, valor) {
+    const sel = document.getElementById(id);
+    const opt = sel?.querySelector('option[value="' + valor + '"]');
+    if (!opt) return;
+    if (sel.value == valor) {
+        sel.value = '';
+        sel.dispatchEvent(new Event('change', { bubbles: true }));
+    }
+    opt.remove();
+}
+
 function fecharPesquisa(chave) {
     const modal = document.getElementById('pesquisa-' + chave);
     if (modal) bootstrap.Modal.getOrCreateInstance(modal).hide();
+}
+
+// ===== Pesquisa ligada ao cadastro (componente em modo ajax) =====
+// Cada componente de cadastro define a sua pesquisa uma vez (colunas, filtros,
+// como abrir o formulario) e as telas so dizem o que fazer com o registro:
+//   abrirPesquisaComCadastro(cfg, opcoes)
+//   cfg: o mesmo do abrirPesquisa (chave, titulo, url, filtros, colunas, celulas)
+//        + modal (id do modal de cadastro), evento ('x:salvo'), preencher(reg),
+//        limpar(), urlExcluir() e nome(reg).
+//   opcoes (da tela): selecionar(reg), atualizado(reg) e excluido(reg).
+// Editar e salvar volta para a lista atualizada; Novo e salvar ja seleciona o
+// registro no campo da tela e fecha a pesquisa. Sem o modal de cadastro na
+// pagina, a pesquisa so seleciona.
+const pesquisasComCadastro = {};
+
+function estadoComCadastro(cfg) {
+    let estado = pesquisasComCadastro[cfg.chave];
+    if (!estado) {
+        estado = pesquisasComCadastro[cfg.chave] = { emEdicao: false, opcoes: null };
+        document.addEventListener(cfg.evento, e => {
+            const reg = e.detail;
+            // So responde quando o cadastro foi aberto por esta pesquisa.
+            if (!document.getElementById('pesquisa-' + cfg.chave)?.classList.contains('show')) return;
+            if (estado.emEdicao) {
+                estado.emEdicao = false;
+                estado.opcoes.atualizado?.(reg);
+                recarregarPesquisa(cfg.chave);
+                return;
+            }
+            // Novo gravado como inativo nao entra no campo (as listas so tem ativos).
+            if (reg.ativo !== false) estado.opcoes.selecionar(reg);
+            fecharPesquisa(cfg.chave);
+        });
+    }
+    return estado;
+}
+
+function abrirPesquisaComCadastro(cfg, opcoes) {
+    const estado = estadoComCadastro(cfg);
+    estado.opcoes = opcoes;
+
+    const temCadastro = !!document.getElementById(cfg.modal);
+    abrirPesquisa({
+        chave: cfg.chave,
+        titulo: cfg.titulo,
+        url: cfg.url,
+        filtros: cfg.filtros,
+        colunas: cfg.colunas,
+        celulas: cfg.celulas,
+        selecionar: opcoes.selecionar,
+        editar: temCadastro ? reg => { estado.emEdicao = true; cfg.preencher(reg); abrirModalEmpilhado(cfg.modal); } : null,
+        novo: temCadastro ? () => { estado.emEdicao = false; cfg.limpar(); abrirModalEmpilhado(cfg.modal); } : null,
+        excluir: temCadastro ? { url: cfg.urlExcluir, nome: cfg.nome, depois: reg => opcoes.excluido?.(reg) } : null
+    });
+}
+
+// ===== Campo de selecao (padrao dos campos ligados a um cadastro) =====
+// Na tela fica um <select> normal (asp-for, opcoes, required) com
+//   data-pesquisa="js que abre a pesquisa" (o botao + e o clique no campo).
+// Ao carregar, o <select> fica escondido (continua sendo o valor do form e a
+// lista de textos) e no lugar aparece um campo so de selecao com os botoes
+// X (limpa a escolha; so aparece com valor) e + (abre a pesquisa, onde se
+// seleciona ou cadastra pelo Novo).
+// Nada e digitado: Enter/espaco abre a pesquisa, Delete/Backspace limpa.
+// Quem mexe no valor pelo JS (sel.value = x, selecionarNoSelect...) continua
+// funcionando: o texto exibido acompanha o <select>.
+const valorDoSelect = Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, 'value');
+
+function montarCampoSelecao(sel) {
+    if (sel.dataset.campoMontado) return;
+    sel.dataset.campoMontado = '1';
+
+    const executar = js => (js ? new Function(js)() : null);
+    const vazio = sel.querySelector('option[value=""]');
+
+    const texto = document.createElement('input');
+    texto.type = 'text';
+    texto.id = sel.id + 'Nome';
+    texto.className = 'form-control campo-selecao';
+    texto.autocomplete = 'off';
+    texto.placeholder = vazio ? vazio.textContent.trim() : 'Clique no + para pesquisar';
+    texto.title = 'Adicionar / Editar / Pesquisar';
+    // required fica no campo visivel: o navegador mostra o aviso nele.
+    if (sel.required) { texto.required = true; sel.required = false; }
+
+    const atualizarTexto = () => {
+        const opt = sel.selectedOptions[0];
+        texto.value = opt && opt.value !== '' ? opt.textContent.trim() : '';
+        atualizarBotoes();
+    };
+
+    // sel.value = x pelo JS tambem atualiza o texto exibido.
+    Object.defineProperty(sel, 'value', {
+        configurable: true,
+        get() { return valorDoSelect.get.call(this); },
+        set(v) { valorDoSelect.set.call(this, v); atualizarTexto(); }
+    });
+    sel.addEventListener('change', atualizarTexto);
+
+    const pesquisar = () => { if (!sel.disabled) executar(sel.dataset.pesquisa); };
+    const limpar = () => {
+        if (sel.disabled || sel.value === '') return;
+        sel.value = '';
+        sel.dispatchEvent(new Event('change', { bubbles: true }));
+    };
+    texto.addEventListener('click', pesquisar);
+    texto.addEventListener('keydown', e => {
+        if (e.key === 'Tab') return;
+        if (!e.ctrlKey && !e.metaKey) e.preventDefault();
+        if (e.key === 'Enter' || e.key === ' ') pesquisar();
+        else if (e.key === 'Delete' || e.key === 'Backspace') limpar();
+    });
+    texto.addEventListener('paste', e => e.preventDefault());
+    texto.addEventListener('drop', e => e.preventDefault());
+
+    const grupo = document.createElement('div');
+    grupo.className = 'input-group';
+    sel.parentNode.insertBefore(grupo, sel);
+    sel.classList.add('d-none');
+    grupo.append(sel, texto);
+
+    const botaoLimpar = document.createElement('button');
+    botaoLimpar.type = 'button';
+    botaoLimpar.className = 'btn btn-outline-secondary';
+    botaoLimpar.title = 'Limpar';
+    botaoLimpar.innerHTML = '<i class="bi bi-x-lg"></i>';
+    botaoLimpar.addEventListener('click', limpar);
+
+    const botaoPesquisar = document.createElement('button');
+    botaoPesquisar.type = 'button';
+    botaoPesquisar.className = 'btn btn-outline-primary';
+    // A pesquisa seleciona, edita e cadastra (Novo): a dica diz isso.
+    botaoPesquisar.title = 'Adicionar / Editar / Pesquisar';
+    botaoPesquisar.innerHTML = '<i class="bi bi-plus-lg"></i>';
+    botaoPesquisar.addEventListener('click', pesquisar);
+    grupo.append(botaoLimpar, botaoPesquisar);
+
+    // Campo desabilitado (somente leitura ou travado pelo JS da tela): o texto
+    // fica desabilitado e os botoes somem; voltam quando o <select> e liberado.
+    // O X so aparece com algo escolhido.
+    function atualizarBotoes() {
+        texto.disabled = sel.disabled;
+        botaoPesquisar.classList.toggle('d-none', sel.disabled);
+        botaoLimpar.classList.toggle('d-none', sel.disabled || valorDoSelect.get.call(sel) === '');
+    }
+    new MutationObserver(atualizarBotoes).observe(sel, { attributes: true, attributeFilter: ['disabled'] });
+
+    atualizarTexto();
+}
+
+function montarCamposSelecao(raiz = document) {
+    raiz.querySelectorAll('select[data-pesquisa]').forEach(montarCampoSelecao);
+}
+document.addEventListener('DOMContentLoaded', () => montarCamposSelecao());
+
+// Opcoes prontas para quando o campo da tela e um <select>.
+// texto(reg): o que aparece na opcao (padrao: reg.nome).
+function opcoesDoSelect(idSelect, texto = r => r.nome, depoisDeSelecionar = null) {
+    return {
+        selecionar: r => { selecionarNoSelect(idSelect, r.id, texto(r)); depoisDeSelecionar?.(r); },
+        atualizado: r => renomearNoSelect(idSelect, r.id, texto(r)),
+        excluido: r => removerDoSelect(idSelect, r.id)
+    };
+}
+
+// Igual ao opcoesDoSelect, mas tambem mantem a lista local da tela (ex.: a
+// lista de produtos da Venda, com preco e saldo, ou as formas da Compra, para
+// o nome na grade de parcelas).
+//   paraLista(reg): o objeto guardado na lista (padrao: { id, nome })
+function opcoesDoSelectComLista(idSelect, lista, paraLista = r => ({ id: r.id, nome: r.nome })) {
+    const select = opcoesDoSelect(idSelect);
+    const guardar = r => {
+        const item = paraLista(r);
+        const i = lista.findIndex(x => x.id === item.id);
+        if (i >= 0) lista[i] = item; else lista.push(item);
+    };
+    return {
+        selecionar: r => { guardar(r); select.selecionar(r); },
+        atualizado: r => { guardar(r); select.atualizado(r); },
+        excluido: r => {
+            const i = lista.findIndex(x => x.id === r.id);
+            if (i >= 0) lista.splice(i, 1);
+            select.excluido(r);
+        }
+    };
+}
+
+// Cadastro rapido aberto pela pesquisa (cargo, marca, categoria, cidade...),
+// depois de gravar: fecha o modal do cadastro; edicao volta para a pesquisa com
+// a lista atualizada; cadastro novo chama selecionar() (coloca no campo de quem
+// chamou) e fecha a pesquisa.
+function concluirCadastro(idModal, chave, editando, selecionar) {
+    bootstrap.Modal.getInstance(document.getElementById(idModal))?.hide();
+    if (editando) { recarregarPesquisa(chave); return; }
+    selecionar();
+    fecharPesquisa(chave);
 }
 
 function criarModalPesquisa(chave) {

@@ -204,7 +204,8 @@
                     <div class="row g-3">
                         <div class="col-md-6">
                             <label class="form-label">Cliente *</label>
-                            <select class="form-select" asp-for="AgendamentoForm.IdCliente" required>
+                            <select class="form-select" asp-for="AgendamentoForm.IdCliente" id="agCliente" required
+                                    data-pesquisa="abrirPesquisaCliente(opcoesDoSelect('agCliente'))" data-titulo-pesquisa="Pesquisar cliente">
                                 <option value="">Selecione o cliente</option>
                                 @foreach (var c in Model.Clientes)
                                 {
@@ -214,7 +215,8 @@
                         </div>
                         <div class="col-md-6">
                             <label class="form-label">Profissional *</label>
-                            <select class="form-select" asp-for="AgendamentoForm.IdFuncionario" required>
+                            <select class="form-select" asp-for="AgendamentoForm.IdFuncionario" id="agFuncionario" required
+                                    data-pesquisa="abrirPesquisaFuncionario(opcoesDoSelect('agFuncionario'), 'Pesquisar Profissional')" data-titulo-pesquisa="Pesquisar profissional">
                                 <option value="">Selecione o profissional</option>
                                 @foreach (var f in Model.Funcionarios)
                                 {
@@ -224,7 +226,8 @@
                         </div>
                         <div class="col-md-6">
                             <label class="form-label">Serviço *</label>
-                            <select class="form-select" asp-for="AgendamentoForm.IdServico" required>
+                            <select class="form-select" asp-for="AgendamentoForm.IdServico" id="agServico" required
+                                    data-pesquisa="abrirPesquisaServico(opcoesDoSelect('agServico', textoServicoAgenda))" data-titulo-pesquisa="Pesquisar serviço">
                                 <option value="">Selecione o serviço</option>
                                 @foreach (var s in Model.Servicos)
                                 {
@@ -266,6 +269,13 @@
     </div>
 </div>
 
+<!-- Cadastros compartilhados, abertos pelo Novo/Editar das pesquisas de cliente,
+     profissional e servico. Gravam por AJAX e voltam para a pesquisa. -->
+@await Component.InvokeAsync("CadastroCliente", new { modo = "ajax" })
+@await Component.InvokeAsync("CadastroFuncionario", new { modo = "ajax" })
+@await Component.InvokeAsync("CadastroServico", new { modo = "ajax" })
+
 @section Scripts {
+    @* Os scripts dos cadastros vem com os proprios componentes. *@
     <script src="~/Pages/Operacional/Agendamentos.cshtml.js" asp-append-version="true"></script>
 }

@@ -3,28 +3,11 @@
 @{
     ViewData["Title"] = "Fornecedores";
 
-    string FormatarCPF(string? v)
-    {
-        var d = new string((v ?? "").Where(char.IsDigit).ToArray());
-        return d.Length == 11 ? $"{d[..3]}.{d.Substring(3, 3)}.{d.Substring(6, 3)}-{d.Substring(9, 2)}" : (v ?? "");
-    }
-    string FormatarCNPJ(string? v)
-    {
-        var d = new string((v ?? "").Where(char.IsDigit).ToArray());
-        return d.Length == 14 ? $"{d[..2]}.{d.Substring(2, 3)}.{d.Substring(5, 3)}/{d.Substring(8, 4)}-{d.Substring(12, 2)}" : (v ?? "");
-    }
-    string FormatarTelefone(string? v)
-    {
-        var d = new string((v ?? "").Where(char.IsDigit).ToArray());
-        if (d.Length == 11) return $"({d[..2]}) {d.Substring(2, 5)}-{d.Substring(7, 4)}";
-        if (d.Length == 10) return $"({d[..2]}) {d.Substring(2, 4)}-{d.Substring(6, 4)}";
-        return string.IsNullOrEmpty(v) ? "-" : v;
-    }
     string DocExib(Fornecedor f) => f.TpPessoa switch
     {
-        "F" => FormatarCPF(f.NrCpf),
+        "F" => Module.FormatarCpf(f.NrCpf),
         "E" or "O" => f.NrDocumento ?? "",
-        _ => FormatarCNPJ(f.NrCNPJ)
+        _ => Module.FormatarCnpj(f.NrCNPJ)
     };
 }
 
@@ -33,7 +16,7 @@
         <h1 class="page-title">Fornecedores</h1>
         <p class="page-subtitle">Gerencie os fornecedores cadastrados no sistema</p>
     </div>
-    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#modalFornecedor" onclick="limparForm()">
+    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#modalFornecedor" onclick="limparFormFornecedor()">
         <i class="bi bi-plus-lg me-1"></i> Novo Fornecedor
     </button>
 </div>
@@ -100,9 +83,9 @@
                             <td>@f.IdFornecedor</td>
                             <td><strong>@f.DsRazaoSocial</strong></td>
                             <td>@(string.IsNullOrWhiteSpace(f.DsNomeFantasia) ? "-" : f.DsNomeFantasia)</td>
-                            <td>@(string.IsNullOrEmpty(DocExib(f)) ? "-" : DocExib(f))</td>
-                            <td>@FormatarTelefone(f.NrCelular ?? f.NrTelefoneFixo)</td>
-                            <td>@(f.Cidade != null ? $"{f.Cidade.NmCidade}/{f.Cidade.Estado?.SgUF}" : "-")</td>
+                            <td>@Module.OuTraco(DocExib(f))</td>
+                            <td>@Module.OuTraco(Module.FormatarTelefone(f.NrCelular ?? f.NrTelefoneFixo))</td>
+                            <td>@Module.OuTraco(Module.CidadeUf(f.Cidade))</td>
                             <td>
                                 @if (f.FlAtivo)
                                 {

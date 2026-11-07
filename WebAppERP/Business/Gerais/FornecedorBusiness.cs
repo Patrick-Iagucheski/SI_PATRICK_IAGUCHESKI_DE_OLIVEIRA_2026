@@ -5,7 +5,7 @@ using WebAppERP.Data;
 namespace WebAppERP.Business.Gerais;
 
 // Regras de negocio do fornecedor. Usada pela tela de Fornecedores, pelo
-// componente de cadastro de fornecedor (inclusive o "+" da Compra) e pelas
+// componente de cadastro de fornecedor (inclusive a pesquisa de fornecedor da Compra) e pelas
 // consultas de fornecedor das outras telas (Compra, Contas a Pagar).
 public class FornecedorBusiness
 {
@@ -69,22 +69,6 @@ public class FornecedorBusiness
         }
 
         return await query.OrderBy(f => f.DsRazaoSocial).Take(100).ToListAsync();
-    }
-
-    // Pesquisa rapida (pesquisa de fornecedor da Compra): so ativos, por codigo
-    // ou por razao social / nome fantasia.
-    public async Task<List<Fornecedor>> Pesquisar(int? id, string? termo)
-    {
-        var query = _db.Fornecedores.Where(f => f.FlAtivo);
-
-        if (id.HasValue)
-            query = query.Where(f => f.IdFornecedor == id.Value);
-        else if (!string.IsNullOrWhiteSpace(termo))
-        {
-            query = query.Where(Module.MontarFiltroTexto<Fornecedor>(termo, f => f.DsRazaoSocial, f => f.DsNomeFantasia));
-        }
-
-        return await query.OrderBy(f => f.DsRazaoSocial).Take(50).ToListAsync();
     }
 
     // ============================================================
@@ -265,7 +249,7 @@ public class FornecedorBusiness
                 throw new ValidacaoException("Chave PIX inválida para o tipo selecionado.");
         }
 
-        // Condicao de pagamento vem do dropdown; so aceita uma ja cadastrada e ativa.
+        // Condicao de pagamento vem da pesquisa do campo; so aceita uma ja cadastrada e ativa.
         if (f.IdCondicaoPagamento is int idCondicao
             && !await _db.CondicoesPagamento.AnyAsync(c => c.IdCondicaoPagamento == idCondicao && c.FlAtivo))
             throw new ValidacaoException("Condição de pagamento inválida.");

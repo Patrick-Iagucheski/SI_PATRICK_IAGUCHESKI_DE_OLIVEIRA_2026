@@ -22,8 +22,6 @@ let PAGAMENTOS = DADOS_TELA.PAGAMENTOS;
 let itemEditandoIdx = null;
 let pagamentoEditandoIdx = null;
 
-// Contexto do modal de pesquisa: 'fornecedor' | 'transportador' | 'item'.
-
 // ---------------- Utilitarios ----------------
 
 function qtd(n) {
@@ -56,141 +54,59 @@ function nomeCondicao(id) {
 }
 
 // ---------------- Pesquisa (fornecedor / transportadora / item) ----------------
-// Cada pesquisa tem o seu modal, montado por abrirPesquisa (module.js); aqui
-// so a configuracao de cada uma. Editar abre o cadastro por cima da pesquisa
-// e, ao salvar, volta para a lista atualizada.
+// Cada pesquisa vem do componente de cadastro da entidade (abrirPesquisaX):
+// aqui so o que a compra faz com o registro escolhido, editado ou excluido.
 
-// CPF, CNPJ ou documento conforme o tipo de pessoa do fornecedor.
-function documentoFornecedor(f) {
-    if (f.tipoPessoa === 'F') return f.cpf ? mascaraCPF(f.cpf) : '-';
-    if (f.tipoPessoa === 'E' || f.tipoPessoa === 'O') return escaparHtml(f.documento || '-');
-    return f.cnpj ? mascaraCNPJ(f.cnpj) : '-';
-}
-
+// Fornecedor, transportadora e item sao campos de selecao com lupa (module.js):
+// o <select> guarda o id e o nome aparece no campo.
 function abrirBuscaFornecedor() {
-    const cadastro = document.getElementById('modalFornecedor');
-    abrirPesquisa({
-        chave: 'fornecedor',
-        titulo: 'Pesquisar Fornecedor',
-        // Mesma busca da tela de Fornecedores (so ativos, sem diferenciar acento).
-        url: () => DADOS_TELA.URL_FORNECEDORES + '?handler=BuscarFornecedores',
-        filtros: [
-            { param: 'id', rotulo: 'ID', tipo: 'number', col: 2 },
-            { param: 'razao', rotulo: 'Razão Social', col: 4 },
-            { param: 'fantasia', rotulo: 'Nome Fantasia', col: 3 },
-            { param: 'documento', rotulo: 'CPF / CNPJ', col: 3 }
-        ],
-        colunas: ['Código', 'Razão Social', 'Nome Fantasia', 'CPF / CNPJ', 'Cidade'],
-        celulas: f => ['<strong>' + f.id + '</strong>', escaparHtml(f.razaoSocial), escaparHtml(f.nomeFantasia || '-'),
-                       documentoFornecedor(f), escaparHtml(f.cidadeNome || '-')],
-        selecionar: f => definirFornecedor(f.id, f.razaoSocial),
-        editar: cadastro ? f => { fornecedorEmEdicao = true; editarFornecedor(f); abrirModalEmpilhado('modalFornecedor'); } : null,
-        novo: cadastro ? () => { fornecedorEmEdicao = false; limparForm(); abrirModalEmpilhado('modalFornecedor'); } : null
-    });
+    abrirPesquisaFornecedor(opcoesDoSelect('IdFornecedor', f => f.razaoSocial));
 }
 
 function abrirBuscaTransportador() {
-    abrirPesquisa({
-        chave: 'transportador',
-        titulo: 'Pesquisar Transportadora',
-        url: () => '?handler=BuscarTransportador',
-        filtros: [{ param: 'termo', rotulo: 'Razão Social', col: 6 }],
-        colunas: ['Código', 'Razão Social'],
-        celulas: r => ['<strong>' + r.id + '</strong>', escaparHtml(r.nome)],
-        selecionar: r => {
-            document.getElementById('IdTransportador').value = r.id;
-            document.getElementById('nomeTransportador').value = r.nome;
-        }
-    });
+    abrirPesquisaTransportador(opcoesDoSelect('IdTransportador'));
 }
 
 function abrirBuscaItem() {
-    const produto = document.getElementById('itTipo').value === TIPO_PRODUTO;
-    const cadastro = produto && document.getElementById('modalProduto');
-    abrirPesquisa({
-        chave: 'item',
-        titulo: produto ? 'Pesquisar Produto' : 'Pesquisar Serviço',
-        url: () => '?handler=' + (produto ? 'BuscarProduto' : 'BuscarServico'),
-        filtros: [{ param: 'termo', rotulo: 'Descrição', col: 6 }],
-        colunas: ['Código', 'Descrição'],
-        celulas: r => ['<strong>' + r.id + '</strong>', escaparHtml(r.nome)],
-        selecionar: aplicarItemSelecionado,
-        novo: cadastro ? () => { limparFormProduto(); abrirModalEmpilhado('modalProduto'); } : null
-    });
+    const opcoes = {
+        atualizado: r => renomearNoSelect('itCodigo', r.id, r.nome),
+        excluido: r => { if (String(r.id) === document.getElementById('itCodigo').value) limparItemForm(); }
+    };
+    if (document.getElementById('itTipo').value === TIPO_PRODUTO)
+        abrirPesquisaProduto({ ...opcoes, selecionar: p => aplicarItemSelecionado({ id: p.id, nome: p.nome, unidade: p.unidade, custo: p.custo }) });
+    else
+        abrirPesquisaServico({ ...opcoes, selecionar: s => aplicarItemSelecionado({ id: s.id, nome: s.nome, valor: s.valor }) });
 }
 
-function definirFornecedor(id, nome) {
-    document.getElementById('IdFornecedor').value = id;
-    document.getElementById('nomeFornecedor').value = nome;
+// Forma da parcela e condicao: alem do campo, mantem as listas FORMAS e
+// CONDICOES (nomes na grade de parcelas).
+function abrirBuscaForma() {
+    abrirPesquisaForma(opcoesDoSelectComLista('pgForma', FORMAS));
 }
 
-// Registro gravado pelo componente. Cadastro novo ja volta selecionado na
-// compra; edicao feita pela pesquisa volta para a lista atualizada (e, se for
-// o fornecedor desta compra, atualiza o nome exibido).
-let fornecedorEmEdicao = false;
-document.addEventListener('fornecedor:salvo', e => {
-    if (fornecedorEmEdicao) {
-        fornecedorEmEdicao = false;
-        if (String(e.detail.id) === document.getElementById('IdFornecedor').value)
-            document.getElementById('nomeFornecedor').value = e.detail.razaoSocial;
-        recarregarPesquisa('fornecedor');
-        return;
-    }
-    definirFornecedor(e.detail.id, e.detail.razaoSocial);
-    fecharPesquisa('fornecedor');
-});
-document.addEventListener('produto:salvo', e => {
-    aplicarItemSelecionado({ id: e.detail.id, nome: e.detail.nome, unidade: e.detail.unidade, custo: e.detail.custo });
-    fecharPesquisa('item');
-});
+function abrirBuscaCondicao() {
+    abrirPesquisaCondicao(opcoesDoSelectComLista('IdCondicaoPagamento', CONDICOES));
+}
 
 // Preenche os campos do item a partir do produto/servico escolhido.
 function aplicarItemSelecionado(reg) {
-    document.getElementById('itCodigo').value = reg.id;
-    document.getElementById('itDescricao').textContent = reg.nome;
+    selecionarNoSelect('itCodigo', reg.id, reg.nome);
     if (reg.unidade) document.getElementById('itUnidade').value = reg.unidade;
     const preco = reg.custo ?? reg.valor;
     if (preco) document.getElementById('itVlUnit').value = preco;
     calcItemTotal();
 }
 
-// Digitou o ID direto no campo: busca o registro para exibir a descricao.
-async function onCodigoItemChange() {
-    const id = parseInt(document.getElementById('itCodigo').value) || 0;
-    if (!id) { document.getElementById('itDescricao').textContent = ''; return; }
-
-    const tipo = document.getElementById('itTipo').value;
-    const handler = tipo === TIPO_PRODUTO ? 'BuscarProduto' : 'BuscarServico';
-
-    try {
-        const resp = await fetch('?handler=' + handler + '&id=' + id);
-        const lista = await resp.json();
-        if (lista.length) aplicarItemSelecionado(lista[0]);
-        else document.getElementById('itDescricao').textContent = 'Não encontrado';
-    } catch {
-        document.getElementById('itDescricao').textContent = '';
-    }
-}
-
-// Mesma ideia para fornecedor e transportadora.
-async function buscarPorId(handler, idInput, nomeInput) {
-    const id = parseInt(document.getElementById(idInput).value) || 0;
-    if (!id) { document.getElementById(nomeInput).value = ''; return; }
-
-    try {
-        const resp = await fetch('?handler=' + handler + '&id=' + id);
-        const lista = await resp.json();
-        document.getElementById(nomeInput).value = lista.length ? lista[0].nome : 'Não encontrado';
-    } catch {
-        document.getElementById(nomeInput).value = '';
-    }
+// Descricao do item escolhido (texto da opcao do campo de selecao).
+function descricaoItem() {
+    const sel = document.getElementById('itCodigo');
+    return sel.value ? sel.selectedOptions[0].textContent.trim() : '';
 }
 
 // ---------------- Itens ----------------
 
 function onTipoChange() {
     document.getElementById('itCodigo').value = '';
-    document.getElementById('itDescricao').textContent = '';
     document.getElementById('itVlUnit').value = '0';
     calcItemTotal();
 }
@@ -216,9 +132,9 @@ function calcItemTotal() {
 function adicionarItem() {
     const tipo = document.getElementById('itTipo').value;
     const codigo = parseInt(texto('itCodigo')) || 0;
-    const descricao = document.getElementById('itDescricao').textContent;
+    const descricao = descricaoItem();
 
-    if (!codigo || !descricao || descricao === 'Não encontrado') {
+    if (!codigo || !descricao) {
         exibirErro(secaoDoCampo('itTipo'), 'Selecione um ' + (tipo === TIPO_PRODUTO ? 'produto' : 'serviço') + ' válido.');
         return;
     }
@@ -262,7 +178,6 @@ function limparItemForm() {
     itemEditandoIdx = null;
     descontoPorPercentual = false;
     document.getElementById('itCodigo').value = '';
-    document.getElementById('itDescricao').textContent = '';
     document.getElementById('itUnidade').value = '';
     document.getElementById('itQt').value = '1';
     document.getElementById('itVlUnit').value = '0';
@@ -278,8 +193,7 @@ function editarItem(idx) {
     descontoPorPercentual = false;
 
     document.getElementById('itTipo').value = it.tpItem;
-    document.getElementById('itCodigo').value = it.codigo;
-    document.getElementById('itDescricao').textContent = it.descricao;
+    selecionarNoSelect('itCodigo', it.codigo, it.descricao);
     document.getElementById('itUnidade').value = it.sgUnidade || '';
     document.getElementById('itQt').value = it.qtItem;
     document.getElementById('itVlUnit').value = it.vlUnitario;
@@ -560,45 +474,10 @@ function travarCondicaoFornecedor(idCondicao) {
     if (!sel) return;
     const travar = !!idCondicao && !!sel.querySelector('option[value="' + idCondicao + '"]');
     if (travar) sel.value = idCondicao;
+    // Travado, o campo fica desabilitado e a lupa some (module.js).
     sel.disabled = travar;
-    document.getElementById('btnNovaCondicao').disabled = travar;
     document.getElementById('condicaoFornecedorAviso').classList.toggle('d-none', !travar);
 }
-
-// + da condicao de pagamento: usa o mesmo modal do cadastro de fornecedor.
-// A flag diz que a condicao salva deve ser selecionada na compra.
-let condicaoPelaCompra = false;
-function novaCondicaoCompra() {
-    condicaoPelaCompra = true;
-    limparFormCondicao();
-    abrirModalEmpilhado('modalCondicao');
-}
-
-// Condicao cadastrada (pelo + daqui ou pelo do cadastro de fornecedor):
-// entra na lista da compra; so e selecionada quando veio do + daqui.
-document.addEventListener('condicao:salva', e => {
-    const pelaCompra = condicaoPelaCompra;
-    condicaoPelaCompra = false;
-    const sel = document.getElementById('IdCondicaoPagamento');
-    if (!sel || !e.detail.ativo) return;
-
-    let opt = sel.querySelector('option[value="' + e.detail.id + '"]');
-    if (!opt) {
-        opt = document.createElement('option');
-        opt.value = e.detail.id;
-        sel.appendChild(opt);
-    }
-    opt.textContent = e.detail.nome;
-
-    const c = CONDICOES.find(x => x.id === e.detail.id);
-    if (c) c.nome = e.detail.nome;
-    else CONDICOES.push({ id: e.detail.id, nome: e.detail.nome });
-
-    if (pelaCompra && !sel.disabled) sel.value = e.detail.id;
-});
-
-// Fechou o modal sem salvar: o proximo cadastro pode vir do fornecedor.
-document.getElementById('modalCondicao')?.addEventListener('hidden.bs.modal', () => condicaoPelaCompra = false);
 
 // ---------------- Chave e datas (liberacao por etapas) ----------------
 
@@ -617,7 +496,7 @@ async function validarChave() {
     if (!texto('NrModelo')) { exibirErro(secaoDoCampo('NrNota'), 'Selecione o modelo da nota.'); return; }
     if (texto('NrSerie') === '') { exibirErro(secaoDoCampo('NrNota'), 'Informe a série da nota.'); document.getElementById('NrSerie').focus(); return; }
     if (!texto('NrNota')) { exibirErro(secaoDoCampo('NrNota'), 'Informe o número da nota.'); document.getElementById('NrNota').focus(); return; }
-    if (!texto('IdFornecedor')) { exibirErro(secaoDoCampo('NrNota'), 'Informe o fornecedor.'); document.getElementById('IdFornecedor').focus(); return; }
+    if (!texto('IdFornecedor')) { exibirErro(secaoDoCampo('NrNota'), 'Informe o fornecedor.'); document.getElementById('IdFornecedorNome').focus(); return; }
 
     const dados = new FormData();
     dados.append('__RequestVerificationToken', tokenAntiforgery());
@@ -636,7 +515,7 @@ async function validarChave() {
         return;
     }
 
-    if (r.fornecedor) document.getElementById('nomeFornecedor').value = r.fornecedor;
+    if (r.fornecedor) renomearNoSelect('IdFornecedor', texto('IdFornecedor'), r.fornecedor);
 
     if (!r.ok) {
         mensagemChave('<i class="bi bi-x-circle me-1"></i>' + escaparHtml(r.erro), 'text-danger');
@@ -703,7 +582,7 @@ function salvar(status) {
     if (!texto('NrModelo')) { exibirErro(secaoDoCampo('NrNota'), 'Selecione o modelo da nota.'); return; }
     if (!texto('NrNota')) { exibirErro(secaoDoCampo('NrNota'), 'Informe o número da nota.'); document.getElementById('NrNota').focus(); return; }
     if (texto('NrSerie') === '') { exibirErro(secaoDoCampo('NrNota'), 'Informe a série da nota.'); document.getElementById('NrSerie').focus(); return; }
-    if (!texto('IdFornecedor')) { exibirErro(secaoDoCampo('NrNota'), 'Informe o fornecedor.'); document.getElementById('IdFornecedor').focus(); return; }
+    if (!texto('IdFornecedor')) { exibirErro(secaoDoCampo('NrNota'), 'Informe o fornecedor.'); document.getElementById('IdFornecedorNome').focus(); return; }
     if (!chaveValidada) { exibirErro(secaoDoCampo('NrNota'), 'Valide a chave da nota antes de salvar.'); return; }
 
     const erroData = validarDatas();
@@ -909,12 +788,6 @@ document.addEventListener('DOMContentLoaded', function () {
         e.preventDefault();
         if (document.getElementById('btnValidarChave')) validarChave();
     }));
-
-    document.getElementById('IdFornecedor')?.addEventListener('change', () =>
-        buscarPorId('BuscarFornecedor', 'IdFornecedor', 'nomeFornecedor'));
-
-    document.getElementById('IdTransportador')?.addEventListener('change', () =>
-        buscarPorId('BuscarTransportador', 'IdTransportador', 'nomeTransportador'));
 
     // A partir daqui as alteracoes sao do usuario (o render inicial nao salva).
     telaIniciada = true;

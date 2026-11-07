@@ -5,7 +5,7 @@ using WebAppERP.ViewModels;
 namespace WebAppERP.ViewComponents;
 
 // Modal de cadastro de produto (com cadastro rapido de marca), reaproveitado
-// pela tela de Produtos e pela pesquisa de produto da Compra.
+// pela tela de Produtos e pela pesquisa de produto (Compra e Venda).
 // View: Pages/Shared/Components/CadastroProduto/Default.cshtml.
 // Traz o proprio script (Default.cshtml.js, na mesma pasta), incluido uma vez
 // por pagina. A gravacao fica em ProdutosModel (OnPost / OnPostSalvarAjax).

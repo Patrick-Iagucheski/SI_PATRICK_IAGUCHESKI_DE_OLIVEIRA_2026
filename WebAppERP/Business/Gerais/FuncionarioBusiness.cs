@@ -74,7 +74,7 @@ public class FuncionarioBusiness
             registro.DtEdicao = DateTime.Now;
         }
 
-        // O cargo vem do dropdown (idCargo) e e a unica fonte da verdade:
+        // O cargo vem do campo de cargo (idCargo) e e a unica fonte da verdade:
         // o nome sai da navegacao Cargo.NmCargo na hora de exibir.
         registro.NmFuncionario = funcionario.NmFuncionario;
         registro.NmApelido = funcionario.NmApelido;

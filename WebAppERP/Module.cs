@@ -21,6 +21,39 @@ public static class Module
         string.IsNullOrEmpty(valor) ? valor : new string(valor.Where(char.IsDigit).ToArray());
 
     // ============================================================
+    // Formatacao para exibicao (mesmas mascaras do module.js)
+    // ============================================================
+    // Valor fora do tamanho esperado volta como veio ("" quando vazio).
+
+    public static string FormatarCpf(string? v)
+    {
+        var d = SomenteNumeros(v) ?? "";
+        return d.Length == 11 ? $"{d[..3]}.{d.Substring(3, 3)}.{d.Substring(6, 3)}-{d.Substring(9, 2)}" : (v ?? "");
+    }
+
+    public static string FormatarCnpj(string? v)
+    {
+        var d = SomenteNumeros(v) ?? "";
+        return d.Length == 14 ? $"{d[..2]}.{d.Substring(2, 3)}.{d.Substring(5, 3)}/{d.Substring(8, 4)}-{d.Substring(12, 2)}" : (v ?? "");
+    }
+
+    // Fixo (10 digitos) ou celular (11 digitos).
+    public static string FormatarTelefone(string? v)
+    {
+        var d = SomenteNumeros(v) ?? "";
+        if (d.Length == 11) return $"({d[..2]}) {d.Substring(2, 5)}-{d.Substring(7, 4)}";
+        if (d.Length == 10) return $"({d[..2]}) {d.Substring(2, 4)}-{d.Substring(6, 4)}";
+        return v ?? "";
+    }
+
+    // Cidade com a UF do estado (ex.: "Cascavel/PR"); null sem cidade.
+    public static string? CidadeUf(Models.Gerais.Cidade? c) =>
+        c == null ? null : c.NmCidade + "/" + c.Estado?.SgUF;
+
+    // Traco nas listagens quando nao ha valor.
+    public static string OuTraco(string? v) => string.IsNullOrWhiteSpace(v) ? "-" : v;
+
+    // ============================================================
     // Consultas por nome
     // ============================================================
 

@@ -3,8 +3,8 @@ using WebAppERP.Data;
 
 namespace WebAppERP.Business.Estoque;
 
-// Regras de negocio da marca. Usada pela tela de Marcas, pelo "+" de marca no
-// cadastro de produto e pela lista de marcas do componente de produto.
+// Regras de negocio da marca. Usada pela tela de Marcas, pela pesquisa de marca
+// do cadastro de produto e pela lista de marcas do componente de produto.
 public class MarcaBusiness
 {
     private readonly AppDbContext _db;

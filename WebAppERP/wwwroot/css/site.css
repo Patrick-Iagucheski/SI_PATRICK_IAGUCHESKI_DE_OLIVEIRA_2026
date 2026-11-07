@@ -849,17 +849,7 @@ body {
 /* ============================================
    Componente CampoCidade (Pages/Shared/Components/CampoCidade)
    ============================================ */
-/* Lista suspensa dos campos cidade / estado / pais */
-.autocomplete { position: relative; }
-.autocomplete-lista {
-    position: absolute;
-    top: 100%;
-    left: 0;
-    right: 0;
-    z-index: 1080;
-    max-height: 240px;
-    overflow-y: auto;
-    box-shadow: 0 .5rem 1rem rgba(0, 0, 0, .15);
-}
-.autocomplete-lista .list-group-item { cursor: pointer; }
+/* Campo de selecao com lupa (module.js, montarCampoSelecao): nada e digitado,
+   o clique abre a pesquisa */
+.campo-selecao:not(:disabled) { cursor: pointer; }
 

@@ -18,7 +18,7 @@ public class PaisBusiness
     public async Task<List<Pais>> Listar() =>
         await _db.Paises.OrderBy(p => p.NmPais).ToListAsync();
 
-    // Lista suspensa: por nome (sem acento) ou sigla.
+    // Pesquisa: por nome (sem acento) ou sigla.
     public async Task<List<Pais>> Buscar(int? id, string? termo)
     {
         var query = _db.Paises.AsQueryable();

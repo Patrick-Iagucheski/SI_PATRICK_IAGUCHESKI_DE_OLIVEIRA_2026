@@ -1,8 +1,8 @@
 ﻿// Script do componente de cadastro de produto
 // (Pages/Shared/Components/CadastroProduto/Default.cshtml).
-// Usado pela tela de Produtos e pela pesquisa de produto da Compra.
-// Nomes com sufixo "Produto" onde a Compra (ou o componente de fornecedor,
-// que fica na mesma tela) ja tem uma funcao com o nome generico.
+// Usado pela tela de Produtos e pela pesquisa de produto (lupa do item da
+// Compra e da Venda). Nomes com sufixo "Produto" onde a tela (ou outro
+// componente da mesma tela) ja tem uma funcao com o nome generico.
 
 // ===== Preview / remocao da imagem =====
 // Mostra o preview (arquivo novo escolhido ou imagem ja salva) com o botao de remover.
@@ -54,63 +54,66 @@ function urlProdutos(handler) {
     return document.getElementById('modalProduto').dataset.urlProdutos + '?handler=' + handler;
 }
 
-// ===== Cadastro rapido de Marca (AJAX) =====
-async function salvarMarcaRapida() {
-    const nome = document.getElementById('marcaNome').value.trim();
-    const msg = document.getElementById('marcaMsg');
-    const btn = document.getElementById('btnSalvarMarcaRapido');
-    msg.innerHTML = '';
+// ===== Marca e Categoria: pesquisa (a lupa do campo) e cadastro rapido =====
+// Mesmo padrao das outras pesquisas: Selecionar coloca no campo do produto,
+// Editar e Novo abrem o cadastro rapido, a lixeira usa o Excluir da tela de
+// Marcas / Categorias (regras do Business).
+const AUX_PRODUTO = {
+    marca:     { nome: 'Marca',     select: 'prodIdMarca',     pref: 'marca',     tela: 'urlMarcas',     busca: 'BuscarMarcas',     rapido: 'MarcaRapido',     dto: ['idMarca', 'nmMarca'] },
+    categoria: { nome: 'Categoria', select: 'prodIdCategoria', pref: 'categoria', tela: 'urlCategorias', busca: 'BuscarCategorias', rapido: 'CategoriaRapido', dto: ['idCategoria', 'nmCategoria'] }
+};
 
-    if (!nome) { msg.innerHTML = alertaErro('Informe o nome da marca.'); return; }
-
-    btn.disabled = true;
-    try {
-        const data = await postJson(urlProdutos('MarcaRapido'), { nmMarca: nome });
-        if (!data.sucesso) { msg.innerHTML = alertaErro(data.mensagem); return; }
-
-        // Adiciona a nova marca no dropdown e ja a seleciona automaticamente.
-        const sel = document.getElementById('prodIdMarca');
-        const opt = document.createElement('option');
-        opt.value = data.id;
-        opt.textContent = data.nome;
-        sel.appendChild(opt);
-        sel.value = data.id;
-
-        document.getElementById('marcaNome').value = '';
-        bootstrap.Modal.getInstance(document.getElementById('modalMarcaRapido')).hide();
-    } catch (e) {
-        msg.innerHTML = alertaErro('Erro ao salvar a marca. Tente novamente.');
-    } finally {
-        btn.disabled = false;
-    }
+function urlTelaProduto(tela, handler) {
+    return document.getElementById('modalProduto').dataset[tela] + '?handler=' + handler;
 }
 
-// ===== Cadastro rapido de Categoria (AJAX) =====
-async function salvarCategoriaRapida() {
-    const nome = document.getElementById('categoriaNome').value.trim();
-    const msg = document.getElementById('categoriaMsg');
-    const btn = document.getElementById('btnSalvarCategoriaRapido');
-    msg.innerHTML = '';
+function abrirPesquisaAuxProduto(tipo) {
+    const a = AUX_PRODUTO[tipo];
+    abrirPesquisa({
+        chave: tipo,
+        titulo: 'Pesquisar ' + a.nome,
+        url: () => urlTelaProduto(a.tela, a.busca),
+        filtros: [
+            { param: 'id', rotulo: 'ID', tipo: 'number', col: 2 },
+            { param: 'termo', rotulo: a.nome, col: 6 }
+        ],
+        colunas: ['Código', a.nome],
+        celulas: r => ['<strong>' + r.id + '</strong>', escaparHtml(r.nome)],
+        selecionar: r => selecionarNoSelect(a.select, r.id, r.nome),
+        editar: r => abrirCadastroAuxProduto(tipo, r),
+        novo: () => abrirCadastroAuxProduto(tipo, null),
+        excluir: { url: () => urlTelaProduto(a.tela, 'Excluir'), nome: r => r.nome, depois: r => removerDoSelect(a.select, r.id) }
+    });
+}
 
-    if (!nome) { msg.innerHTML = alertaErro('Informe o nome da categoria.'); return; }
+function abrirCadastroAuxProduto(tipo, reg) {
+    const a = AUX_PRODUTO[tipo];
+    document.getElementById(a.pref + 'Msg').innerHTML = '';
+    document.getElementById(a.pref + 'Titulo').textContent = (reg ? 'Editar ' : 'Cadastrar ') + a.nome;
+    document.getElementById(a.pref + 'Id').value = reg ? reg.id : 0;
+    document.getElementById(a.pref + 'Nome').value = reg ? reg.nome : '';
+    abrirModalEmpilhado('modal' + a.nome + 'Rapido');
+}
+
+// Edicao volta para a pesquisa com a lista atualizada; cadastro novo ja fica
+// selecionado no produto e fecha a pesquisa.
+async function salvarAuxProduto(tipo) {
+    const a = AUX_PRODUTO[tipo];
+    const id = parseInt(document.getElementById(a.pref + 'Id').value) || 0;
+    const nome = document.getElementById(a.pref + 'Nome').value.trim();
+    const msg = document.getElementById(a.pref + 'Msg');
+    const btn = document.getElementById('btnSalvar' + a.nome + 'Rapido');
+    msg.innerHTML = '';
+    if (!nome) { msg.innerHTML = alertaErro('Informe o nome da ' + a.nome.toLowerCase() + '.'); return; }
 
     btn.disabled = true;
     try {
-        const data = await postJson(urlProdutos('CategoriaRapido'), { nmCategoria: nome });
+        const data = await postJson(urlProdutos(a.rapido), { [a.dto[0]]: id, [a.dto[1]]: nome });
         if (!data.sucesso) { msg.innerHTML = alertaErro(data.mensagem); return; }
-
-        // Adiciona a nova categoria no dropdown e ja a seleciona automaticamente.
-        const sel = document.getElementById('prodIdCategoria');
-        const opt = document.createElement('option');
-        opt.value = data.id;
-        opt.textContent = data.nome;
-        sel.appendChild(opt);
-        sel.value = data.id;
-
-        document.getElementById('categoriaNome').value = '';
-        bootstrap.Modal.getInstance(document.getElementById('modalCategoriaRapido')).hide();
-    } catch (e) {
-        msg.innerHTML = alertaErro('Erro ao salvar a categoria. Tente novamente.');
+        if (id) renomearNoSelect(a.select, data.id, data.nome);
+        concluirCadastro('modal' + a.nome + 'Rapido', tipo, id > 0, () => selecionarNoSelect(a.select, data.id, data.nome));
+    } catch {
+        msg.innerHTML = alertaErro('Erro ao salvar a ' + a.nome.toLowerCase() + '. Tente novamente.');
     } finally {
         btn.disabled = false;
     }
@@ -155,26 +158,37 @@ function editarProduto(id, nome, idMarca, idCategoria, unidade, custo, vendaMin,
     else { esconderImagem(); }
 }
 
-// ===== Modo AJAX: grava sem recarregar a tela que abriu o cadastro =====
-document.querySelector('#modalProduto form')?.addEventListener('submit', function (e) {
-    if (document.getElementById('modalProduto').dataset.modo !== 'ajax') return;
-    e.preventDefault();
-    salvarProdutoAjax(this);
-});
+// Registro da pesquisa / busca (BuscarProdutos) no formulario de edicao.
+function editarProdutoPorRegistro(p) {
+    editarProduto(p.id, p.nome || '', (p.idMarca ?? ''), (p.idCategoria ?? ''), p.unidade || '',
+        (p.custo ?? ''), (p.vendaMin ?? ''), (p.venda ?? ''), (p.comissao ?? ''),
+        (p.desconto ?? ''), (p.estoque ?? ''), p.descricao || '', p.imagem || '', (p.ativo ? 'True' : 'False'));
+}
 
-// Grava o produto (com a imagem, se houver) e avisa a tela de origem pelo
-// evento 'produto:salvo'.
-async function salvarProdutoAjax(form) {
-    const btn = form.querySelector('button[type="submit"]');
-    exibirErro(form, null);
-    btn.disabled = true;
-    try {
-        const resp = await fetch(urlProdutos('SalvarAjax'), { method: 'POST', body: new FormData(form) });
-        const data = await resp.json();
-        if (!data.sucesso) { exibirErro(form, data.mensagem); return; }
-        bootstrap.Modal.getInstance(document.getElementById('modalProduto')).hide();
-        document.dispatchEvent(new CustomEvent('produto:salvo', { detail: data }));
-    } catch (e) {
-        exibirErro(form, 'Erro ao salvar o produto. Tente novamente.');
-    } finally { btn.disabled = false; }
+// ===== Pesquisa de produto (a lupa do campo de produto de outras telas) =====
+// opcoes: o que a tela faz com o registro (ver abrirPesquisaComCadastro no module.js).
+const PESQUISA_PRODUTO = {
+    chave: 'produto',
+    titulo: 'Pesquisar Produto',
+    // Mesma busca da tela de Produtos (so ativos, sem diferenciar acento).
+    url: () => urlProdutos('BuscarProdutos'),
+    filtros: [
+        { param: 'id', rotulo: 'ID', tipo: 'number', col: 2 },
+        { param: 'termo', rotulo: 'Produto / Marca / Categoria', col: 6 }
+    ],
+    colunas: ['Código', 'Produto', 'Marca', 'Categoria', 'Unidade', 'Custo', 'Venda', 'Estoque'],
+    celulas: p => ['<strong>' + p.id + '</strong>', escaparHtml(p.nome), escaparHtml(p.marca || '-'),
+                   escaparHtml(p.categoria || '-'), escaparHtml(p.unidade || '-'),
+                   p.custo != null ? 'R$ ' + moeda(p.custo) : '-', p.venda != null ? 'R$ ' + moeda(p.venda) : '-',
+                   p.estoque != null ? moeda(p.estoque) : '-'],
+    modal: 'modalProduto',
+    evento: 'produto:salvo',
+    preencher: editarProdutoPorRegistro,
+    limpar: limparFormProduto,
+    urlExcluir: () => urlProdutos('Excluir'),
+    nome: p => p.nome
+};
+
+function abrirPesquisaProduto(opcoes) {
+    abrirPesquisaComCadastro(PESQUISA_PRODUTO, opcoes);
 }

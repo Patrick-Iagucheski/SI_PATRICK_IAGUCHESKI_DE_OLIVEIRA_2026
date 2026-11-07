@@ -3,8 +3,8 @@ using WebAppERP.Data;
 
 namespace WebAppERP.Business.Estoque;
 
-// Regras de negocio da categoria. Usada pela tela de Categorias, pelo "+" de
-// categoria no cadastro de produto e pela lista do componente de produto.
+// Regras de negocio da categoria. Usada pela tela de Categorias, pela pesquisa
+// de categoria do cadastro de produto e pela lista do componente de produto.
 public class CategoriaBusiness
 {
     private readonly AppDbContext _db;

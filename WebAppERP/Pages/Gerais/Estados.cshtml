@@ -116,7 +116,8 @@
                         </div>
                         <div class="col-12">
                             <label class="form-label">País *</label>
-                            <select class="form-select" asp-for="EstadoForm.IdPais" id="formIdPais" required>
+                            <select class="form-select" asp-for="EstadoForm.IdPais" id="formIdPais" required
+                                    data-pesquisa="abrirPesquisaPais('formIdPais')" data-titulo-pesquisa="Pesquisar país">
                                 <option value="">Selecione o país</option>
                                 @foreach (var pais in Model.Paises)
                                 {
@@ -134,6 +135,9 @@
         </div>
     </div>
 </div>
+
+<!-- Pesquisas e cadastros de estado / pais (lupa do campo), do componente de cidade -->
+@await Component.InvokeAsync("CampoCidade", new { somenteCadastros = true })
 
 @section Scripts {
     <script src="~/Pages/Gerais/Estados.cshtml.js" asp-append-version="true"></script>

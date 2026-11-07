@@ -1,8 +1,9 @@
 ﻿// Script do componente CampoCidade (Pages/Shared/Components/CampoCidade/Default.cshtml).
 // Incluido pelo proprio componente, uma vez por pagina. Cuida de:
-//  - droplist dos campos com data-droplist="cidade|estado|pais";
-//  - pesquisa de cidade / estado / pais (o "+" dos campos), com Editar,
-//    Selecionar e Novo, e o cadastro de cada um;
+//  - campos de cidade, estado e pais: <select data-pesquisa> que o module.js
+//    mostra como campo de selecao com lupa (abre a pesquisa);
+//  - pesquisa de cidade / estado / pais, com Editar, Excluir, Selecionar e
+//    Novo, e o cadastro de cada um;
 //  - definirCidade / limparCidade, usados pelo JS de cada tela ao editar.
 // Handlers no servidor: Pages/Gerais/Localidades.
 // Roda antes do bootstrap.bundle (fica no meio do <body>): so usa o
@@ -20,6 +21,11 @@ function urlLocalidades(handler) {
     return document.getElementById('localidadeModais').dataset.urlLocalidades + '?handler=' + handler;
 }
 
+// Excluir da tela de cadastro de cada um (mesmas regras do Business).
+function urlExcluirLocalidade(tela) {
+    return document.getElementById('localidadeModais').dataset['url' + tela] + '?handler=Excluir';
+}
+
 // Qual handler cada tipo de campo consulta. Cidade e estado exibem a UF junto
 // ("Curitiba / PR"); pais so o nome.
 const LOCALIDADE = {
@@ -33,17 +39,16 @@ function textoLocalidade(tipo, reg) {
 }
 
 // ===== API usada pelas telas =====
-// Preenche o campo de cidade (id = input oculto). Sem o nome, busca pelo id.
+// Preenche o campo de cidade (id do <select>). Sem o nome, busca pelo id.
 async function definirCidade(id, idCidade, nome) {
-    const oculto = document.getElementById(id);
-    const texto = document.getElementById(id + 'Nome');
-    if (!oculto || !texto) return;
-    oculto.value = idCidade || '';
-    texto.value = idCidade ? (nome || '') : '';
-    if (idCidade && !nome) {
+    const sel = document.getElementById(id);
+    if (!sel) return;
+    if (!idCidade) { sel.value = ''; return; }
+    selecionarNoSelect(id, idCidade, nome || String(idCidade));
+    if (!nome) {
         try {
             const regs = await (await fetch(urlLocalidades('BuscarCidades') + '&id=' + encodeURIComponent(idCidade))).json();
-            if (regs.length && oculto.value == idCidade) texto.value = textoLocalidade('cidade', regs[0]);
+            if (regs.length) renomearNoSelect(id, idCidade, textoLocalidade('cidade', regs[0]));
         } catch { /* fica so o id */ }
     }
 }
@@ -52,100 +57,19 @@ function limparCidade(id) {
     definirCidade(id, '', '');
 }
 
-// Campo de cidade que abriu a pesquisa (recebe a cidade escolhida ou gravada).
+// Campos que abriram cada pesquisa (recebem o registro escolhido ou gravado).
+// Estado e pais: por padrao os dos cadastros de cidade e de estado; as telas
+// de Cidades, Estados e Veiculos passam o proprio campo.
 let campoCidadeAtivo = null;
+let campoEstadoAtivo = 'cidEstado';
+let campoPaisAtivo = 'estPais';
 
-// ===== Droplist =====
-// Ao focar ou digitar, a lista abre embaixo do campo filtrando pelo texto
-// (vazio lista os primeiros cadastros). Setas + Enter escolhem, Esc fecha.
-// O texto digitado so vale depois de escolher um item: ate la o id fica
-// vazio, e ao sair do campo sem escolher o texto solto e limpo.
-// Inicializa na primeira vez que o campo recebe foco, para valer tambem para
-// campos que aparecem depois deste script.
-function iniciarDroplist(campo) {
-    const tipo = campo.dataset.droplist;
-    const oculto = document.getElementById(campo.dataset.alvo);
-    const lista = document.getElementById(campo.id + 'Lista');
-    if (!LOCALIDADE[tipo] || !oculto || !lista) return;
-    let timer = null;
-    let regs = [];
-    let ativo = -1;
-
-    function fechar() { lista.classList.add('d-none'); ativo = -1; }
-
-    function marcar(i) {
-        ativo = i;
-        [...lista.children].forEach((el, n) => el.classList.toggle('active', n === i));
-        lista.children[i]?.scrollIntoView({ block: 'nearest' });
-    }
-
-    function escolher(reg) {
-        oculto.value = reg.id;
-        campo.value = textoLocalidade(tipo, reg);
-        fechar();
-    }
-
-    async function pesquisar() {
-        try {
-            const resp = await fetch(urlLocalidades(LOCALIDADE[tipo].handler) + '&termo=' + encodeURIComponent(campo.value.trim()));
-            regs = await resp.json();
-        } catch { regs = []; }
-
-        lista.innerHTML = '';
-        ativo = -1;
-        if (!regs.length) {
-            lista.innerHTML = '<div class="list-group-item text-muted small">Nenhum cadastro encontrado. Use o + para cadastrar.</div>';
-        } else {
-            regs.forEach(reg => {
-                const item = document.createElement('div');
-                item.className = 'list-group-item list-group-item-action';
-                item.innerHTML = escaparHtml(reg.nome) + (reg.detalhe ? ' <span class="text-muted small">- ' + escaparHtml(reg.detalhe) + '</span>' : '');
-                // mousedown (antes do blur do campo) para o clique nao se perder.
-                item.addEventListener('mousedown', e => { e.preventDefault(); escolher(reg); });
-                lista.appendChild(item);
-            });
-        }
-        lista.classList.remove('d-none');
-    }
-
-    campo.addEventListener('focus', pesquisar);
-    campo.addEventListener('input', () => {
-        oculto.value = '';
-        clearTimeout(timer);
-        timer = setTimeout(pesquisar, 250);
-    });
-    campo.addEventListener('keydown', e => {
-        const aberta = !lista.classList.contains('d-none') && regs.length;
-        if (e.key === 'ArrowDown' && aberta) { e.preventDefault(); marcar(Math.min(ativo + 1, regs.length - 1)); }
-        else if (e.key === 'ArrowUp' && aberta) { e.preventDefault(); marcar(Math.max(ativo - 1, 0)); }
-        else if (e.key === 'Enter') {
-            e.preventDefault();
-            if (aberta) escolher(regs[ativo >= 0 ? ativo : 0]);
-        }
-        else if (e.key === 'Escape' && !lista.classList.contains('d-none')) {
-            // Fecha so a lista, sem fechar o modal.
-            e.preventDefault();
-            e.stopPropagation();
-            fechar();
-        }
-    });
-    campo.addEventListener('blur', () => {
-        // Trocar de janela (Alt+Tab) tambem dispara blur: ai nao mexe em nada.
-        if (!document.hasFocus()) return;
-        fechar();
-        if (!oculto.value) campo.value = '';
-    });
-
-    campo.dataset.droplistPronta = '1';
-    pesquisar();
+// Coloca o registro no campo (<select>) de destino.
+function selecionarLocalidade(campo, tipo, reg) {
+    selecionarNoSelect(campo, reg.id, textoLocalidade(tipo, reg));
 }
 
-document.addEventListener('focusin', e => {
-    const campo = e.target.closest?.('[data-droplist]');
-    if (campo && !campo.dataset.droplistPronta) iniciarDroplist(campo);
-});
-
-// ===== Pesquisas (o "+" de cada campo) =====
+// ===== Pesquisas (a lupa de cada campo) =====
 // Cada uma tem o seu modal (abrirPesquisa, no module.js), um por cima do
 // outro: Cidade > Estado > Pais. Selecionar preenche o campo de quem chamou;
 // Editar e Novo abrem o cadastro por cima da pesquisa.
@@ -164,13 +88,19 @@ function abrirPesquisaCidade(id) {
         ],
         colunas: ['Código', 'Cidade', 'Estado', 'UF'],
         celulas: c => ['<strong>' + c.id + '</strong>', escaparHtml(c.nome), escaparHtml(c.estado || '-'), escaparHtml(c.detalhe || '-')],
-        selecionar: c => definirCidade(campoCidadeAtivo, c.id, textoLocalidade('cidade', c)),
+        selecionar: c => selecionarLocalidade(campoCidadeAtivo, 'cidade', c),
         editar: c => abrirCadastroCidade(c),
-        novo: () => abrirCadastroCidade(null)
+        novo: () => abrirCadastroCidade(null),
+        excluir: {
+            url: () => urlExcluirLocalidade('Cidades'),
+            nome: c => textoLocalidade('cidade', c),
+            depois: c => removerDoSelect(campoCidadeAtivo, c.id)
+        }
     });
 }
 
-function abrirPesquisaEstado() {
+function abrirPesquisaEstado(campo = 'cidEstado') {
+    campoEstadoAtivo = campo;
     abrirPesquisa({
         chave: 'estado',
         titulo: 'Pesquisar Estado',
@@ -181,13 +111,19 @@ function abrirPesquisaEstado() {
         ],
         colunas: ['Código', 'Estado', 'UF', 'País'],
         celulas: e => ['<strong>' + e.id + '</strong>', escaparHtml(e.nome), escaparHtml(e.detalhe || '-'), escaparHtml(e.pais || '-')],
-        selecionar: e => { elLocalidade('cidEstado').value = e.id; elLocalidade('cidEstadoNome').value = textoLocalidade('estado', e); },
+        selecionar: e => selecionarLocalidade(campoEstadoAtivo, 'estado', e),
         editar: e => abrirCadastroEstado(e),
-        novo: () => abrirCadastroEstado(null)
+        novo: () => abrirCadastroEstado(null),
+        excluir: {
+            url: () => urlExcluirLocalidade('Estados'),
+            nome: e => textoLocalidade('estado', e),
+            depois: e => removerDoSelect(campoEstadoAtivo, e.id)
+        }
     });
 }
 
-function abrirPesquisaPais() {
+function abrirPesquisaPais(campo = 'estPais') {
+    campoPaisAtivo = campo;
     abrirPesquisa({
         chave: 'pais',
         titulo: 'Pesquisar País',
@@ -199,9 +135,14 @@ function abrirPesquisaPais() {
         colunas: ['Código', 'País', 'Sigla', 'DDI', 'Moeda'],
         celulas: p => ['<strong>' + p.id + '</strong>', escaparHtml(p.nome), escaparHtml(p.detalhe || '-'),
                        escaparHtml(p.ddi || '-'), escaparHtml(p.moeda || '-')],
-        selecionar: p => { elLocalidade('estPais').value = p.id; elLocalidade('estPaisNome').value = textoLocalidade('pais', p); },
+        selecionar: p => selecionarLocalidade(campoPaisAtivo, 'pais', p),
         editar: p => abrirCadastroPais(p),
-        novo: () => abrirCadastroPais(null)
+        novo: () => abrirCadastroPais(null),
+        excluir: {
+            url: () => urlExcluirLocalidade('Paises'),
+            nome: p => p.nome,
+            depois: p => removerDoSelect(campoPaisAtivo, p.id)
+        }
     });
 }
 
@@ -211,8 +152,8 @@ function abrirCadastroCidade(c) {
     elLocalidade('cidTitulo').textContent = c ? 'Editar Cidade' : 'Cadastrar Cidade';
     elLocalidade('cidId').value = c ? c.id : 0;
     elLocalidade('cidNome').value = c ? c.nome : '';
-    elLocalidade('cidEstado').value = c ? (c.idEstado || '') : '';
-    elLocalidade('cidEstadoNome').value = c && c.estado ? c.estado + (c.detalhe ? ' / ' + c.detalhe : '') : '';
+    if (c && c.idEstado) selecionarNoSelect('cidEstado', c.idEstado, c.estado + (c.detalhe ? ' / ' + c.detalhe : ''));
+    else elLocalidade('cidEstado').value = '';
     abrirModalEmpilhado('modalCidadeRapido');
 }
 
@@ -222,8 +163,8 @@ function abrirCadastroEstado(e) {
     elLocalidade('estId').value = e ? e.id : 0;
     elLocalidade('estNome').value = e ? e.nome : '';
     elLocalidade('estUF').value = e ? (e.detalhe || '') : '';
-    elLocalidade('estPais').value = e ? (e.idPais || '') : '';
-    elLocalidade('estPaisNome').value = e ? (e.pais || '') : '';
+    if (e && e.idPais) selecionarNoSelect('estPais', e.idPais, e.pais || String(e.idPais));
+    else elLocalidade('estPais').value = '';
     abrirModalEmpilhado('modalEstadoRapido');
 }
 
@@ -238,14 +179,8 @@ function abrirCadastroPais(p) {
     abrirModalEmpilhado('modalPaisRapido');
 }
 
-// Depois de gravar: edicao volta para a pesquisa com a lista atualizada;
-// cadastro novo ja fica selecionado no campo de quem chamou e fecha a pesquisa.
-function concluirCadastro(modal, chave, editando, selecionar) {
-    bootstrap.Modal.getInstance(elLocalidade(modal)).hide();
-    if (editando) { recarregarPesquisa(chave); return; }
-    selecionar();
-    fecharPesquisa(chave);
-}
+// Depois de gravar: concluirCadastro (module.js) volta para a pesquisa na
+// edicao ou seleciona o novo no campo de quem chamou.
 
 // ===== Gravacao de Cidade =====
 async function salvarCidadeRapido() {
@@ -261,11 +196,10 @@ async function salvarCidadeRapido() {
     try {
         const data = await postJson(urlLocalidades('CidadeRapido'), { idCidade: id, nmCidade: nome, idEstado: parseInt(idEstado) });
         if (!data.sucesso) { msg.innerHTML = alertaErro(data.mensagem); return; }
+        const reg = { id: data.id, nome: data.nome, detalhe: data.uf };
         // Cidade editada que esta no campo: atualiza o nome exibido.
-        if (id && campoCidadeAtivo && elLocalidade(campoCidadeAtivo)?.value == id)
-            elLocalidade(campoCidadeAtivo + 'Nome').value = data.nome + ' / ' + data.uf;
-        concluirCadastro('modalCidadeRapido', 'cidade', id > 0,
-            () => definirCidade(campoCidadeAtivo, data.id, data.nome + ' / ' + data.uf));
+        if (id) renomearNoSelect(campoCidadeAtivo, data.id, textoLocalidade('cidade', reg));
+        concluirCadastro('modalCidadeRapido', 'cidade', id > 0, () => selecionarLocalidade(campoCidadeAtivo, 'cidade', reg));
     } catch { msg.innerHTML = alertaErro('Erro ao salvar a cidade. Tente novamente.'); }
     finally { btn.disabled = false; }
 }
@@ -286,11 +220,9 @@ async function salvarEstadoRapido() {
     try {
         const data = await postJson(urlLocalidades('EstadoRapido'), { idEstado: id, sgUF: uf, nmEstado: nome, idPais: parseInt(idPais) });
         if (!data.sucesso) { msg.innerHTML = alertaErro(data.mensagem); return; }
-        if (id && elLocalidade('cidEstado').value == id) elLocalidade('cidEstadoNome').value = data.nome + ' / ' + data.uf;
-        concluirCadastro('modalEstadoRapido', 'estado', id > 0, () => {
-            elLocalidade('cidEstado').value = data.id;
-            elLocalidade('cidEstadoNome').value = data.nome + ' / ' + data.uf;
-        });
+        const reg = { id: data.id, nome: data.nome, detalhe: data.uf };
+        if (id) renomearNoSelect(campoEstadoAtivo, data.id, textoLocalidade('estado', reg));
+        concluirCadastro('modalEstadoRapido', 'estado', id > 0, () => selecionarLocalidade(campoEstadoAtivo, 'estado', reg));
     } catch { msg.innerHTML = alertaErro('Erro ao salvar o estado. Tente novamente.'); }
     finally { btn.disabled = false; }
 }
@@ -311,11 +243,9 @@ async function salvarPaisRapido() {
     try {
         const data = await postJson(urlLocalidades('PaisRapido'), { idPais: id, nmPais: nome, sgPais: sigla, nrDDI: ddi || null, dsMoeda: moeda || null });
         if (!data.sucesso) { msg.innerHTML = alertaErro(data.mensagem); return; }
-        if (id && elLocalidade('estPais').value == id) elLocalidade('estPaisNome').value = data.nome;
-        concluirCadastro('modalPaisRapido', 'pais', id > 0, () => {
-            elLocalidade('estPais').value = data.id;
-            elLocalidade('estPaisNome').value = data.nome;
-        });
+        const reg = { id: data.id, nome: data.nome };
+        if (id) renomearNoSelect(campoPaisAtivo, data.id, data.nome);
+        concluirCadastro('modalPaisRapido', 'pais', id > 0, () => selecionarLocalidade(campoPaisAtivo, 'pais', reg));
     } catch { msg.innerHTML = alertaErro('Erro ao salvar o país. Tente novamente.'); }
     finally { btn.disabled = false; }
 }

@@ -37,6 +37,19 @@ function onServicoChange() {
     calcItemTotal();
 }
 
+// ---------------- Pesquisa de produto / servico (a lupa do item) ----------------
+// A pesquisa vem do componente de cadastro; aqui so a lista local (PRODUTOS /
+// SERVICOS, usada para preco e saldo) junto com o <select> do item.
+function abrirBuscaProdutoVenda() {
+    abrirPesquisaProduto(opcoesDoSelectComLista('itProduto', PRODUTOS,
+        p => ({ id: p.id, nome: p.nome, saldo: p.estoque ?? 0, valor: p.venda ?? 0 })));
+}
+
+function abrirBuscaServicoVenda() {
+    abrirPesquisaServico(opcoesDoSelectComLista('itServico', SERVICOS,
+        s => ({ id: s.id, nome: s.nome, valor: s.valor ?? 0 })));
+}
+
 function calcItemTotal() {
     const total = num('itQt') * num('itVlUnit') - num('itDesc');
     document.getElementById('itTotal').value = (total > 0 ? total : 0).toFixed(2);

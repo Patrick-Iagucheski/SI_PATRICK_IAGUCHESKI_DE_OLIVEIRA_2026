@@ -6,7 +6,7 @@ public class CadastroProdutoViewModel
 {
     public Produto ProdutoForm { get; set; } = new();
 
-    // Apenas marcas e categorias ativas nos dropdowns.
+    // Apenas marcas e categorias ativas (opcoes dos campos de marca e categoria).
     public List<Marca> Marcas { get; set; } = [];
     public List<Categoria> Categorias { get; set; } = [];
 

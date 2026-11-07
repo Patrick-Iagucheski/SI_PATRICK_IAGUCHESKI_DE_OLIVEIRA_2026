@@ -12,7 +12,7 @@
         <h1 class="page-title">Contas a Pagar</h1>
         <p class="page-subtitle">Controle contas, fornecedores, vencimentos, pagamentos e status financeiro</p>
     </div>
-    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#modalConta" onclick="limparForm()">
+    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#modalConta" onclick="limparFormConta()">
         <i class="bi bi-plus-lg me-1"></i> Nova Conta
     </button>
 </div>
@@ -188,28 +188,29 @@
         <div class="modal-content">
             <form method="post" data-modal-ajax>
                 <div class="modal-header">
-                    <h5 class="modal-title" id="modalTitle"><i class="bi bi-cash-stack me-2"></i>Nova Conta a Pagar</h5>
+                    <h5 class="modal-title" id="contaTitulo"><i class="bi bi-cash-stack me-2"></i>Nova Conta a Pagar</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
-                    <input type="hidden" asp-for="ContaForm.IdContaPagar" id="formIdConta" />
+                    <input type="hidden" asp-for="ContaForm.IdContaPagar" id="contaIdConta" />
                     <div class="row g-3">
                         <div class="col-md-2">
                             <label class="form-label">Código</label>
-                            <input type="text" class="form-control bg-light" id="formCodigoDisplay" placeholder="(novo)" readonly />
+                            <input type="text" class="form-control bg-light" id="contaCodigoDisplay" placeholder="(novo)" readonly />
                         </div>
                         <div class="col-md-7">
                             <label class="form-label">Conta a Pagar *</label>
-                            <input type="text" class="form-control" asp-for="ContaForm.DsConta" id="formDsConta" maxlength="100" placeholder="Ex: Aluguel, fornecedor de produtos, energia" required />
+                            <input type="text" class="form-control" asp-for="ContaForm.DsConta" id="contaDsConta" maxlength="100" placeholder="Ex: Aluguel, fornecedor de produtos, energia" required />
                         </div>
                         <div class="col-md-3">
                             <label class="form-label">Documento</label>
-                            <input type="text" class="form-control" asp-for="ContaForm.NrDocumento" id="formNrDocumento" maxlength="20" placeholder="Ex: NF 1234, boleto 9988" />
+                            <input type="text" class="form-control" asp-for="ContaForm.NrDocumento" id="contaNrDocumento" maxlength="20" placeholder="Ex: NF 1234, boleto 9988" />
                         </div>
 
                         <div class="col-md-6">
                             <label class="form-label">Fornecedor *</label>
-                            <select class="form-select" asp-for="ContaForm.IdFornecedor" id="formIdFornecedor" required>
+                            <select class="form-select" asp-for="ContaForm.IdFornecedor" id="contaIdFornecedor" required
+                                    data-pesquisa="abrirPesquisaFornecedor(opcoesDoSelect('contaIdFornecedor', f => f.razaoSocial))" data-titulo-pesquisa="Pesquisar fornecedor">
                                 <option value="">Selecione um fornecedor</option>
                                 @foreach (var f in Model.Fornecedores)
                                 {
@@ -219,7 +220,8 @@
                         </div>
                         <div class="col-md-6">
                             <label class="form-label">Forma de Pagamento</label>
-                            <select class="form-select" asp-for="ContaForm.IdFormaPagamento" id="formIdFormaPagamento">
+                            <select class="form-select" asp-for="ContaForm.IdFormaPagamento" id="contaIdFormaPagamento"
+                                    data-pesquisa="abrirPesquisaForma(opcoesDoSelect('contaIdFormaPagamento'))" data-titulo-pesquisa="Pesquisar forma de pagamento">
                                 <option value="">Selecione uma forma</option>
                                 @foreach (var fp in Model.Formas)
                                 {
@@ -230,19 +232,19 @@
 
                         <div class="col-md-3">
                             <label class="form-label">Emissão</label>
-                            <input type="date" class="form-control" asp-for="ContaForm.DtEmissao" id="formDtEmissao" />
+                            <input type="date" class="form-control" asp-for="ContaForm.DtEmissao" id="contaDtEmissao" />
                         </div>
                         <div class="col-md-3">
                             <label class="form-label">Vencimento</label>
-                            <input type="date" class="form-control" asp-for="ContaForm.DtVencimento" id="formDtVencimento" />
+                            <input type="date" class="form-control" asp-for="ContaForm.DtVencimento" id="contaDtVencimento" />
                         </div>
                         <div class="col-md-3">
                             <label class="form-label">Pagamento</label>
-                            <input type="date" class="form-control" asp-for="ContaForm.DtPagamento" id="formDtPagamento" />
+                            <input type="date" class="form-control" asp-for="ContaForm.DtPagamento" id="contaDtPagamento" />
                         </div>
                         <div class="col-md-3">
                             <label class="form-label">Status</label>
-                            <select class="form-select" asp-for="ContaForm.DsStatus" id="formDsStatus">
+                            <select class="form-select" asp-for="ContaForm.DsStatus" id="contaDsStatus">
                                 <option value="@ContaAPagar.PENDENTE">Pendente</option>
                                 <option value="@ContaAPagar.PAGO">Pago</option>
                                 <option value="@ContaAPagar.CANCELADO">Cancelado</option>
@@ -251,15 +253,15 @@
 
                         <div class="col-md-3">
                             <label class="form-label">Valor (R$) *</label>
-                            <input type="number" step="0.01" min="0" class="form-control" asp-for="ContaForm.VlValor" id="formVlValor" required />
+                            <input type="number" step="0.01" min="0" class="form-control" asp-for="ContaForm.VlValor" id="contaVlValor" required />
                         </div>
                         <div class="col-md-3">
                             <label class="form-label">Valor pago (R$)</label>
-                            <input type="number" step="0.01" min="0" class="form-control" asp-for="ContaForm.VlPago" id="formVlPago" />
+                            <input type="number" step="0.01" min="0" class="form-control" asp-for="ContaForm.VlPago" id="contaVlPago" />
                         </div>
                         <div class="col-md-3">
                             <label class="form-label">Ativo</label>
-                            <select class="form-select" asp-for="ContaForm.FlAtivo" id="formFlAtivo">
+                            <select class="form-select" asp-for="ContaForm.FlAtivo" id="contaFlAtivo">
                                 <option value="true">Sim</option>
                                 <option value="false">Não</option>
                             </select>
@@ -267,7 +269,7 @@
 
                         <div class="col-12">
                             <label class="form-label">Observações</label>
-                            <textarea class="form-control" rows="2" asp-for="ContaForm.DsObservacao" id="formDsObservacao" placeholder="Detalhes da conta, negociacao ou baixa"></textarea>
+                            <textarea class="form-control" rows="2" asp-for="ContaForm.DsObservacao" id="contaDsObservacao" placeholder="Detalhes da conta, negociacao ou baixa"></textarea>
                         </div>
                     </div>
                 </div>
@@ -280,6 +282,12 @@
     </div>
 </div>
 
+<!-- Cadastros de fornecedor e de forma de pagamento (componentes compartilhados),
+     abertos pela lupa dos campos. Gravam por AJAX e voltam para a pesquisa. -->
+@await Component.InvokeAsync("CadastroFornecedor", new { modo = "ajax" })
+@await Component.InvokeAsync("CadastroFormaPagamento", new { modo = "ajax" })
+
 @section Scripts {
+    @* Os scripts dos cadastros vem com os proprios componentes. *@
     <script src="~/Pages/Financeiro/ContasAPagar.cshtml.js" asp-append-version="true"></script>
 }

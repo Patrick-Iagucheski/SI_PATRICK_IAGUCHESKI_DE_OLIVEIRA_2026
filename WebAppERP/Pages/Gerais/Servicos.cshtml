@@ -12,7 +12,7 @@
         <h1 class="page-title">Serviços</h1>
         <p class="page-subtitle">Gerencie os serviços oferecidos pela barbearia</p>
     </div>
-    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#modalServico" onclick="limparForm()">
+    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#modalServico" onclick="limparFormServico()">
         <i class="bi bi-plus-lg me-1"></i> Novo Serviço
     </button>
 </div>
@@ -113,61 +113,8 @@
     </div>
 </div>
 
-<!-- Modal -->
-<div class="modal fade" id="modalServico" tabindex="-1">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <form method="post" data-modal-ajax>
-                <div class="modal-header">
-                    <h5 class="modal-title" id="modalTitle"><i class="bi bi-card-checklist me-2"></i>Novo Serviço</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                </div>
-                <div class="modal-body">
-                    <input type="hidden" asp-for="ServicoForm.IdServico" id="sId" />
-                    <div class="row g-3">
-                        <div class="col-12">
-                            <label class="form-label">Nome do Serviço *</label>
-                            <input type="text" class="form-control" asp-for="ServicoForm.DsServico" id="sNome" required />
-                        </div>
-                        <div class="col-12">
-                            <label class="form-label">Descrição</label>
-                            <textarea class="form-control" rows="2" asp-for="ServicoForm.DsDescricao" id="sDesc"></textarea>
-                        </div>
-                        <div class="col-md-6">
-                            <label class="form-label">Valor (R$) *</label>
-                            <input type="number" class="form-control" asp-for="ServicoForm.VlServico" id="sValor" step="0.01" min="0.01" required />
-                        </div>
-                        <div class="col-md-6">
-                            <label class="form-label">Duração (min)</label>
-                            <input type="number" class="form-control" asp-for="ServicoForm.NrDuracaoMin" id="sDuracao" />
-                        </div>
-                        <div class="col-md-6">
-                            <label class="form-label">Categoria</label>
-                            <select class="form-select" asp-for="ServicoForm.DsCategoria" id="sCat">
-                                <option value="">Selecione</option>
-                                <option value="Corte">Corte</option>
-                                <option value="Barba">Barba</option>
-                                <option value="Combo">Combo</option>
-                                <option value="Tratamento">Tratamento</option>
-                            </select>
-                        </div>
-                        <div class="col-md-6">
-                            <label class="form-label">Status</label>
-                            <select class="form-select" asp-for="ServicoForm.FlAtivo" id="sAtivo">
-                                <option value="true">Ativo</option>
-                                <option value="false">Inativo</option>
-                            </select>
-                        </div>
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                    <button type="submit" class="btn btn-primary"><i class="bi bi-check-lg me-1"></i>Salvar</button>
-                </div>
-            </form>
-        </div>
-    </div>
-</div>
+<!-- Modal Novo/Editar (Servico): componente compartilhado -->
+@await Component.InvokeAsync("CadastroServico", new { modo = "post" })
 
 @section Scripts {
     <script src="~/Pages/Gerais/Servicos.cshtml.js" asp-append-version="true"></script>

@@ -5,7 +5,7 @@ namespace WebAppERP.Business.Financeiro;
 
 // Regras de negocio da condicao de pagamento (com as parcelas). Usada pela
 // tela de Condicoes de Pagamento, pelo componente de cadastro de condicao
-// (inclusive o "+" no fornecedor e na Compra) e pelas listas de condicoes.
+// (inclusive a pesquisa de condicao do fornecedor e da Compra) e pelas listas de condicoes.
 public class CondicaoPagamentoBusiness
 {
     private readonly AppDbContext _db;

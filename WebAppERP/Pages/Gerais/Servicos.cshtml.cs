@@ -26,4 +26,30 @@ public class ServicosModel : PaginaBase
 
     public Task<IActionResult> OnPostExcluir(int id) =>
         Executar(() => _servico.Excluir(id), "Serviço excluído com sucesso.");
+
+    // Cadastro pelo componente em modo AJAX (pesquisas de servico de outras
+    // telas). Mesmas regras do OnPost, mas responde JSON para a tela de origem.
+    public Task<IActionResult> OnPostSalvarAjax() =>
+        ExecutarJson(async () =>
+        {
+            var s = await _servico.Salvar(ServicoForm);
+            return new { sucesso = true, id = s.IdServico, nome = s.DsServico, valor = s.VlServico, duracao = s.NrDuracaoMin };
+        });
+
+    // Pesquisa (componente): so ativos, por codigo ou nome, com os dados que a
+    // grade e o Editar usam.
+    public async Task<IActionResult> OnGetBuscarServicos(int? id, string? termo)
+    {
+        var lista = await _servico.Pesquisar(id, termo);
+        return new JsonResult(lista.Select(s => new
+        {
+            id = s.IdServico,
+            nome = s.DsServico,
+            descricao = s.DsDescricao,
+            valor = s.VlServico,
+            duracao = s.NrDuracaoMin,
+            categoria = s.DsCategoria,
+            ativo = s.FlAtivo
+        }));
+    }
 }

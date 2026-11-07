@@ -1,97 +1,10 @@
 ﻿// Script da tela Clientes (Pages/Gerais/Clientes.cshtml).
-
-// ===== Mascaras (funcoes em wwwroot/js/module.js; no banco salva so numeros) =====
-aplicarMascara('formNrCpf', mascaraCPF);
-aplicarMascara('formNrCnpj', mascaraCNPJ);
-aplicarMascara('formNrCEP', mascaraCEP);
-aplicarMascara('formNrTelefone', mascaraTelefone);
-aplicarMascara('formNrRG', mascaraRG);
-
-// ===== Tipo de Pessoa: alterna o documento exibido =====
-function toggleTipoPessoa() {
-    const tipo = document.getElementById('formTpPessoa').value;
-    const wrapCpf = document.getElementById('wrapCpf');
-    const wrapCnpj = document.getElementById('wrapCnpj');
-    const wrapDoc = document.getElementById('wrapDoc');
-    const lblNome = document.getElementById('lblNome');
-
-    wrapCpf.classList.toggle('d-none', tipo !== 'F');
-    wrapCnpj.classList.toggle('d-none', tipo !== 'J');
-    wrapDoc.classList.toggle('d-none', tipo !== 'E');
-
-    // Obrigatorio so o documento visivel (CPF na fisica, CNPJ na juridica):
-    // campo escondido com required travaria o envio do formulario.
-    document.getElementById('formNrCpf').required = tipo === 'F';
-    document.getElementById('formNrCnpj').required = tipo === 'J';
-
-    lblNome.textContent = tipo === 'J' ? 'Razão Social *' : 'Nome Completo *';
-}
-
-// ===== Validacao do formulario antes de enviar =====
-document.querySelector('#modalCliente form')?.addEventListener('submit', function (e) {
-    const tipo = document.getElementById('formTpPessoa').value;
-    const cpf = document.getElementById('formNrCpf').value;
-    const cnpj = document.getElementById('formNrCnpj').value;
-    const email = document.getElementById('formDsEmail').value.trim();
-
-    if (tipo === 'F' && cpf.replace(/\D/g, '') && !cpfValido(cpf)) {
-        e.preventDefault();
-        exibirErro(this, 'CPF inválido. Verifique os números informados.');
-        return;
-    }
-    if (tipo === 'J' && cnpj.replace(/\D/g, '') && !cnpjValido(cnpj)) {
-        e.preventDefault();
-        exibirErro(this, 'CNPJ inválido. Verifique os números informados.');
-        return;
-    }
-    if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-        e.preventDefault();
-        exibirErro(this, 'E-mail inválido. Verifique o formato (exemplo: nome@dominio.com).');
-        return;
-    }
-});
-
-function limparForm() {
-    document.getElementById('modalTitle').innerHTML = '<i class="bi bi-person-plus me-2"></i>Novo Cliente';
-    ['formNmCliente','formNrCpf','formNrCnpj','formNrDocumento','formNrRG','formNrTelefone','formDsEmail','formDsEndereco','formNrNumero','formDsComplemento','formDsBairro','formNrCEP','formDtNascimento','formDsSexo','formDsObservacao','formCodigoDisplay'].forEach(id => {
-        document.getElementById(id).value = '';
-    });
-    document.getElementById('formIdCliente').value = '0';
-    document.getElementById('formTpPessoa').value = 'F';
-    document.getElementById('formFlAtivo').value = 'true';
-    limparCidade('formIdCidade');
-    toggleTipoPessoa();
-}
-
-function editarCliente(id, nome, tipo, cpf, cnpj, doc, rg, tel, email, end, numero, complemento, bairro, cidade, cep, nasc, sexo, obs, ativo) {
-    document.getElementById('modalTitle').innerHTML = '<i class="bi bi-pencil me-2"></i>Editar Cliente';
-    document.getElementById('formIdCliente').value = id;
-    document.getElementById('formCodigoDisplay').value = id;
-    document.getElementById('formNmCliente').value = nome;
-    document.getElementById('formTpPessoa').value = tipo || 'F';
-    document.getElementById('formNrCpf').value = mascaraCPF(cpf || '');
-    document.getElementById('formNrCnpj').value = mascaraCNPJ(cnpj || '');
-    document.getElementById('formNrDocumento').value = doc || '';
-    document.getElementById('formNrRG').value = mascaraRG(rg || '');
-    document.getElementById('formNrTelefone').value = mascaraTelefone(tel || '');
-    document.getElementById('formDsEmail').value = email || '';
-    document.getElementById('formDsEndereco').value = end || '';
-    document.getElementById('formNrNumero').value = numero || '';
-    document.getElementById('formDsComplemento').value = complemento || '';
-    document.getElementById('formDsBairro').value = bairro || '';
-    definirCidade('formIdCidade', cidade);
-    document.getElementById('formNrCEP').value = mascaraCEP(cep || '');
-    document.getElementById('formDtNascimento').value = nasc || '';
-    document.getElementById('formDsSexo').value = sexo || '';
-    document.getElementById('formDsObservacao').value = obs || '';
-    document.getElementById('formFlAtivo').value = ativo === 'True' ? 'true' : 'false';
-    toggleTipoPessoa();
-}
+// Modal de cadastro: componente CadastroCliente (mascaras, validacao, limpar e editar).
 
 // ===== Busca de Clientes (filtros na pagina -> atualiza a grid via AJAX) =====
 let resultadosBusca = [];
 
-aplicarMascara('buscaDocumento', mascaraCPF);
+// Documento sem mascara: o filtro aceita CPF, CNPJ ou documento estrangeiro.
 ['buscaId', 'buscaNome', 'buscaDocumento', 'buscaEmail'].forEach(id => {
     document.getElementById(id)?.addEventListener('keydown', e => {
         if (e.key === 'Enter') { e.preventDefault(); buscarClientes(); }
@@ -99,15 +12,9 @@ aplicarMascara('buscaDocumento', mascaraCPF);
 });
 
 function tipoLabel(t) {
-    if (t === 'J') return 'Juridica';
+    if (t === 'J') return 'Jurídica';
     if (t === 'E') return 'Estrangeiro';
-    return 'Fisica';
-}
-
-function documentoExibicao(f) {
-    if (f.tipoPessoa === 'J') return f.cnpj ? mascaraCNPJ(f.cnpj) : '-';
-    if (f.tipoPessoa === 'E') return f.documento || '-';
-    return f.cpf ? mascaraCPF(f.cpf) : '-';
+    return 'Física';
 }
 
 function montarLinha(f, i) {
@@ -115,7 +22,7 @@ function montarLinha(f, i) {
         '<td>' + f.id + '</td>' +
         '<td><strong>' + escaparHtml(f.nome || '') + '</strong></td>' +
         '<td>' + tipoLabel(f.tipoPessoa) + '</td>' +
-        '<td class="text-nowrap">' + documentoExibicao(f) + '</td>' +
+        '<td class="text-nowrap">' + documentoCliente(f) + '</td>' +
         '<td class="text-nowrap">' + (f.tel ? mascaraTelefone(f.tel) : '-') + '</td>' +
         '<td>' + escaparHtml(f.email || '-') + '</td>' +
         '<td>' + escaparHtml(f.cidadeNome || '-') + '</td>' +
@@ -165,13 +72,7 @@ async function buscarClientes() {
 }
 
 function abrirEdicao(i) {
-    const f = resultadosBusca[i];
-    editarCliente(
-        f.id, f.nome || '', f.tipoPessoa || 'F', f.cpf || '', f.cnpj || '', f.documento || '',
-        f.rg || '', f.tel || '', f.email || '', f.end || '', f.numero || '', f.complemento || '',
-        f.bairro || '', (f.idCidade ?? ''), f.cep || '', f.nasc || '', f.sexo || '',
-        f.obs || '', (f.ativo ? 'True' : 'False')
-    );
+    editarClientePorRegistro(resultadosBusca[i]);
     bootstrap.Modal.getOrCreateInstance(document.getElementById('modalCliente')).show();
 }
 

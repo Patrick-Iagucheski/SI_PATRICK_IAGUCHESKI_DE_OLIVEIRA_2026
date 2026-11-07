@@ -3,20 +3,22 @@
     Componente de cadastro de fornecedor (ViewComponents/CadastroFornecedorViewComponent).
     Traz o proprio script (Default.cshtml.js, nesta pasta), incluido uma vez por
     pagina: a tela que usa o componente so precisa do Component.InvokeAsync.
-    data-modo="ajax" faz o Salvar gravar por fetch e disparar o evento
-    'fornecedor:salvo' (detail: id, razaoSocial, nomeFantasia).
-    A cidade usa o componente unico CampoCidade (droplist + cadastro rapido de
+    Modo "ajax": o Salvar grava pelo module.js e dispara o evento
+    'fornecedor:salvo' (detail: o registro gravado), sem recarregar a tela.
+    A cidade usa o componente unico CampoCidade (lupa + cadastro rapido de
     cidade/estado/pais), o mesmo das telas de Clientes e Funcionarios.
 *@
 
 <!-- Modal Novo/Editar Fornecedor -->
 <div class="modal fade" id="modalFornecedor" tabindex="-1"
-     data-modo="@Model.Modo" data-url-fornecedores="@Url.Page("/Gerais/Fornecedores")">
+     data-url-fornecedores="@Url.Page("/Gerais/Fornecedores")">
     <div class="modal-dialog modal-lg">
         <div class="modal-content">
-            <form method="post" data-modal-ajax asp-page="/Gerais/Fornecedores">
+            <form method="post" data-modal-ajax asp-page="/Gerais/Fornecedores"
+                  asp-page-handler="@(Model.Modo == "ajax" ? "SalvarAjax" : null)"
+                  data-evento="@(Model.Modo == "ajax" ? "fornecedor:salvo" : null)">
                 <div class="modal-header">
-                    <h5 class="modal-title" id="modalTitle"><i class="bi bi-truck me-2"></i>Novo Fornecedor</h5>
+                    <h5 class="modal-title" id="fornTitulo"><i class="bi bi-truck me-2"></i>Novo Fornecedor</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
@@ -31,7 +33,7 @@
                         </div>
                         <div class="col-md-4">
                             <label class="form-label">Tipo de Pessoa *</label>
-                            <select class="form-select" asp-for="FornecedorForm.TpPessoa" id="formTpPessoa" onchange="toggleTipoPessoa()">
+                            <select class="form-select" asp-for="FornecedorForm.TpPessoa" id="formTpPessoa" onchange="toggleTipoPessoaFornecedor()">
                                 <option value="J">Pessoa Jurídica</option>
                                 <option value="F">Pessoa Física</option>
                                 <option value="E">Estrangeiro</option>
@@ -93,20 +95,14 @@
                         <!-- Condicao de pagamento padrao (so as ja cadastradas e ativas) -->
                         <div class="col-md-6">
                             <label class="form-label">Condição de Pagamento</label>
-                            <div class="input-group">
-                                <select class="form-select" asp-for="FornecedorForm.IdCondicaoPagamento" id="formIdCondicaoPagamento">
-                                    <option value="">Selecione</option>
-                                    @foreach (var condicao in Model.Condicoes)
-                                    {
-                                        <option value="@condicao.IdCondicaoPagamento">@condicao.DsCondicao</option>
-                                    }
-                                </select>
-                                <!-- Abre o componente compartilhado de condicao de pagamento -->
-                                <button type="button" class="btn btn-outline-primary" title="Cadastrar nova condição de pagamento"
-                                        onclick="limparFormCondicao(); abrirModalEmpilhado('modalCondicao')">
-                                    <i class="bi bi-plus-lg"></i>
-                                </button>
-                            </div>
+                            <select class="form-select" asp-for="FornecedorForm.IdCondicaoPagamento" id="formIdCondicaoPagamento"
+                                    data-pesquisa="abrirPesquisaCondicao(opcoesDoSelect('formIdCondicaoPagamento'))" data-titulo-pesquisa="Pesquisar condição de pagamento">
+                                <option value="">Selecione</option>
+                                @foreach (var condicao in Model.Condicoes)
+                                {
+                                    <option value="@condicao.IdCondicaoPagamento">@condicao.DsCondicao</option>
+                                }
+                            </select>
                         </div>
                         <div class="col-12">
                             <label class="form-label">Observações</label>
@@ -225,7 +221,7 @@
 </div>
 
 @* Cadastro de condicao de pagamento (componente compartilhado com a tela de
-   Condicoes de Pagamento), aberto pelo + do campo Condicao de Pagamento.
+   Condicoes de Pagamento), aberto pela pesquisa do campo Condicao de Pagamento.
    Fica fora do modal do fornecedor: modal dentro de modal nao abre direito. *@
 @await Component.InvokeAsync("CadastroCondicaoPagamento", new { modo = "ajax" })
 

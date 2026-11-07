@@ -68,7 +68,8 @@
                 </div>
                 <div class="col-md-4">
                     <label class="form-label">Cliente</label>
-                    <select class="form-select" asp-for="IdCliente" id="IdCliente" disabled="@ro">
+                    <select class="form-select" asp-for="IdCliente" id="IdCliente" disabled="@ro"
+                            data-pesquisa="abrirPesquisaCliente(opcoesDoSelect('IdCliente'))" data-titulo-pesquisa="Pesquisar cliente">
                         <option value="">Consumidor (sem cadastro)</option>
                         @foreach (var c in Model.Vm.Combos.Clientes)
                         {
@@ -78,7 +79,8 @@
                 </div>
                 <div class="col-md-3">
                     <label class="form-label">Funcionário *</label>
-                    <select class="form-select" asp-for="IdFuncionario" id="IdFuncionario" required disabled="@ro">
+                    <select class="form-select" asp-for="IdFuncionario" id="IdFuncionario" required disabled="@ro"
+                            data-pesquisa="abrirPesquisaFuncionario(opcoesDoSelect('IdFuncionario'))" data-titulo-pesquisa="Pesquisar funcionário">
                         <option value="">Selecione</option>
                         @foreach (var f in Model.Vm.Combos.Funcionarios)
                         {
@@ -98,7 +100,8 @@
                 </div>
                 <div class="col-md-3">
                     <label class="form-label">Forma de Pagamento</label>
-                    <select class="form-select" asp-for="IdFormaPagamento" id="IdFormaPagamento" disabled="@ro">
+                    <select class="form-select" asp-for="IdFormaPagamento" id="IdFormaPagamento" disabled="@ro"
+                            data-pesquisa="abrirPesquisaForma(opcoesDoSelect('IdFormaPagamento'))" data-titulo-pesquisa="Pesquisar forma de pagamento">
                         <option value="">Selecione</option>
                         @foreach (var fp in Model.Vm.Combos.Formas)
                         {
@@ -130,7 +133,8 @@
                     </div>
                     <div class="col-md-4" id="grpProduto">
                         <label class="form-label">Produto</label>
-                        <select class="form-select" id="itProduto" onchange="onProdutoChange()">
+                        <select class="form-select" id="itProduto" onchange="onProdutoChange()"
+                                data-pesquisa="abrirBuscaProdutoVenda()" data-titulo-pesquisa="Pesquisar produto">
                             <option value="">Selecione o produto</option>
                             @foreach (var p in Model.Vm.Combos.Produtos)
                             {
@@ -141,7 +145,8 @@
                     </div>
                     <div class="col-md-4" id="grpServico" style="display:none;">
                         <label class="form-label">Serviço</label>
-                        <select class="form-select" id="itServico" onchange="onServicoChange()">
+                        <select class="form-select" id="itServico" onchange="onServicoChange()"
+                                data-pesquisa="abrirBuscaServicoVenda()" data-titulo-pesquisa="Pesquisar serviço">
                             <option value="">Selecione o serviço</option>
                             @foreach (var s in Model.Vm.Combos.Servicos)
                             {
@@ -234,7 +239,19 @@
     </div>
 </form>
 
+@if (!ro)
+{
+    <!-- Cadastros compartilhados, abertos pelo Novo/Editar das pesquisas de cliente,
+         funcionario, produto, servico e forma de pagamento. Gravam por AJAX e voltam para a pesquisa. -->
+    @await Component.InvokeAsync("CadastroCliente", new { modo = "ajax" })
+    @await Component.InvokeAsync("CadastroFuncionario", new { modo = "ajax" })
+    @await Component.InvokeAsync("CadastroProduto", new { modo = "ajax" })
+    @await Component.InvokeAsync("CadastroServico", new { modo = "ajax" })
+    @await Component.InvokeAsync("CadastroFormaPagamento", new { modo = "ajax" })
+}
+
 @section Scripts {
+    @* Os scripts dos cadastros vem com os proprios componentes. *@
     <script type="application/json" id="dadosTela">
     {
         "TIPO_ITEM": { "PRODUTO": @Json.Serialize(VendaItem.PRODUTO), "SERVICO": @Json.Serialize(VendaItem.SERVICO) },

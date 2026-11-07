@@ -23,6 +23,20 @@ public class FormaPagamentoBusiness
             .OrderBy(f => f.DsFormaPagamento)
             .ToListAsync();
 
+    // Pesquisa (lupa dos campos de forma): so ativas, por codigo ou descricao
+    // (sem diferenciar acento).
+    public async Task<List<FormaPagamento>> Pesquisar(int? id, string? termo)
+    {
+        var query = _db.FormasPagamento.Where(f => f.FlAtivo);
+
+        if (id.HasValue)
+            query = query.Where(f => f.IdFormaPagamento == id.Value);
+        else if (!string.IsNullOrWhiteSpace(termo))
+            query = query.Where(Module.MontarFiltroTexto<FormaPagamento>(termo, f => f.DsFormaPagamento));
+
+        return await query.OrderBy(f => f.DsFormaPagamento).Take(50).ToListAsync();
+    }
+
     // ============================================================
     // Gravacao
     // ============================================================

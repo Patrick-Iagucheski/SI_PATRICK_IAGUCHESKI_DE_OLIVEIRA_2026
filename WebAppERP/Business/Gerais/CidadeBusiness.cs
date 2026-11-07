@@ -22,7 +22,7 @@ public class CidadeBusiness
             .OrderBy(c => c.NmCidade)
             .ToListAsync();
 
-    // Lista suspensa: por nome (sem acento) ou UF. Com id, traz so aquela
+    // Pesquisa: por nome (sem acento) ou UF. Com id, traz so aquela
     // cidade (edicao de registro que so tem o idCidade).
     public async Task<List<Cidade>> Buscar(int? id, string? termo, string? uf = null)
     {

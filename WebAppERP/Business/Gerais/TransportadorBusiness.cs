@@ -4,7 +4,7 @@ using WebAppERP.Data;
 namespace WebAppERP.Business.Gerais;
 
 // Regras de negocio do transportador. Usada pela tela de Transportadores e pela
-// pesquisa de transportador da Compra.
+// pesquisa de transportadora (lupa do campo).
 public class TransportadorBusiness
 {
     private readonly AppDbContext _db;
@@ -24,16 +24,16 @@ public class TransportadorBusiness
     public async Task<Transportador?> GetTransportador(int id) =>
         await _db.Transportadores.FindAsync(id);
 
-    // Pesquisa rapida (pesquisa de transportador da Compra): por codigo ou razao social.
+    // Pesquisa rapida (lupa do campo de transportadora): por codigo ou razao social.
     public async Task<List<Transportador>> Pesquisar(int? id, string? termo)
     {
-        var query = _db.Transportadores.AsQueryable();
+        var query = _db.Transportadores.Include(t => t.Cidade).ThenInclude(c => c!.Estado).AsQueryable();
 
         if (id.HasValue)
             query = query.Where(t => t.IdTransportador == id.Value);
         else if (!string.IsNullOrWhiteSpace(termo))
         {
-            query = query.Where(Module.MontarFiltroTexto<Transportador>(termo, x => x.DsRazaoSocial));
+            query = query.Where(Module.MontarFiltroTexto<Transportador>(termo, x => x.DsRazaoSocial, x => x.NrCpfCnpj));
         }
 
         return await query.OrderBy(t => t.DsRazaoSocial).Take(50).ToListAsync();

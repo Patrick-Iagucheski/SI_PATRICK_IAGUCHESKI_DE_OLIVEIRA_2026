@@ -5,7 +5,7 @@ using WebAppERP.ViewModels;
 namespace WebAppERP.ViewComponents;
 
 // Modal de cadastro de fornecedor, reaproveitado pela tela de Fornecedores e
-// pela pesquisa de fornecedor da Compra. A cidade usa o componente unico
+// pela pesquisa de fornecedor (Compra e Contas a Pagar). A cidade usa o componente unico
 // CampoCidade. View: Pages/Shared/Components/CadastroFornecedor/Default.cshtml.
 // Traz o proprio script (Default.cshtml.js, na mesma pasta), incluido uma vez
 // por pagina. A gravacao fica em FornecedorBusiness (chamado por FornecedoresModel).

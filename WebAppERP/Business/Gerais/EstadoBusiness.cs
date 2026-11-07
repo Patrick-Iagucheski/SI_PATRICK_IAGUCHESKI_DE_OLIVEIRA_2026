@@ -22,7 +22,7 @@ public class EstadoBusiness
             .OrderBy(e => e.NmEstado)
             .ToListAsync();
 
-    // Lista suspensa: por nome (sem acento) ou UF.
+    // Pesquisa: por nome (sem acento) ou UF.
     public async Task<List<Estado>> Buscar(int? id, string? termo)
     {
         var query = _db.Estados.Include(e => e.Pais).AsQueryable();

@@ -1,7 +1,8 @@
 ﻿// Script do componente de cadastro de condicao de pagamento
 // (Pages/Shared/Components/CadastroCondicaoPagamento/Default.cshtml).
 // Incluido pelo proprio componente, uma vez por pagina. Usado pela tela de
-// Condicoes de Pagamento e pelo + do cadastro de fornecedor.
+// Condicoes de Pagamento e pela pesquisa de condicao (lupa da condicao no
+// cadastro de fornecedor e na Compra).
 // Nomes com sufixo "Condicao" para nao colidir com as funcoes das telas.
 // Roda antes do bootstrap.bundle (fica no meio do <body>): so usa o
 // bootstrap dentro dos eventos, nunca no carregamento.
@@ -116,27 +117,38 @@ document.getElementById('condForm')?.addEventListener('submit', function (e) {
         return;
     }
     document.getElementById('condParcelasJson').value = JSON.stringify(parcelas);
-
-    // Modo AJAX: grava sem recarregar a tela que abriu o cadastro.
-    if (document.getElementById('modalCondicao').dataset.modo === 'ajax') {
-        e.preventDefault();
-        salvarCondicaoAjax(this);
-    }
 });
 
-// Grava a condicao e avisa a tela de origem pelo evento 'condicao:salva'.
-async function salvarCondicaoAjax(form) {
-    const btn = form.querySelector('button[type="submit"]');
-    exibirErro(form, null);
-    btn.disabled = true;
-    try {
-        const url = document.getElementById('modalCondicao').dataset.urlCondicoes + '?handler=SalvarAjax';
-        const resp = await fetch(url, { method: 'POST', body: new FormData(form) });
-        const data = await resp.json();
-        if (!data.sucesso) { exibirErro(form, data.mensagem); return; }
-        bootstrap.Modal.getInstance(document.getElementById('modalCondicao')).hide();
-        document.dispatchEvent(new CustomEvent('condicao:salva', { detail: data }));
-    } catch (e) {
-        exibirErro(form, 'Erro ao salvar a condição de pagamento. Tente novamente.');
-    } finally { btn.disabled = false; }
+// ===== Pesquisa de condicao (a lupa do campo de condicao de outras telas) =====
+// opcoes: o que a tela faz com o registro (ver abrirPesquisaComCadastro no module.js).
+function urlCondicoes(handler) {
+    return document.getElementById('modalCondicao').dataset.urlCondicoes + '?handler=' + handler;
+}
+
+// Registro da pesquisa / busca (BuscarCondicoes) no formulario de edicao.
+function editarCondicaoPorRegistro(c) {
+    editarCondicao(c.id, c.nome || '', c.juro, c.multa, c.desconto, c.ativo ? 'true' : 'false', c.parcelas || []);
+}
+
+const PESQUISA_CONDICAO = {
+    chave: 'condicao',
+    titulo: 'Pesquisar Condição de Pagamento',
+    url: () => urlCondicoes('BuscarCondicoes'),
+    filtros: [
+        { param: 'id', rotulo: 'ID', tipo: 'number', col: 2 },
+        { param: 'condicao', rotulo: 'Condição', col: 6 }
+    ],
+    colunas: ['Código', 'Condição', 'Parcelas', 'Juro (%)', 'Multa (%)', 'Desconto (%)'],
+    celulas: c => ['<strong>' + c.id + '</strong>', escaparHtml(c.nome), (c.parcelas || []).length,
+                   moeda(c.juro), moeda(c.multa), moeda(c.desconto)],
+    modal: 'modalCondicao',
+    evento: 'condicao:salva',
+    preencher: editarCondicaoPorRegistro,
+    limpar: limparFormCondicao,
+    urlExcluir: () => urlCondicoes('Excluir'),
+    nome: c => c.nome
+};
+
+function abrirPesquisaCondicao(opcoes) {
+    abrirPesquisaComCadastro(PESQUISA_CONDICAO, opcoes);
 }

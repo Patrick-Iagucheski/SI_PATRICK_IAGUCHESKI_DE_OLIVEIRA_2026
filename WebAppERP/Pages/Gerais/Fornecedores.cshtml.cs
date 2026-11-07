@@ -28,7 +28,7 @@ public class FornecedoresModel : PaginaBase
         Executar(() => _fornecedor.Salvar(FornecedorForm),
             FornecedorForm.IdFornecedor == 0 ? "Fornecedor cadastrado com sucesso." : "Fornecedor atualizado com sucesso.");
 
-    // Cadastro pelo componente em modo AJAX (ex.: botao + da pesquisa de
+    // Cadastro pelo componente em modo AJAX (ex.: Novo/Editar da pesquisa de
     // fornecedor na Compra). Mesmas regras do OnPost, mas responde JSON
     // para a tela de origem nao ser recarregada.
     public Task<IActionResult> OnPostSalvarAjax() =>
@@ -78,7 +78,7 @@ public class FornecedoresModel : PaginaBase
             bairro = f.DsBairro,
             idCidade = f.IdCidade,
             idCondicaoPagamento = f.IdCondicaoPagamento,
-            cidadeNome = f.Cidade != null ? f.Cidade.NmCidade + "/" + (f.Cidade.Estado != null ? f.Cidade.Estado.SgUF : "") : null,
+            cidadeNome = Module.CidadeUf(f.Cidade),
             telefoneFixo = f.NrTelefoneFixo,
             celular = f.NrCelular,
             whatsApp = f.NrWhatsApp,

@@ -26,6 +26,15 @@ public class ClientesModel : PaginaBase
         Executar(() => _cliente.Salvar(ClienteForm),
             ClienteForm.IdCliente == 0 ? "Cliente cadastrado com sucesso." : "Cliente atualizado com sucesso.");
 
+    // Cadastro pelo componente em modo AJAX (pesquisas de cliente de outras
+    // telas). Mesmas regras do OnPost, mas responde JSON para a tela de origem.
+    public Task<IActionResult> OnPostSalvarAjax() =>
+        ExecutarJson(async () =>
+        {
+            var c = await _cliente.Salvar(ClienteForm);
+            return new { sucesso = true, id = c.IdCliente, nome = c.NmCliente };
+        });
+
     public Task<IActionResult> OnPostExcluir(int id) =>
         Executar(() => _cliente.Excluir(id), "Cliente excluído com sucesso.");
 
@@ -51,7 +60,7 @@ public class ClientesModel : PaginaBase
             complemento = c.DsComplemento,
             bairro = c.DsBairro,
             idCidade = c.IdCidade,
-            cidadeNome = c.Cidade != null ? c.Cidade.NmCidade + "/" + (c.Cidade.Estado != null ? c.Cidade.Estado.SgUF : "") : null,
+            cidadeNome = Module.CidadeUf(c.Cidade),
             cep = c.NrCEP,
             nasc = c.DtNascimento,
             sexo = c.DsSexo,

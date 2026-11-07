@@ -3,32 +3,33 @@
     Componente unico de cidade (ViewComponents/CampoCidadeViewComponent).
     Uso na tela:
         @await Component.InvokeAsync("CampoCidade", new { nome = "ClienteForm.IdCidade", id = "formIdCidade", idCidade = Model.ClienteForm.IdCidade })
+    So os cadastros e as pesquisas (telas com campo de estado ou pais):
+        @await Component.InvokeAsync("CampoCidade", new { somenteCadastros = true })
     JS da tela: definirCidade(id, idCidade, nome?) e limparCidade(id).
 *@
 
-<!-- Campo: droplist que filtra enquanto digita (cidade so vale depois de escolhida) -->
-<div class="autocomplete">
-    <div class="input-group">
-        <input type="hidden" name="@Model.Nome" id="@Model.Id" value="@Model.IdCidade" />
-        <input type="text" class="form-control" id="@(Model.Id)Nome" value="@Model.NomeCidade"
-               placeholder="Digite para pesquisar a cidade" autocomplete="off"
-               data-droplist="cidade" data-alvo="@Model.Id" />
-        <button type="button" class="btn btn-outline-secondary" title="Limpar cidade" onclick="limparCidade('@Model.Id')">
-            <i class="bi bi-x-lg"></i>
-        </button>
-        <button type="button" class="btn btn-outline-primary" title="Pesquisar / cadastrar cidade" onclick="abrirPesquisaCidade('@Model.Id')">
-            <i class="bi bi-plus-lg"></i>
-        </button>
-    </div>
-    <div class="list-group autocomplete-lista d-none" id="@(Model.Id)NomeLista"></div>
-</div>
+@if (!Model.SomenteCadastros)
+{
+    <!-- Campo de selecao com lupa (montado pelo module.js): a lupa abre a pesquisa
+         de cidade; cadastrar uma nova e pelo Novo da pesquisa. -->
+    <select class="form-select" name="@Model.Nome" id="@Model.Id"
+            data-pesquisa="abrirPesquisaCidade('@Model.Id')" data-titulo-pesquisa="Pesquisar cidade">
+        <option value="">Clique no + para pesquisar a cidade</option>
+        @if (Model.IdCidade is int idc)
+        {
+            <option value="@idc" selected>@Model.NomeCidade</option>
+        }
+    </select>
+}
 
 @if (Model.IncluirModais)
 {
     <!-- Cadastro de cidade / estado / pais (aberto pelo Novo ou Editar das
          pesquisas, que ficam no module.js). O script move este bloco para
          o fim do <body>: modal dentro de outro modal nao abre direito no Bootstrap. -->
-    <div id="localidadeModais" data-url-localidades="@Url.Page("/Gerais/Localidades")">
+    <div id="localidadeModais" data-url-localidades="@Url.Page("/Gerais/Localidades")"
+         data-url-cidades="@Url.Page("/Gerais/Cidades")" data-url-estados="@Url.Page("/Gerais/Estados")"
+         data-url-paises="@Url.Page("/Gerais/Paises")">
 
         <!-- Modal de Cadastro Rapido de Cidade -->
         <div class="modal fade" id="modalCidadeRapido" tabindex="-1">
@@ -48,19 +49,10 @@
                             </div>
                             <div class="col-12">
                                 <label class="form-label">Estado *</label>
-                                <div class="autocomplete">
-                                    <div class="input-group">
-                                        <input type="hidden" id="cidEstado" />
-                                        <input type="text" class="form-control" id="cidEstadoNome"
-                                               placeholder="Digite para pesquisar o estado" autocomplete="off"
-                                               data-droplist="estado" data-alvo="cidEstado" />
-                                        <button type="button" class="btn btn-outline-primary"
-                                                onclick="abrirPesquisaEstado()" title="Pesquisar / cadastrar estado">
-                                            <i class="bi bi-plus-lg"></i>
-                                        </button>
-                                    </div>
-                                    <div class="list-group autocomplete-lista d-none" id="cidEstadoNomeLista"></div>
-                                </div>
+                                <select class="form-select" id="cidEstado"
+                                        data-pesquisa="abrirPesquisaEstado('cidEstado')" data-titulo-pesquisa="Pesquisar estado">
+                                    <option value="">Clique no + para pesquisar o estado</option>
+                                </select>
                             </div>
                         </div>
                     </div>
@@ -96,19 +88,10 @@
                             </div>
                             <div class="col-12">
                                 <label class="form-label">País *</label>
-                                <div class="autocomplete">
-                                    <div class="input-group">
-                                        <input type="hidden" id="estPais" />
-                                        <input type="text" class="form-control" id="estPaisNome"
-                                               placeholder="Digite para pesquisar o país" autocomplete="off"
-                                               data-droplist="pais" data-alvo="estPais" />
-                                        <button type="button" class="btn btn-outline-primary"
-                                                onclick="abrirPesquisaPais()" title="Pesquisar / cadastrar país">
-                                            <i class="bi bi-plus-lg"></i>
-                                        </button>
-                                    </div>
-                                    <div class="list-group autocomplete-lista d-none" id="estPaisNomeLista"></div>
-                                </div>
+                                <select class="form-select" id="estPais"
+                                        data-pesquisa="abrirPesquisaPais('estPais')" data-titulo-pesquisa="Pesquisar país">
+                                    <option value="">Clique no + para pesquisar o país</option>
+                                </select>
                             </div>
                         </div>
                     </div>

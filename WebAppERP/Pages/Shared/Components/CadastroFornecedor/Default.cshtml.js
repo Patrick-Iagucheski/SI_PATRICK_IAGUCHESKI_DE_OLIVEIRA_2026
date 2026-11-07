@@ -1,6 +1,7 @@
 ﻿// Script do componente de cadastro de fornecedor
 // (Pages/Shared/Components/CadastroFornecedor/Default.cshtml).
-// Usado pela tela de Fornecedores e pela pesquisa de fornecedor da Compra.
+// Usado pela tela de Fornecedores e pela pesquisa de fornecedor (lupa do
+// fornecedor da Compra e de Contas a Pagar).
 
 // ===== Mascaras (funcoes em wwwroot/js/module.js; no banco salva so numeros) =====
 aplicarMascara('formNrCpf', mascaraCPF);
@@ -12,7 +13,7 @@ aplicarMascara('formNrWhatsApp', mascaraTelefone);
 aplicarMascara('formNrRG', mascaraRG);
 
 // ===== Tipo de Pessoa: alterna documento e os campos especificos =====
-function toggleTipoPessoa() {
+function toggleTipoPessoaFornecedor() {
     const tipo = document.getElementById('formTpPessoa').value;
     const ehF = tipo === 'F';
     const ehJ = tipo === 'J';
@@ -67,16 +68,10 @@ document.querySelector('#modalFornecedor form')?.addEventListener('submit', func
         if (im && (im.length < 7 || im.length > 15)) { e.preventDefault(); exibirErro(this, 'Inscrição Municipal deve ter de 7 a 15 caracteres.'); return; }
     }
     if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { e.preventDefault(); exibirErro(this, 'E-mail inválido. Verifique o formato (exemplo: nome@dominio.com).'); return; }
-
-    // Modo AJAX: grava sem recarregar a tela que abriu o cadastro.
-    if (document.getElementById('modalFornecedor').dataset.modo === 'ajax') {
-        e.preventDefault();
-        salvarFornecedorAjax(this);
-    }
 });
 
-function limparForm() {
-    document.getElementById('modalTitle').innerHTML = '<i class="bi bi-truck me-2"></i>Novo Fornecedor';
+function limparFormFornecedor() {
+    document.getElementById('fornTitulo').innerHTML = '<i class="bi bi-truck me-2"></i>Novo Fornecedor';
     ['formDsRazaoSocial','formDsNomeFantasia','formDsContatoPrincipal','formNrCNPJ','formNrCpf','formNrDocumento','formNrInscEstadual','formNrInscMunicipal','formNrRG','formDtNascimento','formDsObservacao','formNrCEP','formDsEndereco','formNrNumero','formDsComplemento','formDsBairro','formIdCondicaoPagamento','formNrTelefoneFixo','formNrCelular','formNrWhatsApp','formDsEmail','formDsBanco','formNrAgencia','formTpConta','formNrConta','formNrDigitoConta','formTpChavePix','formDsChavePix','formCodigoDisplay'].forEach(id => {
         document.getElementById(id).value = '';
     });
@@ -84,11 +79,11 @@ function limparForm() {
     document.getElementById('formTpPessoa').value = 'J';
     document.getElementById('formFlAtivo').value = 'true';
     limparCidade('formIdCidade');
-    toggleTipoPessoa();
+    toggleTipoPessoaFornecedor();
 }
 
 function editarFornecedor(f) {
-    document.getElementById('modalTitle').innerHTML = '<i class="bi bi-pencil me-2"></i>Editar Fornecedor';
+    document.getElementById('fornTitulo').innerHTML = '<i class="bi bi-pencil me-2"></i>Editar Fornecedor';
     document.getElementById('formId').value = f.id;
     document.getElementById('formCodigoDisplay').value = f.id;
     document.getElementById('formTpPessoa').value = f.tipoPessoa || 'J';
@@ -123,7 +118,7 @@ function editarFornecedor(f) {
     document.getElementById('formDsChavePix').value = f.chavePix || '';
     aplicarMascaraPix();
     document.getElementById('formFlAtivo').value = (f.ativo === true || f.ativo === 'True') ? 'true' : 'false';
-    toggleTipoPessoa();
+    toggleTipoPessoaFornecedor();
 }
 
 // ===== Helpers AJAX =====
@@ -133,34 +128,36 @@ function urlFornecedores(handler) {
     return document.getElementById('modalFornecedor').dataset.urlFornecedores + '?handler=' + handler;
 }
 
-// Condicao cadastrada pelo + do campo: entra no dropdown ja selecionada
-// (o dropdown so lista condicoes ativas).
-document.addEventListener('condicao:salva', e => {
-    const sel = document.getElementById('formIdCondicaoPagamento');
-    if (!sel || !e.detail.ativo) return;
-    let opt = sel.querySelector('option[value="' + e.detail.id + '"]');
-    if (!opt) {
-        opt = document.createElement('option');
-        opt.value = e.detail.id;
-        sel.appendChild(opt);
-    }
-    opt.textContent = e.detail.nome;
-    sel.value = e.detail.id;
-});
-
-// Grava o fornecedor e avisa a tela de origem pelo evento 'fornecedor:salvo'.
-async function salvarFornecedorAjax(form) {
-    const btn = form.querySelector('button[type="submit"]');
-    exibirErro(form, null);
-    btn.disabled = true;
-    try {
-        const resp = await fetch(urlFornecedores('SalvarAjax'), { method: 'POST', body: new FormData(form) });
-        const data = await resp.json();
-        if (!data.sucesso) { exibirErro(form, data.mensagem); return; }
-        bootstrap.Modal.getInstance(document.getElementById('modalFornecedor')).hide();
-        document.dispatchEvent(new CustomEvent('fornecedor:salvo', { detail: data }));
-    } catch (e) {
-        exibirErro(form, 'Erro ao salvar o fornecedor. Tente novamente.');
-    } finally { btn.disabled = false; }
+// ===== Pesquisa de fornecedor (a lupa do campo de fornecedor de outras telas) =====
+// opcoes: o que a tela faz com o registro (ver abrirPesquisaComCadastro no module.js).
+function documentoFornecedor(f) {
+    if (f.tipoPessoa === 'F') return f.cpf ? mascaraCPF(f.cpf) : '-';
+    if (f.tipoPessoa === 'E' || f.tipoPessoa === 'O') return escaparHtml(f.documento || '-');
+    return f.cnpj ? mascaraCNPJ(f.cnpj) : '-';
 }
 
+const PESQUISA_FORNECEDOR = {
+    chave: 'fornecedor',
+    titulo: 'Pesquisar Fornecedor',
+    // Mesma busca da tela de Fornecedores (so ativos, sem diferenciar acento).
+    url: () => urlFornecedores('BuscarFornecedores'),
+    filtros: [
+        { param: 'id', rotulo: 'ID', tipo: 'number', col: 2 },
+        { param: 'razao', rotulo: 'Razão Social', col: 4 },
+        { param: 'fantasia', rotulo: 'Nome Fantasia', col: 3 },
+        { param: 'documento', rotulo: 'CPF / CNPJ', col: 3 }
+    ],
+    colunas: ['Código', 'Razão Social', 'Nome Fantasia', 'CPF / CNPJ', 'Cidade'],
+    celulas: f => ['<strong>' + f.id + '</strong>', escaparHtml(f.razaoSocial), escaparHtml(f.nomeFantasia || '-'),
+                   documentoFornecedor(f), escaparHtml(f.cidadeNome || '-')],
+    modal: 'modalFornecedor',
+    evento: 'fornecedor:salvo',
+    preencher: editarFornecedor,
+    limpar: limparFormFornecedor,
+    urlExcluir: () => urlFornecedores('Excluir'),
+    nome: f => f.razaoSocial
+};
+
+function abrirPesquisaFornecedor(opcoes) {
+    abrirPesquisaComCadastro(PESQUISA_FORNECEDOR, opcoes);
+}

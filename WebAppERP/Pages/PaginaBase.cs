@@ -15,15 +15,16 @@ public abstract class PaginaBase : PageModel
 {
     // Acao de formulario (salvar, excluir, baixar...): grava a mensagem e volta
     // para a tela. rota: valores da rota na volta (ex.: new { DataFiltro = data }).
-    // Salvar de modal (enviado por AJAX pelo module.js) responde JSON: no erro o
-    // modal mostra a mensagem e continua aberto com o que foi digitado; no
-    // sucesso a tela recarrega e mostra a mensagem do TempData.
+    // Por AJAX (module.js) responde JSON { sucesso, mensagem }: no erro quem
+    // chamou mostra a mensagem sem fechar nada. No sucesso, o salvar dos modais
+    // recarrega a tela (cabecalho X-Recarregar) e a mensagem vai pelo TempData;
+    // a exclusao feita na pesquisa mostra a mensagem ali mesmo.
     protected async Task<IActionResult> Executar(Func<Task> acao, string? sucesso, object? rota = null)
     {
         try
         {
             await acao();
-            if (sucesso != null)
+            if (sucesso != null && (!PedidoAjax || Request.Headers["X-Recarregar"] == "1"))
                 TempData["Sucesso"] = sucesso;
         }
         catch (Exception ex) when (MensagemDeErro(ex) is { } mensagem)
@@ -32,7 +33,7 @@ public abstract class PaginaBase : PageModel
                 return new JsonResult(new { sucesso = false, mensagem });
             TempData["Erro"] = mensagem;
         }
-        return PedidoAjax ? new JsonResult(new { sucesso = true }) : RedirectToPage(rota);
+        return PedidoAjax ? new JsonResult(new { sucesso = true, mensagem = sucesso }) : RedirectToPage(rota);
     }
 
     // Pedido feito por fetch do module.js (cabecalho X-Requested-With).

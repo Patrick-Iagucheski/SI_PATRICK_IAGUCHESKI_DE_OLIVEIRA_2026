@@ -7,7 +7,7 @@ public class CadastroFornecedorViewModel
     // Valores do formulario (preenchidos pelo script ao editar).
     public Fornecedor FornecedorForm { get; set; } = new();
 
-    // Condicoes de pagamento ja cadastradas (so ativas) para o dropdown.
+    // Condicoes de pagamento ja cadastradas (so ativas): opcoes do campo de condicao.
     public List<CondicaoPagamento> Condicoes { get; set; } = [];
 
     // "post": Salvar faz o submit normal da tela de Fornecedores.

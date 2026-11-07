@@ -4,7 +4,7 @@ using WebAppERP.Data;
 namespace WebAppERP.Business.Gerais;
 
 // Regras de negocio do servico. Usada pela tela de Servicos, pela pesquisa de
-// servico da Compra e pelas listas de servicos (Agendamentos).
+// servico (Compra, Venda e Agendamentos).
 public class ServicoBusiness
 {
     private readonly AppDbContext _db;
@@ -22,7 +22,7 @@ public class ServicoBusiness
             .OrderBy(s => s.DsServico)
             .ToListAsync();
 
-    // Pesquisa rapida (pesquisa de servico da Compra): so ativos, por codigo ou nome.
+    // Pesquisa rapida (lupa do campo de servico): so ativos, por codigo, nome ou categoria.
     public async Task<List<Servico>> Pesquisar(int? id, string? termo)
     {
         var query = _db.Servicos.Where(s => s.FlAtivo);
@@ -31,7 +31,7 @@ public class ServicoBusiness
             query = query.Where(s => s.IdServico == id.Value);
         else if (!string.IsNullOrWhiteSpace(termo))
         {
-            query = query.Where(Module.MontarFiltroTexto<Servico>(termo, s => s.DsServico));
+            query = query.Where(Module.MontarFiltroTexto<Servico>(termo, s => s.DsServico, s => s.DsCategoria));
         }
 
         return await query.OrderBy(s => s.DsServico).Take(50).ToListAsync();

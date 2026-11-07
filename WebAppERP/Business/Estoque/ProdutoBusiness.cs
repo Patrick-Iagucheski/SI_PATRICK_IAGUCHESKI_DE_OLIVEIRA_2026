@@ -5,8 +5,8 @@ using WebAppERP.Infrastructure;
 namespace WebAppERP.Business.Estoque;
 
 // Regras de negocio do produto (incluindo a imagem gravada em wwwroot/uploads).
-// Usada pela tela de Produtos, pelo modal de cadastro de produto da Compra e
-// pela pesquisa de produto da Compra.
+// Usada pela tela de Produtos e pelo componente de cadastro de produto
+// (pesquisa de produto da Compra e da Venda).
 public class ProdutoBusiness
 {
     private readonly AppDbContext _db;
@@ -55,21 +55,6 @@ public class ProdutoBusiness
         }
 
         return await query.OrderBy(p => p.DsProduto).Take(100).ToListAsync();
-    }
-
-    // Pesquisa rapida (pesquisa de produto da Compra): so ativos, por codigo ou nome.
-    public async Task<List<Produto>> Pesquisar(int? id, string? termo)
-    {
-        var query = _db.Produtos.Where(p => p.FlAtivo);
-
-        if (id.HasValue)
-            query = query.Where(p => p.IdProduto == id.Value);
-        else if (!string.IsNullOrWhiteSpace(termo))
-        {
-            query = query.Where(Module.MontarFiltroTexto<Produto>(termo, p => p.DsProduto));
-        }
-
-        return await query.OrderBy(p => p.DsProduto).Take(50).ToListAsync();
     }
 
     // ============================================================
@@ -169,7 +154,7 @@ public class ProdutoBusiness
         if (p.VlVenda.HasValue && p.VlVendaMinimo.HasValue && p.VlVenda < p.VlVendaMinimo)
             throw new ValidacaoException("O valor de venda não pode ser menor que o valor de venda mínimo.");
 
-        // Marca e categoria obrigatorias (vem dos dropdowns; valida se existem).
+        // Marca e categoria obrigatorias (vem da pesquisa do campo; valida se existem).
         if (p.IdCategoria is not > 0)
             throw new ValidacaoException("Selecione a categoria do produto.");
         if (!await _categoria.Existe(p.IdCategoria.Value))
