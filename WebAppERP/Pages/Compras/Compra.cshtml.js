@@ -23,7 +23,6 @@ let itemEditandoIdx = null;
 let pagamentoEditandoIdx = null;
 
 // Contexto do modal de pesquisa: 'fornecedor' | 'transportador' | 'item'.
-let buscaContexto = null;
 
 // ---------------- Utilitarios ----------------
 
@@ -57,15 +56,21 @@ function nomeCondicao(id) {
 }
 
 // ---------------- Pesquisa (fornecedor / transportadora / item) ----------------
-// Um modal so para todas as pesquisas da tela. Cada pesquisa declara:
-//   titulo, url (handler de busca), filtros (campos com o nome do parametro),
-//   colunas e celulas da grade, selecionar (o que vai para a compra) e,
-//   quando houver cadastro, editar (abre o componente ja preenchido).
-// A busca roda no botao Buscar ou no Enter, como nas telas de cadastro, e ao
-// abrir ja lista os registros disponiveis.
+// Cada pesquisa tem o seu modal, montado por abrirPesquisa (module.js); aqui
+// so a configuracao de cada uma. Editar abre o cadastro por cima da pesquisa
+// e, ao salvar, volta para a lista atualizada.
 
-const PESQUISAS = {
-    fornecedor: {
+// CPF, CNPJ ou documento conforme o tipo de pessoa do fornecedor.
+function documentoFornecedor(f) {
+    if (f.tipoPessoa === 'F') return f.cpf ? mascaraCPF(f.cpf) : '-';
+    if (f.tipoPessoa === 'E' || f.tipoPessoa === 'O') return escaparHtml(f.documento || '-');
+    return f.cnpj ? mascaraCNPJ(f.cnpj) : '-';
+}
+
+function abrirBuscaFornecedor() {
+    const cadastro = document.getElementById('modalFornecedor');
+    abrirPesquisa({
+        chave: 'fornecedor',
         titulo: 'Pesquisar Fornecedor',
         // Mesma busca da tela de Fornecedores (so ativos, sem diferenciar acento).
         url: () => DADOS_TELA.URL_FORNECEDORES + '?handler=BuscarFornecedores',
@@ -78,158 +83,66 @@ const PESQUISAS = {
         colunas: ['Código', 'Razão Social', 'Nome Fantasia', 'CPF / CNPJ', 'Cidade'],
         celulas: f => ['<strong>' + f.id + '</strong>', escaparHtml(f.razaoSocial), escaparHtml(f.nomeFantasia || '-'),
                        documentoFornecedor(f), escaparHtml(f.cidadeNome || '-')],
-        selecionar: f => ({ id: f.id, nome: f.razaoSocial }),
-        editar: document.getElementById('modalFornecedor') ? f => { editarFornecedor(f); abrirModalEmpilhado('modalFornecedor'); } : null
-    },
-    transportador: {
+        selecionar: f => definirFornecedor(f.id, f.razaoSocial),
+        editar: cadastro ? f => { fornecedorEmEdicao = true; editarFornecedor(f); abrirModalEmpilhado('modalFornecedor'); } : null,
+        novo: cadastro ? () => { fornecedorEmEdicao = false; limparForm(); abrirModalEmpilhado('modalFornecedor'); } : null
+    });
+}
+
+function abrirBuscaTransportador() {
+    abrirPesquisa({
+        chave: 'transportador',
         titulo: 'Pesquisar Transportadora',
         url: () => '?handler=BuscarTransportador',
         filtros: [{ param: 'termo', rotulo: 'Razão Social', col: 6 }],
         colunas: ['Código', 'Razão Social'],
         celulas: r => ['<strong>' + r.id + '</strong>', escaparHtml(r.nome)],
-        selecionar: r => r
-    },
-    item: {
-        titulo: () => document.getElementById('itTipo').value === TIPO_PRODUTO ? 'Pesquisar Produto' : 'Pesquisar Serviço',
-        url: () => '?handler=' + (document.getElementById('itTipo').value === TIPO_PRODUTO ? 'BuscarProduto' : 'BuscarServico'),
+        selecionar: r => {
+            document.getElementById('IdTransportador').value = r.id;
+            document.getElementById('nomeTransportador').value = r.nome;
+        }
+    });
+}
+
+function abrirBuscaItem() {
+    const produto = document.getElementById('itTipo').value === TIPO_PRODUTO;
+    const cadastro = produto && document.getElementById('modalProduto');
+    abrirPesquisa({
+        chave: 'item',
+        titulo: produto ? 'Pesquisar Produto' : 'Pesquisar Serviço',
+        url: () => '?handler=' + (produto ? 'BuscarProduto' : 'BuscarServico'),
         filtros: [{ param: 'termo', rotulo: 'Descrição', col: 6 }],
         colunas: ['Código', 'Descrição'],
         celulas: r => ['<strong>' + r.id + '</strong>', escaparHtml(r.nome)],
-        selecionar: r => r
-    }
-};
-
-const pesquisaAtual = () => PESQUISAS[buscaContexto];
-
-// CPF, CNPJ ou documento conforme o tipo de pessoa do fornecedor.
-function documentoFornecedor(f) {
-    if (f.tipoPessoa === 'F') return f.cpf ? mascaraCPF(f.cpf) : '-';
-    if (f.tipoPessoa === 'E' || f.tipoPessoa === 'O') return escaparHtml(f.documento || '-');
-    return f.cnpj ? mascaraCNPJ(f.cnpj) : '-';
-}
-
-function abrirModalBusca(contexto) {
-    buscaContexto = contexto;
-    const p = pesquisaAtual();
-    document.getElementById('buscaTitulo').textContent = typeof p.titulo === 'function' ? p.titulo() : p.titulo;
-
-    // Filtros da pesquisa (Enter em qualquer um busca).
-    const filtros = document.getElementById('buscaFiltros');
-    filtros.innerHTML = p.filtros.map(f =>
-        '<div class="col-md-' + f.col + '">' +
-            '<label class="form-label small mb-1">' + f.rotulo + '</label>' +
-            '<input type="' + (f.tipo || 'text') + '" class="form-control" data-param="' + f.param + '" autocomplete="off"' +
-            (f.tipo === 'number' ? ' min="1"' : '') + ' />' +
-        '</div>').join('');
-    filtros.querySelectorAll('input').forEach(i => i.addEventListener('keydown', e => {
-        if (e.key === 'Enter') { e.preventDefault(); executarBusca(); }
-    }));
-
-    document.getElementById('buscaCabecalho').innerHTML =
-        p.colunas.map((c, i) => '<th' + (i === 0 ? ' style="width: 90px;"' : '') + '>' + c + '</th>').join('') +
-        '<th class="text-center" style="width: 120px;">Ações</th>';
-
-    // "+ Novo" so onde ha componente de cadastro: fornecedor e produto.
-    const novo = cadastroDaBusca();
-    const btnNovo = document.getElementById('btnBuscaNovo');
-    btnNovo.classList.toggle('d-none', !novo);
-    if (novo) btnNovo.title = novo.titulo;
-
-    bootstrap.Modal.getOrCreateInstance(document.getElementById('modalBusca')).show();
-    executarBusca();   // ja abre com os registros disponiveis
-}
-
-function abrirBuscaFornecedor() { abrirModalBusca('fornecedor'); }
-function abrirBuscaTransportador() { abrirModalBusca('transportador'); }
-function abrirBuscaItem() { abrirModalBusca('item'); }
-
-async function executarBusca() {
-    const p = pesquisaAtual();
-    const colspan = p.colunas.length + 1;
-    const body = document.getElementById('buscaBody');
-
-    const params = new URLSearchParams();
-    document.querySelectorAll('#buscaFiltros [data-param]').forEach(i => {
-        if (i.value.trim()) params.append(i.dataset.param, i.value.trim());
+        selecionar: aplicarItemSelecionado,
+        novo: cadastro ? () => { limparFormProduto(); abrirModalEmpilhado('modalProduto'); } : null
     });
-
-    body.innerHTML = '<tr><td colspan="' + colspan + '" class="text-center text-muted py-3">Buscando...</td></tr>';
-    try {
-        const resp = await fetch(p.url() + '&' + params.toString());
-        const lista = await resp.json();
-
-        if (!lista.length) {
-            body.innerHTML = '<tr><td colspan="' + colspan + '" class="text-center text-muted py-3">Nenhum registro encontrado</td></tr>';
-            return;
-        }
-
-        body.innerHTML = '';
-        lista.forEach(reg => {
-            const tr = document.createElement('tr');
-            tr.innerHTML = p.celulas(reg).map(c => '<td>' + c + '</td>').join('') +
-                '<td class="text-center text-nowrap">' +
-                    (p.editar ? '<button type="button" class="btn btn-icon btn-outline-primary me-1" data-acao="editar" title="Editar"><i class="bi bi-pencil"></i></button>' : '') +
-                    '<button type="button" class="btn btn-icon btn-outline-success" data-acao="selecionar" title="Selecionar"><i class="bi bi-check-lg"></i></button>' +
-                '</td>';
-            tr.querySelector('[data-acao="selecionar"]').addEventListener('click', () => selecionarBusca(p.selecionar(reg)));
-            tr.querySelector('[data-acao="editar"]')?.addEventListener('click', () => { edicaoNaPesquisa = true; p.editar(reg); });
-            body.appendChild(tr);
-        });
-    } catch {
-        body.innerHTML = '<tr><td colspan="' + colspan + '" class="text-center text-danger py-3">Falha ao pesquisar</td></tr>';
-    }
 }
 
-function selecionarBusca(reg) {
-    if (buscaContexto === 'fornecedor') {
-        document.getElementById('IdFornecedor').value = reg.id;
-        document.getElementById('nomeFornecedor').value = reg.nome;
-    } else if (buscaContexto === 'transportador') {
-        document.getElementById('IdTransportador').value = reg.id;
-        document.getElementById('nomeTransportador').value = reg.nome;
-    } else {
-        aplicarItemSelecionado(reg);
-    }
-    bootstrap.Modal.getOrCreateInstance(document.getElementById('modalBusca')).hide();
-}
-
-// Componente de cadastro que o "+ Novo" abre na pesquisa atual, ou null
-// quando a pesquisa nao tem cadastro (transportadora, servico) ou o
-// componente nao foi renderizado (tela somente leitura / chave travada).
-function cadastroDaBusca() {
-    if (buscaContexto === 'fornecedor' && document.getElementById('modalFornecedor'))
-        return { modal: 'modalFornecedor', limpar: limparForm, titulo: 'Cadastrar novo fornecedor' };
-    if (buscaContexto === 'item' && document.getElementById('itTipo').value === TIPO_PRODUTO
-        && document.getElementById('modalProduto'))
-        return { modal: 'modalProduto', limpar: limparFormProduto, titulo: 'Cadastrar novo produto' };
-    return null;
-}
-
-// "+ Novo" da pesquisa: abre o cadastro vazio por cima da pesquisa.
-function novoCadastroBusca() {
-    const novo = cadastroDaBusca();
-    if (!novo) return;
-    edicaoNaPesquisa = false;
-    novo.limpar();
-    abrirModalEmpilhado(novo.modal);
+function definirFornecedor(id, nome) {
+    document.getElementById('IdFornecedor').value = id;
+    document.getElementById('nomeFornecedor').value = nome;
 }
 
 // Registro gravado pelo componente. Cadastro novo ja volta selecionado na
 // compra; edicao feita pela pesquisa volta para a lista atualizada (e, se for
 // o fornecedor desta compra, atualiza o nome exibido).
-let edicaoNaPesquisa = false;
+let fornecedorEmEdicao = false;
 document.addEventListener('fornecedor:salvo', e => {
-    if (edicaoNaPesquisa) {
-        edicaoNaPesquisa = false;
+    if (fornecedorEmEdicao) {
+        fornecedorEmEdicao = false;
         if (String(e.detail.id) === document.getElementById('IdFornecedor').value)
             document.getElementById('nomeFornecedor').value = e.detail.razaoSocial;
-        executarBusca();
+        recarregarPesquisa('fornecedor');
         return;
     }
-    selecionarBusca({ id: e.detail.id, nome: e.detail.razaoSocial });
+    definirFornecedor(e.detail.id, e.detail.razaoSocial);
+    fecharPesquisa('fornecedor');
 });
-document.addEventListener('produto:salvo', e =>
-    selecionarBusca({ id: e.detail.id, nome: e.detail.nome, unidade: e.detail.unidade, custo: e.detail.custo }));
+document.addEventListener('produto:salvo', e => {
+    aplicarItemSelecionado({ id: e.detail.id, nome: e.detail.nome, unidade: e.detail.unidade, custo: e.detail.custo });
+    fecharPesquisa('item');
+});
 
 // Preenche os campos do item a partir do produto/servico escolhido.
 function aplicarItemSelecionado(reg) {

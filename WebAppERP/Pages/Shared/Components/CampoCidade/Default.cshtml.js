@@ -1,7 +1,8 @@
 ﻿// Script do componente CampoCidade (Pages/Shared/Components/CampoCidade/Default.cshtml).
 // Incluido pelo proprio componente, uma vez por pagina. Cuida de:
 //  - droplist dos campos com data-droplist="cidade|estado|pais";
-//  - cadastro rapido de cidade / estado / pais (com busca no topo);
+//  - pesquisa de cidade / estado / pais (o "+" dos campos), com Editar,
+//    Selecionar e Novo, e o cadastro de cada um;
 //  - definirCidade / limparCidade, usados pelo JS de cada tela ao editar.
 // Handlers no servidor: Pages/Gerais/Localidades.
 // Roda antes do bootstrap.bundle (fica no meio do <body>): so usa o
@@ -51,12 +52,8 @@ function limparCidade(id) {
     definirCidade(id, '', '');
 }
 
-// Campo de cidade que abriu o cadastro rapido (recebe a cidade gravada).
+// Campo de cidade que abriu a pesquisa (recebe a cidade escolhida ou gravada).
 let campoCidadeAtivo = null;
-function abrirCadastroCidade(id) {
-    campoCidadeAtivo = id;
-    abrirModalEmpilhado('modalCidadeRapido');
-}
 
 // ===== Droplist =====
 // Ao focar ou digitar, a lista abre embaixo do campo filtrando pelo texto
@@ -148,135 +145,177 @@ document.addEventListener('focusin', e => {
     if (campo && !campo.dataset.droplistPronta) iniciarDroplist(campo);
 });
 
-// ===== Busca no topo dos cadastros rapidos =====
-// Antes de cadastrar, o usuario pesquisa se a cidade/estado/pais ja existe.
-// Achou: Selecionar preenche o campo de origem e fecha o cadastro.
-[
-    { tipo: 'cidade', modal: 'modalCidadeRapido', campo: 'cidBusca',  lista: 'cidBuscaLista',
-      aplicar: reg => definirCidade(campoCidadeAtivo, reg.id, textoLocalidade('cidade', reg)) },
-    { tipo: 'estado', modal: 'modalEstadoRapido', campo: 'estBusca',  lista: 'estBuscaLista',
-      aplicar: reg => { document.getElementById('cidEstado').value = reg.id; document.getElementById('cidEstadoNome').value = textoLocalidade('estado', reg); } },
-    { tipo: 'pais',   modal: 'modalPaisRapido',   campo: 'paisBusca', lista: 'paisBuscaLista',
-      aplicar: reg => { document.getElementById('estPais').value = reg.id; document.getElementById('estPaisNome').value = textoLocalidade('pais', reg); } }
-].forEach(b => {
-    const modal = document.getElementById(b.modal);
-    const campo = document.getElementById(b.campo);
-    const lista = document.getElementById(b.lista);
-    if (!modal || !campo || !lista) return;
-    let timer = null;
+// ===== Pesquisas (o "+" de cada campo) =====
+// Cada uma tem o seu modal (abrirPesquisa, no module.js), um por cima do
+// outro: Cidade > Estado > Pais. Selecionar preenche o campo de quem chamou;
+// Editar e Novo abrem o cadastro por cima da pesquisa.
+const elLocalidade = id => document.getElementById(id);
 
-    async function pesquisar() {
-        const termo = campo.value.trim();
-        if (!termo) { lista.classList.add('d-none'); lista.innerHTML = ''; return; }
-        lista.classList.remove('d-none');
-        lista.innerHTML = '<div class="list-group-item text-muted small">Buscando...</div>';
-        try {
-            const regs = await (await fetch(urlLocalidades(LOCALIDADE[b.tipo].handler) + '&termo=' + encodeURIComponent(termo))).json();
-            if (!regs.length) {
-                lista.innerHTML = '<div class="list-group-item text-muted small">Nenhum cadastro encontrado. Preencha abaixo para cadastrar.</div>';
-                return;
-            }
-            lista.innerHTML = '';
-            regs.forEach(reg => {
-                const item = document.createElement('div');
-                item.className = 'list-group-item d-flex justify-content-between align-items-center';
-                item.innerHTML = '<span>' + escaparHtml(reg.nome) + (reg.detalhe ? ' - ' + escaparHtml(reg.detalhe) : '') + '</span>' +
-                    '<button type="button" class="btn btn-sm btn-outline-primary">Selecionar</button>';
-                item.querySelector('button').addEventListener('click', () => {
-                    b.aplicar(reg);
-                    bootstrap.Modal.getInstance(modal).hide();
-                });
-                lista.appendChild(item);
-            });
-        } catch {
-            lista.innerHTML = '<div class="list-group-item text-danger small">Falha ao pesquisar</div>';
-        }
-    }
-
-    campo.addEventListener('input', () => { clearTimeout(timer); timer = setTimeout(pesquisar, 300); });
-    campo.addEventListener('keydown', e => {
-        if (e.key === 'Enter') { e.preventDefault(); clearTimeout(timer); pesquisar(); }
+function abrirPesquisaCidade(id) {
+    campoCidadeAtivo = id;
+    abrirPesquisa({
+        chave: 'cidade',
+        titulo: 'Pesquisar Cidade',
+        url: () => urlLocalidades('BuscarCidades'),
+        filtros: [
+            { param: 'id', rotulo: 'ID', tipo: 'number', col: 2 },
+            { param: 'termo', rotulo: 'Cidade', col: 6 },
+            { param: 'uf', rotulo: 'UF', col: 2 }
+        ],
+        colunas: ['Código', 'Cidade', 'Estado', 'UF'],
+        celulas: c => ['<strong>' + c.id + '</strong>', escaparHtml(c.nome), escaparHtml(c.estado || '-'), escaparHtml(c.detalhe || '-')],
+        selecionar: c => definirCidade(campoCidadeAtivo, c.id, textoLocalidade('cidade', c)),
+        editar: c => abrirCadastroCidade(c),
+        novo: () => abrirCadastroCidade(null)
     });
+}
 
-    // Cada abertura comeca com a busca limpa e com o cursor nela.
-    modal.addEventListener('show.bs.modal', () => {
-        campo.value = '';
-        lista.classList.add('d-none');
-        lista.innerHTML = '';
+function abrirPesquisaEstado() {
+    abrirPesquisa({
+        chave: 'estado',
+        titulo: 'Pesquisar Estado',
+        url: () => urlLocalidades('BuscarEstados'),
+        filtros: [
+            { param: 'id', rotulo: 'ID', tipo: 'number', col: 2 },
+            { param: 'termo', rotulo: 'Estado / UF', col: 6 }
+        ],
+        colunas: ['Código', 'Estado', 'UF', 'País'],
+        celulas: e => ['<strong>' + e.id + '</strong>', escaparHtml(e.nome), escaparHtml(e.detalhe || '-'), escaparHtml(e.pais || '-')],
+        selecionar: e => { elLocalidade('cidEstado').value = e.id; elLocalidade('cidEstadoNome').value = textoLocalidade('estado', e); },
+        editar: e => abrirCadastroEstado(e),
+        novo: () => abrirCadastroEstado(null)
     });
-    modal.addEventListener('shown.bs.modal', () => campo.focus());
-});
+}
 
-// ===== Cadastro rapido de Cidade =====
+function abrirPesquisaPais() {
+    abrirPesquisa({
+        chave: 'pais',
+        titulo: 'Pesquisar País',
+        url: () => urlLocalidades('BuscarPaises'),
+        filtros: [
+            { param: 'id', rotulo: 'ID', tipo: 'number', col: 2 },
+            { param: 'termo', rotulo: 'País / Sigla', col: 6 }
+        ],
+        colunas: ['Código', 'País', 'Sigla', 'DDI', 'Moeda'],
+        celulas: p => ['<strong>' + p.id + '</strong>', escaparHtml(p.nome), escaparHtml(p.detalhe || '-'),
+                       escaparHtml(p.ddi || '-'), escaparHtml(p.moeda || '-')],
+        selecionar: p => { elLocalidade('estPais').value = p.id; elLocalidade('estPaisNome').value = textoLocalidade('pais', p); },
+        editar: p => abrirCadastroPais(p),
+        novo: () => abrirCadastroPais(null)
+    });
+}
+
+// ===== Cadastros (reg = registro da pesquisa para editar, null para novo) =====
+function abrirCadastroCidade(c) {
+    elLocalidade('cidMsg').innerHTML = '';
+    elLocalidade('cidTitulo').textContent = c ? 'Editar Cidade' : 'Cadastrar Cidade';
+    elLocalidade('cidId').value = c ? c.id : 0;
+    elLocalidade('cidNome').value = c ? c.nome : '';
+    elLocalidade('cidEstado').value = c ? (c.idEstado || '') : '';
+    elLocalidade('cidEstadoNome').value = c && c.estado ? c.estado + (c.detalhe ? ' / ' + c.detalhe : '') : '';
+    abrirModalEmpilhado('modalCidadeRapido');
+}
+
+function abrirCadastroEstado(e) {
+    elLocalidade('estMsg').innerHTML = '';
+    elLocalidade('estTitulo').textContent = e ? 'Editar Estado' : 'Cadastrar Estado';
+    elLocalidade('estId').value = e ? e.id : 0;
+    elLocalidade('estNome').value = e ? e.nome : '';
+    elLocalidade('estUF').value = e ? (e.detalhe || '') : '';
+    elLocalidade('estPais').value = e ? (e.idPais || '') : '';
+    elLocalidade('estPaisNome').value = e ? (e.pais || '') : '';
+    abrirModalEmpilhado('modalEstadoRapido');
+}
+
+function abrirCadastroPais(p) {
+    elLocalidade('paisMsg').innerHTML = '';
+    elLocalidade('paisTitulo').textContent = p ? 'Editar País' : 'Cadastrar País';
+    elLocalidade('paisId').value = p ? p.id : 0;
+    elLocalidade('paisNome').value = p ? p.nome : '';
+    elLocalidade('paisSigla').value = p ? (p.detalhe || '') : '';
+    elLocalidade('paisDDI').value = p ? (p.ddi || '') : '';
+    elLocalidade('paisMoeda').value = p ? (p.moeda || '') : '';
+    abrirModalEmpilhado('modalPaisRapido');
+}
+
+// Depois de gravar: edicao volta para a pesquisa com a lista atualizada;
+// cadastro novo ja fica selecionado no campo de quem chamou e fecha a pesquisa.
+function concluirCadastro(modal, chave, editando, selecionar) {
+    bootstrap.Modal.getInstance(elLocalidade(modal)).hide();
+    if (editando) { recarregarPesquisa(chave); return; }
+    selecionar();
+    fecharPesquisa(chave);
+}
+
+// ===== Gravacao de Cidade =====
 async function salvarCidadeRapido() {
-    const nome = document.getElementById('cidNome').value.trim();
-    const idEstado = document.getElementById('cidEstado').value;
-    const msg = document.getElementById('cidMsg');
-    const btn = document.getElementById('btnSalvarCidadeRapido');
+    const id = parseInt(elLocalidade('cidId').value) || 0;
+    const nome = elLocalidade('cidNome').value.trim();
+    const idEstado = elLocalidade('cidEstado').value;
+    const msg = elLocalidade('cidMsg');
+    const btn = elLocalidade('btnSalvarCidadeRapido');
     msg.innerHTML = '';
     if (!nome) { msg.innerHTML = alertaErro('Informe o nome da cidade.'); return; }
     if (!idEstado) { msg.innerHTML = alertaErro('Selecione o estado.'); return; }
     btn.disabled = true;
     try {
-        const data = await postJson(urlLocalidades('CidadeRapido'), { nmCidade: nome, idEstado: parseInt(idEstado) });
+        const data = await postJson(urlLocalidades('CidadeRapido'), { idCidade: id, nmCidade: nome, idEstado: parseInt(idEstado) });
         if (!data.sucesso) { msg.innerHTML = alertaErro(data.mensagem); return; }
-        definirCidade(campoCidadeAtivo, data.id, data.nome + ' / ' + data.uf);
-        document.getElementById('cidNome').value = '';
-        document.getElementById('cidEstado').value = '';
-        document.getElementById('cidEstadoNome').value = '';
-        bootstrap.Modal.getInstance(document.getElementById('modalCidadeRapido')).hide();
-    } catch (e) { msg.innerHTML = alertaErro('Erro ao salvar a cidade. Tente novamente.'); }
+        // Cidade editada que esta no campo: atualiza o nome exibido.
+        if (id && campoCidadeAtivo && elLocalidade(campoCidadeAtivo)?.value == id)
+            elLocalidade(campoCidadeAtivo + 'Nome').value = data.nome + ' / ' + data.uf;
+        concluirCadastro('modalCidadeRapido', 'cidade', id > 0,
+            () => definirCidade(campoCidadeAtivo, data.id, data.nome + ' / ' + data.uf));
+    } catch { msg.innerHTML = alertaErro('Erro ao salvar a cidade. Tente novamente.'); }
     finally { btn.disabled = false; }
 }
 
-// ===== Cadastro rapido de Estado =====
+// ===== Gravacao de Estado =====
 async function salvarEstadoRapido() {
-    const nome = document.getElementById('estNome').value.trim();
-    const uf = document.getElementById('estUF').value.trim().toUpperCase();
-    const idPais = document.getElementById('estPais').value;
-    const msg = document.getElementById('estMsg');
-    const btn = document.getElementById('btnSalvarEstadoRapido');
+    const id = parseInt(elLocalidade('estId').value) || 0;
+    const nome = elLocalidade('estNome').value.trim();
+    const uf = elLocalidade('estUF').value.trim().toUpperCase();
+    const idPais = elLocalidade('estPais').value;
+    const msg = elLocalidade('estMsg');
+    const btn = elLocalidade('btnSalvarEstadoRapido');
     msg.innerHTML = '';
     if (!nome) { msg.innerHTML = alertaErro('Informe o nome do estado.'); return; }
     if (uf.length !== 2) { msg.innerHTML = alertaErro('Informe a UF (2 letras).'); return; }
-    if (!idPais) { msg.innerHTML = alertaErro('Selecione o pais.'); return; }
+    if (!idPais) { msg.innerHTML = alertaErro('Selecione o país.'); return; }
     btn.disabled = true;
     try {
-        const data = await postJson(urlLocalidades('EstadoRapido'), { sgUF: uf, nmEstado: nome, idPais: parseInt(idPais) });
+        const data = await postJson(urlLocalidades('EstadoRapido'), { idEstado: id, sgUF: uf, nmEstado: nome, idPais: parseInt(idPais) });
         if (!data.sucesso) { msg.innerHTML = alertaErro(data.mensagem); return; }
-        document.getElementById('cidEstado').value = data.id;
-        document.getElementById('cidEstadoNome').value = data.nome + ' / ' + data.uf;
-        document.getElementById('estNome').value = '';
-        document.getElementById('estUF').value = '';
-        document.getElementById('estPais').value = '';
-        document.getElementById('estPaisNome').value = '';
-        bootstrap.Modal.getInstance(document.getElementById('modalEstadoRapido')).hide();
-    } catch (e) { msg.innerHTML = alertaErro('Erro ao salvar o estado. Tente novamente.'); }
+        if (id && elLocalidade('cidEstado').value == id) elLocalidade('cidEstadoNome').value = data.nome + ' / ' + data.uf;
+        concluirCadastro('modalEstadoRapido', 'estado', id > 0, () => {
+            elLocalidade('cidEstado').value = data.id;
+            elLocalidade('cidEstadoNome').value = data.nome + ' / ' + data.uf;
+        });
+    } catch { msg.innerHTML = alertaErro('Erro ao salvar o estado. Tente novamente.'); }
     finally { btn.disabled = false; }
 }
 
-// ===== Cadastro rapido de Pais =====
+// ===== Gravacao de Pais =====
 async function salvarPaisRapido() {
-    const nome = document.getElementById('paisNome').value.trim();
-    const sigla = document.getElementById('paisSigla').value.trim().toUpperCase();
-    const ddi = document.getElementById('paisDDI').value.trim();
-    const moeda = document.getElementById('paisMoeda').value.trim();
-    const msg = document.getElementById('paisMsg');
-    const btn = document.getElementById('btnSalvarPaisRapido');
+    const id = parseInt(elLocalidade('paisId').value) || 0;
+    const nome = elLocalidade('paisNome').value.trim();
+    const sigla = elLocalidade('paisSigla').value.trim().toUpperCase();
+    const ddi = elLocalidade('paisDDI').value.trim();
+    const moeda = elLocalidade('paisMoeda').value.trim();
+    const msg = elLocalidade('paisMsg');
+    const btn = elLocalidade('btnSalvarPaisRapido');
     msg.innerHTML = '';
-    if (!nome) { msg.innerHTML = alertaErro('Informe o nome do pais.'); return; }
-    if (!sigla) { msg.innerHTML = alertaErro('Informe a sigla do pais.'); return; }
+    if (!nome) { msg.innerHTML = alertaErro('Informe o nome do país.'); return; }
+    if (!sigla) { msg.innerHTML = alertaErro('Informe a sigla do país.'); return; }
     btn.disabled = true;
     try {
-        const data = await postJson(urlLocalidades('PaisRapido'), { nmPais: nome, sgPais: sigla, nrDDI: ddi || null, dsMoeda: moeda || null });
+        const data = await postJson(urlLocalidades('PaisRapido'), { idPais: id, nmPais: nome, sgPais: sigla, nrDDI: ddi || null, dsMoeda: moeda || null });
         if (!data.sucesso) { msg.innerHTML = alertaErro(data.mensagem); return; }
-        document.getElementById('estPais').value = data.id;
-        document.getElementById('estPaisNome').value = data.nome;
-        document.getElementById('paisNome').value = '';
-        document.getElementById('paisSigla').value = '';
-        document.getElementById('paisDDI').value = '';
-        document.getElementById('paisMoeda').value = '';
-        bootstrap.Modal.getInstance(document.getElementById('modalPaisRapido')).hide();
-    } catch (e) { msg.innerHTML = alertaErro('Erro ao salvar o pais. Tente novamente.'); }
+        if (id && elLocalidade('estPais').value == id) elLocalidade('estPaisNome').value = data.nome;
+        concluirCadastro('modalPaisRapido', 'pais', id > 0, () => {
+            elLocalidade('estPais').value = data.id;
+            elLocalidade('estPaisNome').value = data.nome;
+        });
+    } catch { msg.innerHTML = alertaErro('Erro ao salvar o país. Tente novamente.'); }
     finally { btn.disabled = false; }
 }

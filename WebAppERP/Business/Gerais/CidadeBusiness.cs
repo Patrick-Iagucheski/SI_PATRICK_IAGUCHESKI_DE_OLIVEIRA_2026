@@ -24,14 +24,17 @@ public class CidadeBusiness
 
     // Lista suspensa: por nome (sem acento) ou UF. Com id, traz so aquela
     // cidade (edicao de registro que so tem o idCidade).
-    public async Task<List<Cidade>> Buscar(int? id, string? termo)
+    public async Task<List<Cidade>> Buscar(int? id, string? termo, string? uf = null)
     {
         var query = _db.Cidades.Include(c => c.Estado).AsQueryable();
         if (id.HasValue)
             query = query.Where(c => c.IdCidade == id.Value);
-        else if (!string.IsNullOrWhiteSpace(termo))
-        {
+        if (!string.IsNullOrWhiteSpace(termo))
             query = query.Where(Module.MontarFiltroTexto<Cidade>(termo, c => c.NmCidade, c => c.Estado!.SgUF));
+        if (!string.IsNullOrWhiteSpace(uf))
+        {
+            var sigla = uf.Trim().ToUpper();
+            query = query.Where(c => c.Estado != null && c.Estado.SgUF == sigla);
         }
         return await query.OrderBy(c => c.NmCidade).Take(50).ToListAsync();
     }

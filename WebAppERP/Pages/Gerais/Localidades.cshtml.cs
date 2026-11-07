@@ -25,32 +25,46 @@ public class LocalidadesModel : PaginaBase
     public IActionResult OnGet() => RedirectToPage("/Gerais/Cidades");
 
     // ============================================================
-    // Busca da droplist (cidade / estado / pais)
+    // Busca da droplist e da pesquisa (cidade / estado / pais)
     // ============================================================
-    // id: usado ao editar um registro que so tem o idCidade, para exibir o nome.
-    public async Task<IActionResult> OnGetBuscarCidades(int? id, string? termo)
+    // nome + detalhe (UF ou sigla) servem a droplist; os demais campos servem a
+    // grade da pesquisa e o cadastro aberto pelo Editar.
+    // id: tambem usado ao editar um registro que so tem o idCidade, para exibir o nome.
+    public async Task<IActionResult> OnGetBuscarCidades(int? id, string? termo, string? uf)
     {
-        var lista = await _cidade.Buscar(id, termo);
-        return new JsonResult(lista.Select(c => new { id = c.IdCidade, nome = c.NmCidade, detalhe = c.Estado?.SgUF }));
+        var lista = await _cidade.Buscar(id, termo, uf);
+        return new JsonResult(lista.Select(c => new
+        {
+            id = c.IdCidade, nome = c.NmCidade, detalhe = c.Estado?.SgUF,
+            idEstado = c.IdEstado, estado = c.Estado?.NmEstado
+        }));
     }
 
-    public async Task<IActionResult> OnGetBuscarEstados(string? termo)
+    public async Task<IActionResult> OnGetBuscarEstados(int? id, string? termo)
     {
-        var lista = await _estado.Buscar(termo);
-        return new JsonResult(lista.Select(e => new { id = e.IdEstado, nome = e.NmEstado, detalhe = e.SgUF }));
+        var lista = await _estado.Buscar(id, termo);
+        return new JsonResult(lista.Select(e => new
+        {
+            id = e.IdEstado, nome = e.NmEstado, detalhe = e.SgUF,
+            idPais = e.IdPais, pais = e.Pais?.NmPais
+        }));
     }
 
-    public async Task<IActionResult> OnGetBuscarPaises(string? termo)
+    public async Task<IActionResult> OnGetBuscarPaises(int? id, string? termo)
     {
-        var lista = await _pais.Buscar(termo);
-        return new JsonResult(lista.Select(p => new { id = p.IdPais, nome = p.NmPais, detalhe = p.SgPais }));
+        var lista = await _pais.Buscar(id, termo);
+        return new JsonResult(lista.Select(p => new
+        {
+            id = p.IdPais, nome = p.NmPais, detalhe = p.SgPais, ddi = p.NrDDI, moeda = p.DsMoeda
+        }));
     }
 
     // ============================================================
-    // Cadastro rapido de Cidade
+    // Cadastro rapido de Cidade (IdCidade > 0 = edicao pela pesquisa)
     // ============================================================
     public class CidadeRapidoDto
     {
+        public int IdCidade { get; set; }
         public string NmCidade { get; set; } = string.Empty;
         public int IdEstado { get; set; }
     }
@@ -58,15 +72,16 @@ public class LocalidadesModel : PaginaBase
     public Task<IActionResult> OnPostCidadeRapido([FromBody] CidadeRapidoDto dto) =>
         ExecutarJson(async () =>
         {
-            var cidade = await _cidade.Salvar(new Cidade { NmCidade = dto?.NmCidade ?? string.Empty, IdEstado = dto?.IdEstado ?? 0 });
+            var cidade = await _cidade.Salvar(new Cidade { IdCidade = dto?.IdCidade ?? 0, NmCidade = dto?.NmCidade ?? string.Empty, IdEstado = dto?.IdEstado ?? 0 });
             return new { sucesso = true, id = cidade.IdCidade, nome = cidade.NmCidade, uf = cidade.Estado?.SgUF };
         });
 
     // ============================================================
-    // Cadastro rapido de Estado
+    // Cadastro rapido de Estado (IdEstado > 0 = edicao pela pesquisa)
     // ============================================================
     public class EstadoRapidoDto
     {
+        public int IdEstado { get; set; }
         public string SgUF { get; set; } = string.Empty;
         public string NmEstado { get; set; } = string.Empty;
         public int IdPais { get; set; }
@@ -77,6 +92,7 @@ public class LocalidadesModel : PaginaBase
         {
             var estado = await _estado.Salvar(new Estado
             {
+                IdEstado = dto?.IdEstado ?? 0,
                 SgUF = dto?.SgUF ?? string.Empty,
                 NmEstado = dto?.NmEstado ?? string.Empty,
                 IdPais = dto?.IdPais ?? 0
@@ -85,10 +101,11 @@ public class LocalidadesModel : PaginaBase
         });
 
     // ============================================================
-    // Cadastro rapido de Pais
+    // Cadastro rapido de Pais (IdPais > 0 = edicao pela pesquisa)
     // ============================================================
     public class PaisRapidoDto
     {
+        public int IdPais { get; set; }
         public string NmPais { get; set; } = string.Empty;
         public string SgPais { get; set; } = string.Empty;
         public string? NrDDI { get; set; }
@@ -100,6 +117,7 @@ public class LocalidadesModel : PaginaBase
         {
             var pais = await _pais.Salvar(new Pais
             {
+                IdPais = dto?.IdPais ?? 0,
                 NmPais = dto?.NmPais ?? string.Empty,
                 SgPais = dto?.SgPais ?? string.Empty,
                 NrDDI = dto?.NrDDI,

@@ -19,9 +19,11 @@ public class PaisBusiness
         await _db.Paises.OrderBy(p => p.NmPais).ToListAsync();
 
     // Lista suspensa: por nome (sem acento) ou sigla.
-    public async Task<List<Pais>> Buscar(string? termo)
+    public async Task<List<Pais>> Buscar(int? id, string? termo)
     {
         var query = _db.Paises.AsQueryable();
+        if (id.HasValue)
+            query = query.Where(p => p.IdPais == id.Value);
         if (!string.IsNullOrWhiteSpace(termo))
         {
             query = query.Where(Module.MontarFiltroTexto<Pais>(termo, p => p.NmPais, p => p.SgPais));

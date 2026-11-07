@@ -23,9 +23,11 @@ public class EstadoBusiness
             .ToListAsync();
 
     // Lista suspensa: por nome (sem acento) ou UF.
-    public async Task<List<Estado>> Buscar(string? termo)
+    public async Task<List<Estado>> Buscar(int? id, string? termo)
     {
-        var query = _db.Estados.AsQueryable();
+        var query = _db.Estados.Include(e => e.Pais).AsQueryable();
+        if (id.HasValue)
+            query = query.Where(e => e.IdEstado == id.Value);
         if (!string.IsNullOrWhiteSpace(termo))
         {
             query = query.Where(Module.MontarFiltroTexto<Estado>(termo, e => e.NmEstado, e => e.SgUF));

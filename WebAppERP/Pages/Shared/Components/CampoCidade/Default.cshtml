@@ -16,7 +16,7 @@
         <button type="button" class="btn btn-outline-secondary" title="Limpar cidade" onclick="limparCidade('@Model.Id')">
             <i class="bi bi-x-lg"></i>
         </button>
-        <button type="button" class="btn btn-outline-primary" title="Cadastrar nova cidade" onclick="abrirCadastroCidade('@Model.Id')">
+        <button type="button" class="btn btn-outline-primary" title="Pesquisar / cadastrar cidade" onclick="abrirPesquisaCidade('@Model.Id')">
             <i class="bi bi-plus-lg"></i>
         </button>
     </div>
@@ -25,7 +25,8 @@
 
 @if (Model.IncluirModais)
 {
-    <!-- Cadastro rapido de cidade / estado / pais. O script move este bloco para
+    <!-- Cadastro de cidade / estado / pais (aberto pelo Novo ou Editar das
+         pesquisas, que ficam no module.js). O script move este bloco para
          o fim do <body>: modal dentro de outro modal nao abre direito no Bootstrap. -->
     <div id="localidadeModais" data-url-localidades="@Url.Page("/Gerais/Localidades")">
 
@@ -34,18 +35,12 @@
             <div class="modal-dialog">
                 <div class="modal-content">
                     <div class="modal-header">
-                        <h5 class="modal-title"><i class="bi bi-building me-2"></i>Cadastrar Cidade</h5>
+                        <h5 class="modal-title"><i class="bi bi-building me-2"></i><span id="cidTitulo">Cadastrar Cidade</span></h5>
                         <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                     </div>
                     <div class="modal-body">
                         <div id="cidMsg"></div>
-                        <!-- Busca: confere se a cidade ja existe antes de cadastrar -->
-                        <label class="form-label small text-muted" for="cidBusca">Pesquisar cidade já cadastrada</label>
-                        <div class="search-box mb-2" style="max-width: none;">
-                            <i class="bi bi-search search-icon"></i>
-                            <input type="text" class="form-control" id="cidBusca" placeholder="Digite o nome da cidade" autocomplete="off" />
-                        </div>
-                        <div class="list-group mb-3 d-none busca-cadastro-lista" id="cidBuscaLista"></div>
+                        <input type="hidden" id="cidId" value="0" />
                         <div class="row g-3">
                             <div class="col-12">
                                 <label class="form-label">Nome da Cidade *</label>
@@ -60,7 +55,7 @@
                                                placeholder="Digite para pesquisar o estado" autocomplete="off"
                                                data-droplist="estado" data-alvo="cidEstado" />
                                         <button type="button" class="btn btn-outline-primary"
-                                                onclick="abrirModalEmpilhado('modalEstadoRapido')" title="Cadastrar novo estado">
+                                                onclick="abrirPesquisaEstado()" title="Pesquisar / cadastrar estado">
                                             <i class="bi bi-plus-lg"></i>
                                         </button>
                                     </div>
@@ -84,18 +79,12 @@
             <div class="modal-dialog">
                 <div class="modal-content">
                     <div class="modal-header">
-                        <h5 class="modal-title"><i class="bi bi-map me-2"></i>Cadastrar Estado</h5>
+                        <h5 class="modal-title"><i class="bi bi-map me-2"></i><span id="estTitulo">Cadastrar Estado</span></h5>
                         <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                     </div>
                     <div class="modal-body">
                         <div id="estMsg"></div>
-                        <!-- Busca: confere se o estado ja existe antes de cadastrar -->
-                        <label class="form-label small text-muted" for="estBusca">Pesquisar estado já cadastrado</label>
-                        <div class="search-box mb-2" style="max-width: none;">
-                            <i class="bi bi-search search-icon"></i>
-                            <input type="text" class="form-control" id="estBusca" placeholder="Digite o nome ou a UF do estado" autocomplete="off" />
-                        </div>
-                        <div class="list-group mb-3 d-none busca-cadastro-lista" id="estBuscaLista"></div>
+                        <input type="hidden" id="estId" value="0" />
                         <div class="row g-3">
                             <div class="col-md-8">
                                 <label class="form-label">Nome do Estado *</label>
@@ -114,7 +103,7 @@
                                                placeholder="Digite para pesquisar o país" autocomplete="off"
                                                data-droplist="pais" data-alvo="estPais" />
                                         <button type="button" class="btn btn-outline-primary"
-                                                onclick="abrirModalEmpilhado('modalPaisRapido')" title="Cadastrar novo país">
+                                                onclick="abrirPesquisaPais()" title="Pesquisar / cadastrar país">
                                             <i class="bi bi-plus-lg"></i>
                                         </button>
                                     </div>
@@ -138,18 +127,12 @@
             <div class="modal-dialog">
                 <div class="modal-content">
                     <div class="modal-header">
-                        <h5 class="modal-title"><i class="bi bi-globe-americas me-2"></i>Cadastrar País</h5>
+                        <h5 class="modal-title"><i class="bi bi-globe-americas me-2"></i><span id="paisTitulo">Cadastrar País</span></h5>
                         <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                     </div>
                     <div class="modal-body">
                         <div id="paisMsg"></div>
-                        <!-- Busca: confere se o pais ja existe antes de cadastrar -->
-                        <label class="form-label small text-muted" for="paisBusca">Pesquisar país já cadastrado</label>
-                        <div class="search-box mb-2" style="max-width: none;">
-                            <i class="bi bi-search search-icon"></i>
-                            <input type="text" class="form-control" id="paisBusca" placeholder="Digite o nome ou a sigla do país" autocomplete="off" />
-                        </div>
-                        <div class="list-group mb-3 d-none busca-cadastro-lista" id="paisBuscaLista"></div>
+                        <input type="hidden" id="paisId" value="0" />
                         <div class="row g-3">
                             <div class="col-md-8">
                                 <label class="form-label">Nome do País *</label>

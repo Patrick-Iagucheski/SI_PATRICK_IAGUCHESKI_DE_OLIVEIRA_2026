@@ -517,45 +517,6 @@
     </div>
 </form>
 
-<!-- ================= Modal: pesquisa (fornecedor / transportadora / item) =================
-     Um modal so: filtros, colunas e acoes vem da configuracao de cada pesquisa
-     (PESQUISAS, no Compra.cshtml.js). -->
-<div class="modal fade" id="modalBusca" tabindex="-1">
-    <div class="modal-dialog modal-xl modal-dialog-scrollable">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="buscaTitulo">Pesquisar</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body">
-                <!-- Filtros no mesmo padrao das telas de cadastro: busca no botao ou no Enter -->
-                <div class="card mb-3">
-                    <div class="card-body py-3">
-                        <div class="row g-2 align-items-end" id="buscaFiltros"></div>
-                        <div class="d-flex justify-content-end gap-2 mt-3">
-                            <!-- So onde ha componente de cadastro: abre o cadastro vazio -->
-                            <button type="button" class="btn btn-outline-primary d-none" id="btnBuscaNovo"
-                                    title="Cadastrar novo" onclick="novoCadastroBusca()">
-                                <i class="bi bi-plus-lg me-1"></i>Novo
-                            </button>
-                            <button type="button" class="btn btn-primary" onclick="executarBusca()">
-                                <i class="bi bi-search me-1"></i>Buscar
-                            </button>
-                        </div>
-                    </div>
-                </div>
-                <!-- Altura limitada: a lista rola por dentro e o cabecalho fica fixo. -->
-                <div class="table-responsive busca-resultados">
-                    <table class="table">
-                        <thead><tr id="buscaCabecalho"></tr></thead>
-                        <tbody id="buscaBody"></tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
-
 @if (!chaveTravada)
 {
     <!-- Cadastro de fornecedor (componente compartilhado com a tela de Fornecedores).

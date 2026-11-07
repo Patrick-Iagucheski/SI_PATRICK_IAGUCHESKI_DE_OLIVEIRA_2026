@@ -172,6 +172,136 @@ function secaoDoCampo(id) {
     return campo.closest('.card-body') || campo.form || document.body;
 }
 
+// ============================================================
+// Pesquisa em modal (componentes de cadastro)
+// ============================================================
+// Cada pesquisa tem o seu modal (um por chave: fornecedor, cidade, estado,
+// pais...), montado por este codigo. Assim uma pesquisa abre por cima da
+// outra (Cidade > Estado > Pais) sem misturar. A pesquisa declara:
+//   chave, titulo, url() (handler que devolve JSON), filtros
+//   [{ param, rotulo, tipo, col }], colunas, celulas(reg) (HTML ja escapado
+//   de cada coluna), selecionar(reg) (preenche o campo de quem chamou) e, se
+//   houver cadastro, editar(reg) e novo().
+// Busca no botao Buscar ou no Enter, como nas telas de cadastro, e ao abrir
+// ja lista os registros disponiveis.
+const pesquisas = {};
+
+function abrirPesquisa(cfg) {
+    const modal = document.getElementById('pesquisa-' + cfg.chave) || criarModalPesquisa(cfg.chave);
+    pesquisas[cfg.chave] = cfg;
+
+    modal.querySelector('.modal-title').textContent = cfg.titulo;
+    const filtros = modal.querySelector('[data-filtros]');
+    filtros.innerHTML = cfg.filtros.map(f =>
+        '<div class="col-md-' + f.col + '">' +
+            '<label class="form-label small mb-1">' + f.rotulo + '</label>' +
+            '<input type="' + (f.tipo || 'text') + '" class="form-control" data-param="' + f.param + '" autocomplete="off"' +
+            (f.tipo === 'number' ? ' min="1"' : '') + ' />' +
+        '</div>').join('');
+    filtros.querySelectorAll('input').forEach(i => i.addEventListener('keydown', e => {
+        if (e.key === 'Enter') { e.preventDefault(); recarregarPesquisa(cfg.chave); }
+    }));
+    modal.querySelector('[data-cabecalho]').innerHTML =
+        cfg.colunas.map((c, i) => '<th' + (i === 0 ? ' style="width: 90px;"' : '') + '>' + c + '</th>').join('') +
+        '<th class="text-center" style="width: 120px;">Ações</th>';
+    modal.querySelector('[data-novo]').classList.toggle('d-none', !cfg.novo);
+
+    bootstrap.Modal.getOrCreateInstance(modal).show();
+    recarregarPesquisa(cfg.chave);
+}
+
+// Refaz a busca com os filtros atuais (ex.: depois de editar um registro).
+async function recarregarPesquisa(chave) {
+    const cfg = pesquisas[chave];
+    const modal = document.getElementById('pesquisa-' + chave);
+    if (!cfg || !modal) return;
+    const corpo = modal.querySelector('tbody');
+    const colspan = cfg.colunas.length + 1;
+
+    const params = new URLSearchParams();
+    modal.querySelectorAll('[data-param]').forEach(i => {
+        if (i.value.trim()) params.append(i.dataset.param, i.value.trim());
+    });
+
+    corpo.innerHTML = '<tr><td colspan="' + colspan + '" class="text-center text-muted py-3">Buscando...</td></tr>';
+    try {
+        const url = cfg.url();
+        const lista = await (await fetch(url + (url.includes('?') ? '&' : '?') + params.toString())).json();
+        if (!lista.length) {
+            corpo.innerHTML = '<tr><td colspan="' + colspan + '" class="text-center text-muted py-3">Nenhum registro encontrado</td></tr>';
+            return;
+        }
+        corpo.innerHTML = '';
+        lista.forEach(reg => {
+            const tr = document.createElement('tr');
+            tr.innerHTML = cfg.celulas(reg).map(c => '<td>' + c + '</td>').join('') +
+                '<td class="text-center text-nowrap">' +
+                    (cfg.editar ? '<button type="button" class="btn btn-icon btn-outline-primary me-1" data-acao="editar" title="Editar"><i class="bi bi-pencil"></i></button>' : '') +
+                    '<button type="button" class="btn btn-icon btn-outline-success" data-acao="selecionar" title="Selecionar"><i class="bi bi-check-lg"></i></button>' +
+                '</td>';
+            tr.querySelector('[data-acao="selecionar"]').addEventListener('click', () => {
+                cfg.selecionar(reg);
+                fecharPesquisa(chave);
+            });
+            tr.querySelector('[data-acao="editar"]')?.addEventListener('click', () => cfg.editar(reg));
+            corpo.appendChild(tr);
+        });
+    } catch {
+        corpo.innerHTML = '<tr><td colspan="' + colspan + '" class="text-center text-danger py-3">Falha ao pesquisar</td></tr>';
+    }
+}
+
+function fecharPesquisa(chave) {
+    const modal = document.getElementById('pesquisa-' + chave);
+    if (modal) bootstrap.Modal.getOrCreateInstance(modal).hide();
+}
+
+function criarModalPesquisa(chave) {
+    const modal = document.createElement('div');
+    modal.className = 'modal fade';
+    modal.id = 'pesquisa-' + chave;
+    modal.tabIndex = -1;
+    modal.innerHTML =
+        '<div class="modal-dialog modal-xl modal-dialog-scrollable"><div class="modal-content">' +
+            '<div class="modal-header">' +
+                '<h5 class="modal-title"></h5>' +
+                '<button type="button" class="btn-close" data-bs-dismiss="modal"></button>' +
+            '</div>' +
+            '<div class="modal-body">' +
+                '<div class="card mb-3"><div class="card-body py-3">' +
+                    '<div class="row g-2 align-items-end" data-filtros></div>' +
+                    '<div class="d-flex justify-content-end gap-2 mt-3">' +
+                        '<button type="button" class="btn btn-outline-primary d-none" data-novo><i class="bi bi-plus-lg me-1"></i>Novo</button>' +
+                        '<button type="button" class="btn btn-primary" data-buscar><i class="bi bi-search me-1"></i>Buscar</button>' +
+                    '</div>' +
+                '</div></div>' +
+                '<div class="table-responsive busca-resultados"><table class="table">' +
+                    '<thead><tr data-cabecalho></tr></thead><tbody></tbody>' +
+                '</table></div>' +
+            '</div>' +
+        '</div></div>';
+    modal.querySelector('[data-buscar]').addEventListener('click', () => recarregarPesquisa(chave));
+    modal.querySelector('[data-novo]').addEventListener('click', () => pesquisas[chave].novo());
+    document.body.appendChild(modal);
+    return modal;
+}
+
+// Modais empilhados (pesquisa > cadastro > outra pesquisa...): cada modal que
+// abre fica acima dos que ja estao abertos, com o fundo escuro entre eles, e
+// fechar o de cima mantem a tela travada enquanto houver modal aberto.
+document.addEventListener('show.bs.modal', e => {
+    const abertos = document.querySelectorAll('.modal.show').length;
+    e.target.style.zIndex = 1055 + abertos * 20;
+    setTimeout(() => {
+        const fundos = document.querySelectorAll('.modal-backdrop');
+        const fundo = fundos[fundos.length - 1];
+        if (fundo) fundo.style.zIndex = 1050 + abertos * 20;
+    });
+});
+document.addEventListener('hidden.bs.modal', () => {
+    if (document.querySelector('.modal.show')) document.body.classList.add('modal-open');
+});
+
 // Ao abrir um modal, some o erro da tentativa anterior.
 document.addEventListener('show.bs.modal', e => {
     e.target.querySelectorAll('.aviso-erro').forEach(a => a.innerHTML = '');

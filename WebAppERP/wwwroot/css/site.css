@@ -863,5 +863,3 @@ body {
 }
 .autocomplete-lista .list-group-item { cursor: pointer; }
 
-/* Resultados da busca no topo dos cadastros rapidos */
-.busca-cadastro-lista { max-height: 220px; overflow-y: auto; }
