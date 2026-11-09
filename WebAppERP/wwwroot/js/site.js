@@ -84,6 +84,11 @@ document.addEventListener('click', function (e) {
     abrirAba(a.href, a.dataset.abaTitulo, a.dataset.abaIcone);
 });
 
+// Pagina que voltou do POST com a mensagem de sucesso do servidor (data-gravou,
+// _Layout): gravacao confirmada, avisa as outras abas (avisarGravacao, module.js).
+// As gravacoes por AJAX avisam no proprio module.js, so quando dao certo.
+if (document.querySelector('[data-gravou]')) avisarGravacao();
+
 (function () {
     var html = document.documentElement;
     if (!html.classList.contains('com-abas')) return;
@@ -103,8 +108,36 @@ document.addEventListener('click', function (e) {
     // chave = tela de origem (a mesma tela pode estar aberta em varias abas);
     // numero diferencia as de mesmo titulo: "Clientes", "Clientes (2)", ...
     // tituloFixo = titulo dado por quem abriu (ex.: "Venda #2"), nao vem da pagina
-    var abas = [];      // { chave, url, titulo, tituloFixo, numero, icone, fixa, el, painel }
+    var abas = [];      // { chave, url, titulo, tituloFixo, numero, icone, fixa, el, painel, versao }
     var ativa = null;
+
+    // Cada gravacao em qualquer aba aumenta a versao dos dados. A aba guarda a
+    // versao de quando a pagina dela carregou: se ficou para tras, a pagina e
+    // recarregada ao voltar para ela (ex.: compra finalizada com a aba de
+    // Contas a Pagar ja aberta mostrava os cartoes zerados).
+    // origem: janela da aba que gravou; ela ja esta com os dados atuais.
+    var versaoDados = 0;
+    window.dadosAlterados = function (origem) {
+        versaoDados++;
+        abas.forEach(function (a) {
+            if (a.painel && a.painel.contentWindow === origem) a.versao = versaoDados;
+        });
+    };
+
+    // Recarrega so telas de consulta: tela de digitacao (Compra, Venda,
+    // Configuracoes: <html data-manter-ao-voltar="1">) ou com modal aberto fica
+    // como esta, para nao perder o que foi digitado.
+    function atualizarSeDesatualizada(aba) {
+        if (!aba.painel || aba.versao >= versaoDados) return;
+        try {
+            var doc = aba.painel.contentDocument;
+            if (doc.documentElement.dataset.manterAoVoltar === '1') return;
+            if (doc.querySelector('.modal.show')) return;
+            aba.versao = versaoDados;
+            // GET da pagina (sem handler): nao reenvia POST
+            aba.painel.contentWindow.location.replace(aba.url);
+        } catch (e) { /* pagina de outra origem */ }
+    }
 
     // Chave da aba = caminho da URL normalizado (sem query e sem barra final)
     function chaveDe(url) {
@@ -218,11 +251,14 @@ document.addEventListener('click', function (e) {
         f.addEventListener('load', function () { aoCarregarPainel(aba); });
         conteudo.appendChild(f);
         aba.painel = f;
+        aba.versao = versaoDados;
     }
 
     // Navegacao dentro da aba (link, POST, redirect): atualiza a URL da aba. O titulo
     // so vem da pagina quando a tela nao e um item do menu; senao fica o nome do menu.
     function aoCarregarPainel(aba) {
+        // Pagina recem-carregada ja tem os dados atuais
+        aba.versao = versaoDados;
         try {
             var doc = aba.painel.contentDocument;
             aba.url = urlLimpa(aba.painel.contentWindow.location.href);
@@ -271,6 +307,7 @@ document.addEventListener('click', function (e) {
     }
 
     function ativar(aba) {
+        if (aba !== ativa) atualizarSeDesatualizada(aba);
         garantirPainel(aba);
         abas.forEach(function (a) {
             var sim = a === aba;

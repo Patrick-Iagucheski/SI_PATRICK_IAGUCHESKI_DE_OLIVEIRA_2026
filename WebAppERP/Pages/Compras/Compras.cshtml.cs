@@ -19,7 +19,7 @@ public class ComprasModel : PaginaBase
         Compras = await _business.Listar();
     }
 
-    private static CompraChaveDTO GetChave(int nrNota, int nrSerie, int nrModelo, int idFornecedor) => new()
+    private static CompraChaveDTO GetChave(string nrNota, string nrSerie, int nrModelo, int idFornecedor) => new()
     {
         NrNota = nrNota,
         NrSerie = nrSerie,
@@ -27,9 +27,9 @@ public class ComprasModel : PaginaBase
         IdFornecedor = idFornecedor
     };
 
-    public Task<IActionResult> OnPostCancelar(int nrNota, int nrSerie, int nrModelo, int idFornecedor) =>
-        Executar(() => _business.Cancelar(GetChave(nrNota, nrSerie, nrModelo, idFornecedor)), "Compra cancelada. Estoque estornado e títulos cancelados.");
+    public Task<IActionResult> OnPostCancelar(string nrNota, string nrSerie, int nrModelo, int idFornecedor) =>
+        ExecutarComMensagem(() => _business.Cancelar(GetChave(nrNota, nrSerie, nrModelo, idFornecedor)));
 
-    public Task<IActionResult> OnPostExcluir(int nrNota, int nrSerie, int nrModelo, int idFornecedor) =>
+    public Task<IActionResult> OnPostExcluir(string nrNota, string nrSerie, int nrModelo, int idFornecedor) =>
         Executar(() => _business.Excluir(GetChave(nrNota, nrSerie, nrModelo, idFornecedor)), "Compra excluída com sucesso.");
 }

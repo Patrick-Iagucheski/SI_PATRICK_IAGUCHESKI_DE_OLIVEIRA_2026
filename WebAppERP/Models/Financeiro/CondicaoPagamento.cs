@@ -4,6 +4,8 @@ using System.ComponentModel.DataAnnotations.Schema;
 namespace WebAppERP.Models.Financeiro;
 
 // Condicao de pagamento: cabecalho com juros/multa/desconto e parcelas (1:N).
+// Cadastro: texto gravado em MAIUSCULO (CaixaAltaAttribute).
+[CaixaAlta]
 [Table("tbFinCondicoesPagamento")]
 public class CondicaoPagamento : EntidadeComRegistro
 {

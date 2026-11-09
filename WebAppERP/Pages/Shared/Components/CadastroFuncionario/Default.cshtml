@@ -19,8 +19,13 @@
                 </div>
                 <div class="modal-body">
                     <input type="hidden" asp-for="FuncionarioForm.IdFuncionario" id="fId" />
+                    <!-- Mesmo padrao do cliente e do fornecedor: Dados Cadastrais, Endereco,
+                         Contato e Dados Profissionais; Status logo acima das Observacoes
+                         e o Registro no fim. -->
+
+                    <!-- ===== Dados Cadastrais ===== -->
+                    <h6 class="text-primary border-bottom pb-1 mb-3"><i class="bi bi-card-list me-1"></i>Dados Cadastrais</h6>
                     <div class="row g-3">
-                        <!-- Codigo (somente leitura) | Funcionario | Apelido -->
                         <div class="col-md-2">
                             <label class="form-label">Código</label>
                             <input type="text" class="form-control bg-light" id="fCodigoDisplay" placeholder="(novo)" readonly />
@@ -33,8 +38,6 @@
                             <label class="form-label">Apelido</label>
                             <input type="text" class="form-control" asp-for="FuncionarioForm.NmApelido" id="fApelido" maxlength="100" />
                         </div>
-
-                        <!-- CPF | RG | Sexo | Data de Nascimento -->
                         <div class="col-md-3">
                             <label class="form-label">CPF *</label>
                             <input type="text" class="form-control" asp-for="FuncionarioForm.NrCpf" id="fCpf" maxlength="14" placeholder="000.000.000-00" required />
@@ -57,48 +60,53 @@
                             <label class="form-label">Data de Nascimento</label>
                             <input type="date" class="form-control" asp-for="FuncionarioForm.DtNascimento" id="fNasc" />
                         </div>
+                    </div>
 
-                        <!-- Endereco | Numero -->
-                        <div class="col-md-8">
-                            <label class="form-label">Endereço</label>
-                            <input type="text" class="form-control" asp-for="FuncionarioForm.DsEndereco" id="fEnd" maxlength="200" />
-                        </div>
-                        <div class="col-md-4">
-                            <label class="form-label">Número</label>
-                            <input type="text" class="form-control" asp-for="FuncionarioForm.NrNumero" id="fNumero" maxlength="10" />
-                        </div>
-
-                        <!-- Complemento | Bairro -->
-                        <div class="col-md-6">
-                            <label class="form-label">Complemento</label>
-                            <input type="text" class="form-control" asp-for="FuncionarioForm.DsComplemento" id="fComplemento" maxlength="100" />
-                        </div>
-                        <div class="col-md-6">
-                            <label class="form-label">Bairro</label>
-                            <input type="text" class="form-control" asp-for="FuncionarioForm.DsBairro" id="fBairro" maxlength="100" />
-                        </div>
-
-                        <!-- Cidade (cadastro rapido) | CEP -->
-                        <div class="col-md-8">
-                            <label class="form-label">Cidade</label>
-                            @await Component.InvokeAsync("CampoCidade", new { nome = "FuncionarioForm.IdCidade", id = "fCidade", idCidade = Model.FuncionarioForm.IdCidade })
-                        </div>
-                        <div class="col-md-4">
+                    <!-- ===== Endereco ===== -->
+                    <h6 class="text-primary border-bottom pb-1 mb-3 mt-4"><i class="bi bi-geo-alt me-1"></i>Endereço</h6>
+                    <div class="row g-3">
+                        <div class="col-md-3">
                             <label class="form-label">CEP</label>
                             <input type="text" class="form-control" asp-for="FuncionarioForm.NrCEP" id="fCep" maxlength="9" placeholder="00000-000" />
                         </div>
+                        <div class="col-md-7">
+                            <label class="form-label">Logradouro</label>
+                            <input type="text" class="form-control" asp-for="FuncionarioForm.DsEndereco" id="fEnd" maxlength="200" />
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label">Número</label>
+                            <input type="text" class="form-control" asp-for="FuncionarioForm.NrNumero" id="fNumero" maxlength="10" />
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Complemento</label>
+                            <input type="text" class="form-control" asp-for="FuncionarioForm.DsComplemento" id="fComplemento" maxlength="100" />
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Bairro</label>
+                            <input type="text" class="form-control" asp-for="FuncionarioForm.DsBairro" id="fBairro" maxlength="100" />
+                        </div>
+                        <div class="col-md-5">
+                            <label class="form-label">Cidade</label>
+                            @await Component.InvokeAsync("CampoCidade", new { nome = "FuncionarioForm.IdCidade", id = "fCidade", idCidade = Model.FuncionarioForm.IdCidade })
+                        </div>
+                    </div>
 
-                        <!-- Telefone | E-mail -->
-                        <div class="col-md-6">
+                    <!-- ===== Contato ===== -->
+                    <h6 class="text-primary border-bottom pb-1 mb-3 mt-4"><i class="bi bi-telephone me-1"></i>Contato</h6>
+                    <div class="row g-3">
+                        <div class="col-md-4">
                             <label class="form-label">Telefone</label>
                             <input type="text" class="form-control" asp-for="FuncionarioForm.NrTelefone" id="fTel" maxlength="15" placeholder="(00) 00000-0000" />
                         </div>
-                        <div class="col-md-6">
+                        <div class="col-md-8">
                             <label class="form-label">E-mail</label>
                             <input type="email" class="form-control" asp-for="FuncionarioForm.DsEmail" id="fEmail" maxlength="150" />
                         </div>
+                    </div>
 
-                        <!-- Cargo (cadastro rapido) | Admissao | Demissao -->
+                    <!-- ===== Dados Profissionais ===== -->
+                    <h6 class="text-primary border-bottom pb-1 mb-3 mt-4"><i class="bi bi-briefcase me-1"></i>Dados Profissionais</h6>
+                    <div class="row g-3">
                         <div class="col-md-4">
                             <label class="form-label">Cargo *</label>
                             <select class="form-select" asp-for="FuncionarioForm.IdCargo" id="fCargo" required
@@ -118,8 +126,6 @@
                             <label class="form-label">Data de Demissão</label>
                             <input type="date" class="form-control" asp-for="FuncionarioForm.DtDemissao" id="fDem" />
                         </div>
-
-                        <!-- Salario | Comissao | Status -->
                         <div class="col-md-4">
                             <label class="form-label">Salário (R$)</label>
                             <input type="number" class="form-control" asp-for="FuncionarioForm.VlSalario" id="fSal" step="0.01" min="0" />
@@ -137,8 +143,10 @@
                                 <label class="form-check-label" for="fAtivoInativo">Inativo</label>
                             </div>
                         </div>
+                    </div>
 
-                        <!-- Observacoes -->
+                    <!-- Observacoes: sempre o ultimo campo do cadastro -->
+                    <div class="row g-3 mt-1">
                         <div class="col-12">
                             <label class="form-label">Observações</label>
                             <textarea class="form-control" rows="2" asp-for="FuncionarioForm.DsObservacao" id="fObs" maxlength="500"></textarea>

@@ -23,6 +23,9 @@ public class ContasAPagarModel : PaginaBase
     public List<Fornecedor> Fornecedores { get; set; } = [];
     public List<FormaPagamento> Formas { get; set; } = [];
 
+    // Titulos de compra ja cancelada (abrem com todos os campos travados).
+    public HashSet<int> IdsCompraCancelada { get; set; } = [];
+
     // Indicadores
     public int QtAberto { get; set; }
     public int QtVencidas { get; set; }
@@ -34,11 +37,16 @@ public class ContasAPagarModel : PaginaBase
     [BindProperty]
     public ContaAPagar ContaForm { get; set; } = new();
 
+    // Lista padrao da grade: so as pendentes (inclui as vencidas), o mesmo
+    // valor inicial do filtro Situacao. Os indicadores usam todas as contas.
+    public IEnumerable<ContaAPagar> ContasGrade => Contas.Where(c => c.DsStatus == ContaAPagar.PENDENTE);
+
     public async Task OnGet()
     {
         Contas = await _conta.Listar();
         Fornecedores = await _fornecedor.Listar(somenteAtivos: false);
         Formas = await _forma.Listar(somenteAtivas: true);
+        IdsCompraCancelada = await _conta.IdsDeCompraCancelada(Contas);
 
         var hoje = DateOnly.FromDateTime(DateTime.Today);
         foreach (var c in Contas)
@@ -67,26 +75,37 @@ public class ContasAPagarModel : PaginaBase
     // Pesquisa por: codigo, conta (descricao), documento ou fornecedor
     // ============================================================
     public async Task<IActionResult> OnGetBuscarContas(
-        int? id, string? conta, string? documento, int? idFornecedor, bool incluirInativos = false)
+        int? id, string? conta, string? documento, int? idFornecedor, string? situacao)
     {
-        var lista = await _conta.Buscar(id, conta, documento, idFornecedor, incluirInativos);
-        return new JsonResult(lista.Select(c => new
-        {
-            id = c.IdContaPagar, registro = Module.Registro(c),
-            conta = c.DsConta,
-            documento = c.NrDocumento,
-            idFornecedor = c.IdFornecedor,
-            fornecedorNome = c.Fornecedor?.DsRazaoSocial,
-            idForma = c.IdFormaPagamento,
-            formaNome = c.FormaPagamento?.DsFormaPagamento,
-            emissao = c.DtEmissao,
-            venc = c.DtVencimento,
-            pgto = c.DtPagamento,
-            valor = c.VlValor,
-            pago = c.VlPago,
-            status = c.DsStatus,
-            ativo = c.FlAtivo,
-            obs = c.DsObservacao
-        }));
+        var lista = await _conta.Buscar(id, conta, documento, idFornecedor, situacao);
+        var canceladas = await _conta.IdsDeCompraCancelada(lista);
+        return new JsonResult(lista.Select(c => Registro(c, canceladas.Contains(c.IdContaPagar))));
     }
+
+    // Conta no formato que a tela usa para editar (editarConta no .cshtml.js):
+    // o mesmo para a busca e para as linhas iniciais da grade.
+    //   origemCompra: titulo gerado pela compra (fornecedor, valor, datas e
+    //                 descricao so mudam pela compra)
+    //   compraCancelada: a compra foi cancelada (o titulo nao muda mais)
+    public static object Registro(ContaAPagar c, bool compraCancelada) => new
+    {
+        id = c.IdContaPagar,
+        registro = Module.Registro(c),
+        conta = c.DsConta,
+        documento = c.NrDocumento,
+        idFornecedor = c.IdFornecedor,
+        fornecedorNome = c.Fornecedor?.DsRazaoSocial,
+        idForma = c.IdFormaPagamento,
+        formaNome = c.FormaPagamento?.DsFormaPagamento,
+        emissao = c.DtEmissao?.ToString("yyyy-MM-dd"),
+        venc = c.DtVencimento?.ToString("yyyy-MM-dd"),
+        pgto = c.DtPagamento?.ToString("yyyy-MM-dd"),
+        valor = c.VlValor,
+        pago = c.VlPago,
+        status = c.DsStatus,
+        obs = c.DsObservacao,
+        nota = c.NrNota,
+        origemCompra = c.OriginadoDeCompra,
+        compraCancelada
+    };
 }

@@ -92,7 +92,9 @@
                                    asp-route-nrModelo="@c.NrModelo" asp-route-idFornecedor="@c.IdFornecedor">
                                     <i class="bi @(c.TpStatus == Compra.RASCUNHO ? "bi-pencil" : "bi-eye")"></i>
                                 </a>
-                                @if (c.TpStatus != Compra.CANCELADA)
+                                @* Cancelar so em compra finalizada (estorna estoque e titulos e libera
+                                   o numero). Rascunho nao movimentou nada: sai pelo Excluir. *@
+                                @if (c.TpStatus == Compra.FINALIZADA)
                                 {
                                     <form method="post" asp-page-handler="Cancelar" class="d-inline"
                                           onsubmit="return confirm('Deseja cancelar esta compra? O estoque será estornado e os títulos do Contas a Pagar serão cancelados.')">

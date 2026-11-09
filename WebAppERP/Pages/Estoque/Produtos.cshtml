@@ -5,7 +5,6 @@
     ViewData["Title"] = "Produtos";
 
     string Moeda(decimal? v) => "R$ " + (v ?? 0).ToString("N2", new CultureInfo("pt-BR"));
-    string Inv(decimal? v) => v.HasValue ? v.Value.ToString(CultureInfo.InvariantCulture) : "";
 }
 
 <div class="d-flex justify-content-between align-items-start mb-4">
@@ -74,7 +73,7 @@
                             <td><strong>@p.DsProduto</strong></td>
                             <td>@(p.Marca?.NmMarca ?? "-")</td>
                             <td>@(p.Categoria?.NmCategoria ?? "-")</td>
-                            <td>@(p.SgUnidade ?? "-")</td>
+                            <td>@(p.UnidadeMedida?.SgUnidade ?? "-")</td>
                             <td class="text-end">@Moeda(p.VlVenda)</td>
                             <td class="text-end">@((p.QtSaldo ?? 0).ToString("0.##", new CultureInfo("pt-BR")))</td>
                             <td>
@@ -91,7 +90,8 @@
                                 <button class="btn btn-icon btn-outline-primary" title="Editar"
                                         data-bs-toggle="modal" data-bs-target="#modalProduto"
                                         data-registro="@Module.RegistroJson(p)"
-                                        onclick="editarProduto(@p.IdProduto,'@p.DsProduto.Replace("'", "\\'")','@(p.IdMarca?.ToString() ?? "")','@(p.IdCategoria?.ToString() ?? "")','@p.SgUnidade','@Inv(p.VlCusto)','@Inv(p.VlVendaMinimo)','@Inv(p.VlVenda)','@Inv(p.PcComissao)','@Inv(p.VlDesconto)','@Inv(p.QtSaldo)','@p.DsDescricao?.Replace("'", "\\'").Replace("\r", " ").Replace("\n", " ")','@p.DsImagem','@p.FlAtivo')">
+                                        data-produto="@System.Text.Json.JsonSerializer.Serialize(ProdutosModel.Registro(p, Model.ComEntrada.Contains(p.IdProduto)))"
+                                        onclick="editarProduto(JSON.parse(this.dataset.produto))">
                                     <i class="bi bi-pencil"></i>
                                 </button>
                                 <form method="post" asp-page-handler="Excluir" class="d-inline" onsubmit="return confirm('Deseja realmente excluir este produto?')">

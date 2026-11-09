@@ -11,10 +11,14 @@ public class CadastroFormaPagamentoViewComponent : ComponenteBase
 {
     public IViewComponentResult Invoke(string modo = "post")
     {
-        var vm = new CadastroFormaPagamentoViewModel { Modo = modo == "ajax" ? "ajax" : "post" };
+        // O cadastro de condicao de pagamento ja traz este componente (para o +
+        // da forma nas parcelas): o modal (ids unicos) e o script entram so uma
+        // vez por pagina.
+        if (!PrimeiraVezNaPagina())
+            return Content(string.Empty);
 
-        // O script entra so na primeira vez que o componente aparece na pagina.
-        vm.IncluirScript = PrimeiraVezNaPagina();
+        var vm = new CadastroFormaPagamentoViewModel { Modo = modo == "ajax" ? "ajax" : "post" };
+        vm.IncluirScript = true;
 
         return View(vm);
     }

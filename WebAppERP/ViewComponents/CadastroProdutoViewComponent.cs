@@ -13,11 +13,13 @@ public class CadastroProdutoViewComponent : ComponenteBase
 {
     private readonly MarcaBusiness _marca;
     private readonly CategoriaBusiness _categoria;
+    private readonly UnidadeMedidaBusiness _unidade;
 
-    public CadastroProdutoViewComponent(MarcaBusiness marca, CategoriaBusiness categoria)
+    public CadastroProdutoViewComponent(MarcaBusiness marca, CategoriaBusiness categoria, UnidadeMedidaBusiness unidade)
     {
         _marca = marca;
         _categoria = categoria;
+        _unidade = unidade;
     }
 
     public async Task<IViewComponentResult> InvokeAsync(string modo = "post")
@@ -26,7 +28,8 @@ public class CadastroProdutoViewComponent : ComponenteBase
         {
             Modo = modo == "ajax" ? "ajax" : "post",
             Marcas = await _marca.Listar(),
-            Categorias = await _categoria.Listar()
+            Categorias = await _categoria.Listar(),
+            Unidades = await _unidade.Listar()
         };
 
         // O script entra so na primeira vez que o componente aparece na pagina.

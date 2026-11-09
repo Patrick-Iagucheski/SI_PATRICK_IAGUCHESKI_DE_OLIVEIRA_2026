@@ -4,7 +4,7 @@ using WebAppERP.Business.Estoque;
 
 namespace WebAppERP.Pages.Estoque;
 
-// Tela de Categorias: so conversa com a tela. As regras ficam em CategoriaBusiness.
+// Tela de Categorias de Produto: so conversa com a tela. As regras ficam em CategoriaBusiness.
 public class CategoriasModel : PaginaBase
 {
     private readonly CategoriaBusiness _categoria;
@@ -35,8 +35,8 @@ public class CategoriasModel : PaginaBase
     }
 
     public Task<IActionResult> OnPost() =>
-        Executar(() => _categoria.Salvar(CategoriaForm), CategoriaForm.IdCategoria == 0 ? "Categoria cadastrada com sucesso." : "Categoria atualizada com sucesso.");
+        Executar(() => _categoria.Salvar(CategoriaForm), CategoriaForm.IdCategoria == 0 ? "Categoria de produto cadastrada com sucesso." : "Categoria de produto atualizada com sucesso.");
 
     public Task<IActionResult> OnPostExcluir(int id) =>
-        Executar(() => _categoria.Excluir(id), "Categoria excluída com sucesso.");
+        Executar(() => _categoria.Excluir(id), "Categoria de produto excluída com sucesso.");
 }

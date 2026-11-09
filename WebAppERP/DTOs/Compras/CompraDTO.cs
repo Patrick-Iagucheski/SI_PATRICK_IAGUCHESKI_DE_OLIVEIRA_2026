@@ -4,14 +4,22 @@
 public class CompraDTO
 {
     // Chave composta
-    public int NrNota { get; set; }
-    public int NrSerie { get; set; }
+    private string _nrNota = string.Empty;
+    private string _nrSerie = string.Empty;
+
+    public string NrNota { get => _nrNota; set => _nrNota = CompraChaveDTO.Normalizar(value); }
+    public string NrSerie { get => _nrSerie; set => _nrSerie = CompraChaveDTO.Normalizar(value); }
     public int NrModelo { get; set; }
     public int IdFornecedor { get; set; }
 
     // Chave original, quando a tela esta editando uma compra ja gravada.
     // Permite detectar tentativa de alterar a propria chave.
     public CompraChaveDTO? ChaveOriginal { get; set; }
+
+    // Versao da compra que a tela abriu (DtCriacao em ticks; 0 numa inclusao).
+    // Se a compra foi excluida e a mesma chave lancada de novo em outra tela, a
+    // versao muda e a tela antiga nao grava por cima da compra nova.
+    public long VersaoOriginal { get; set; }
 
     public DateOnly? DtEmissao { get; set; }
     public DateOnly? DtChegada { get; set; }

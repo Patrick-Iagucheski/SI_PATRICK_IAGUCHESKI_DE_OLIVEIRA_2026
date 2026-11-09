@@ -3,6 +3,8 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace WebAppERP.Models.Gerais;
 
+// Cadastro: texto gravado em MAIUSCULO (CaixaAltaAttribute).
+[CaixaAlta]
 [Table("tbGerServicos")]
 public class Servico : EntidadeComRegistro
 {
@@ -24,9 +26,13 @@ public class Servico : EntidadeComRegistro
     [Column("nrDuracaoMin")]
     public int? NrDuracaoMin { get; set; }
 
-    [Column("dsCategoria")]
-    [MaxLength(100)]
-    public string? DsCategoria { get; set; }
+    // Categoria: vinculo com o cadastro de Categorias de Servico
+    // (tbGerCategoriasServico). Substituiu o antigo texto tbGerServicos.dsCategoria.
+    [Column("idCategoriaServico")]
+    public int? IdCategoriaServico { get; set; }
+
+    [ForeignKey("IdCategoriaServico")]
+    public CategoriaServico? CategoriaServico { get; set; }
 
     [Column("flAtivo")]
     public bool FlAtivo { get; set; } = true;

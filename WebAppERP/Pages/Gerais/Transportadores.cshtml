@@ -2,15 +2,22 @@
 @model WebAppERP.Pages.Gerais.TransportadoresModel
 @{
     ViewData["Title"] = "Transportadores";
+
+    string DocExib(Transportador t) => t.TpPessoa switch
+    {
+        "F" => Module.FormatarCpf(t.NrCpf),
+        "E" or "O" => t.NrDocumento ?? "",
+        _ => Module.FormatarCnpj(t.NrCNPJ)
+    };
 }
 
 <div class="d-flex justify-content-between align-items-start mb-4">
     <div>
         <h1 class="page-title">Transportadores</h1>
-        <p class="page-subtitle">Gerencie os transportadores cadastrados no sistema</p>
+        <p class="page-subtitle">Gerencie as transportadoras cadastradas no sistema</p>
     </div>
     <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#modalTransportador" onclick="limparFormTransportador()">
-        <i class="bi bi-plus-lg me-1"></i> Novo Transportador
+        <i class="bi bi-plus-lg me-1"></i> Nova Transportadora
     </button>
 </div>
 
@@ -23,13 +30,24 @@
                 <input type="number" class="form-control" id="buscaId" min="1" autocomplete="off" />
             </div>
             <div class="col-md-4">
-                <label class="form-label small mb-1">Razão Social / CPF / CNPJ</label>
-                <input type="text" class="form-control" id="buscaTexto" autocomplete="off" />
+                <label class="form-label small mb-1">Razão Social</label>
+                <input type="text" class="form-control" id="buscaRazao" autocomplete="off" />
+            </div>
+            <div class="col-md-3">
+                <label class="form-label small mb-1">Nome Fantasia</label>
+                <input type="text" class="form-control" id="buscaFantasia" autocomplete="off" />
+            </div>
+            <div class="col-md-3">
+                <label class="form-label small mb-1">CPF / CNPJ</label>
+                <input type="text" class="form-control" id="buscaDocumento" autocomplete="off" />
             </div>
         </div>
         <div class="d-flex justify-content-between align-items-center mt-3">
-            <div></div>
-            <button type="button" class="btn btn-primary" onclick="aplicarBusca()">
+            <div class="form-check mb-0">
+                <input class="form-check-input" type="checkbox" id="buscaInativos" onchange="buscarTransportadores()" />
+                <label class="form-check-label" for="buscaInativos">Exibir Transportadoras Inativas</label>
+            </div>
+            <button type="button" class="btn btn-primary" onclick="buscarTransportadores()">
                 <i class="bi bi-search me-1"></i>Buscar
             </button>
         </div>
@@ -39,7 +57,7 @@
 <!-- Tabela -->
 <div class="table-container">
     <div class="table-header">
-        <h5><i class="bi bi-truck-front me-2"></i>Lista de Transportadores</h5>
+        <h5><i class="bi bi-truck-front me-2"></i>Lista de Transportadoras</h5>
         <span class="text-muted small" id="contadorRegistros">@Model.Transportadores.Count registros encontrados</span>
     </div>
     <div class="table-responsive">
@@ -48,10 +66,11 @@
                 <tr>
                     <th>ID</th>
                     <th>Razão Social</th>
-                    <th>CPF/CNPJ</th>
-                    <th>Endereço</th>
+                    <th>Nome Fantasia</th>
+                    <th>CPF / CNPJ</th>
+                    <th>Telefone</th>
                     <th>Cidade</th>
-                    <th>Insc. Estadual</th>
+                    <th>Status</th>
                     <th class="text-center">Ações</th>
                 </tr>
             </thead>
@@ -62,19 +81,29 @@
                     {
                         <tr>
                             <td>@t.IdTransportador</td>
-                            <td><strong>@(t.DsRazaoSocial ?? "-")</strong></td>
-                            <td>@(t.NrCpfCnpj ?? "-")</td>
-                            <td>@(t.DsEndereco ?? "-")</td>
+                            <td><strong>@t.DsRazaoSocial</strong></td>
+                            <td>@Module.OuTraco(t.DsNomeFantasia)</td>
+                            <td>@Module.OuTraco(DocExib(t))</td>
+                            <td>@Module.OuTraco(Module.FormatarTelefone(t.NrCelular ?? t.NrTelefoneFixo))</td>
                             <td>@Module.OuTraco(Module.CidadeUf(t.Cidade))</td>
-                            <td>@(t.NrInscEstadual ?? "-")</td>
+                            <td>
+                                @if (t.FlAtivo)
+                                {
+                                    <span class="badge-status badge-ativo">Ativo</span>
+                                }
+                                else
+                                {
+                                    <span class="badge-status badge-inativo">Inativo</span>
+                                }
+                            </td>
                             <td class="text-center">
                                 <button class="btn btn-icon btn-outline-primary" title="Editar"
                                         data-bs-toggle="modal" data-bs-target="#modalTransportador"
                                         data-registro="@Module.RegistroJson(t)"
-                                        onclick="editarTransportador(@t.IdTransportador, '@t.DsRazaoSocial?.Replace("'", "\\'")','@t.NrCpfCnpj','@t.DsEndereco?.Replace("'", "\\'")','@(t.IdCidade?.ToString() ?? "")','@t.NrInscEstadual')">
+                                        onclick="editarPorId(@t.IdTransportador)">
                                     <i class="bi bi-pencil"></i>
                                 </button>
-                                <form method="post" asp-page-handler="Excluir" class="d-inline" onsubmit="return confirm('Deseja realmente excluir este transportador?')">
+                                <form method="post" asp-page-handler="Excluir" class="d-inline" onsubmit="return confirm('Deseja realmente excluir esta transportadora?')">
                                     <input type="hidden" name="id" value="@t.IdTransportador" />
                                     <button type="submit" class="btn btn-icon btn-outline-danger" title="Excluir">
                                         <i class="bi bi-trash"></i>
@@ -86,16 +115,21 @@
                 }
                 else
                 {
-                    <tr><td colspan="7" class="text-center text-muted py-4">Nenhum transportador cadastrado</td></tr>
+                    <tr><td colspan="8" class="text-center text-muted py-4">Nenhuma transportadora cadastrada</td></tr>
                 }
             </tbody>
         </table>
     </div>
 </div>
 
-<!-- Modal Novo/Editar Transportador (componente compartilhado com a Compra) -->
+<!-- Modal Novo/Editar Transportadora (componente compartilhado com a Compra) -->
 @await Component.InvokeAsync("CadastroTransportador", new { modo = "post" })
 
 @section Scripts {
+    <script type="application/json" id="dadosTela">
+    {
+        "dadosIniciais": @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.Transportadores.Select(WebAppERP.Pages.Gerais.TransportadoresModel.Registro)))
+    }
+    </script>
     <script src="~/Pages/Gerais/Transportadores.cshtml.js" asp-append-version="true"></script>
 }

@@ -41,8 +41,6 @@ const DADOS_TELA = JSON.parse(document.getElementById('dadosTela').textContent);
 // Dados reais vindos do banco de dados
 const faturamentoLabels = DADOS_TELA.faturamentoLabels;
 const faturamentoValores = DADOS_TELA.faturamentoValores;
-const servicosLabels = DADOS_TELA.servicosLabels;
-const servicosValores = DADOS_TELA.servicosValores;
 
 // Faturamento Semanal - Bar Chart
 new Chart(document.getElementById('chartFaturamento'), {
@@ -70,33 +68,3 @@ new Chart(document.getElementById('chartFaturamento'), {
         }
     }
 });
-
-// Servicos Mais Solicitados - Doughnut Chart
-const servicosCanvas = document.getElementById('chartServicos');
-if (servicosValores.length > 0) {
-    new Chart(servicosCanvas, {
-        type: 'doughnut',
-        data: {
-            labels: servicosLabels,
-            datasets: [{
-                data: servicosValores,
-                backgroundColor: ['#3b82f6', '#10b981', '#f59e0b', '#8b5cf6', '#ef4444'],
-                borderWidth: 0
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-                legend: {
-                    position: 'bottom',
-                    labels: { padding: 12, font: { size: 11 } }
-                }
-            }
-        }
-    });
-} else {
-    servicosCanvas.parentElement.innerHTML =
-        '<div class="d-flex align-items-center justify-content-center h-100 text-muted">Nenhum serviço registrado no período</div>';
-}
-

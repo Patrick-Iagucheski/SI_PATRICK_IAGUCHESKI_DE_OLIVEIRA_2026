@@ -13,17 +13,20 @@ public class ProdutoBusiness
     private readonly ArquivoService _arquivo;
     private readonly MarcaBusiness _marca;
     private readonly CategoriaBusiness _categoria;
+    private readonly UnidadeMedidaBusiness _unidade;
 
     // Mesmo limite de upload configurado no Program.cs.
     private const long TamanhoMaxImagem = 500L * 1024 * 1024; // 500 MB
     private const string PastaImagem = "uploads";
 
-    public ProdutoBusiness(AppDbContext db, ArquivoService arquivo, MarcaBusiness marca, CategoriaBusiness categoria)
+    public ProdutoBusiness(AppDbContext db, ArquivoService arquivo, MarcaBusiness marca, CategoriaBusiness categoria,
+                           UnidadeMedidaBusiness unidade)
     {
         _db = db;
         _arquivo = arquivo;
         _marca = marca;
         _categoria = categoria;
+        _unidade = unidade;
     }
 
     // ============================================================
@@ -35,6 +38,7 @@ public class ProdutoBusiness
         await _db.Produtos
             .Include(p => p.Marca)
             .Include(p => p.Categoria)
+            .Include(p => p.UnidadeMedida)
             .Where(p => p.FlAtivo)
             .OrderBy(p => p.DsProduto)
             .ToListAsync();
@@ -43,7 +47,8 @@ public class ProdutoBusiness
     // Sem "inativos" marcado traz so os ativos; marcado, so os inativos.
     public async Task<List<Produto>> Buscar(int? id, string? termo, bool somenteInativos)
     {
-        var query = _db.Produtos.Include(p => p.Marca).Include(p => p.Categoria).Where(p => p.FlAtivo != somenteInativos);
+        var query = _db.Produtos.Include(p => p.Marca).Include(p => p.Categoria).Include(p => p.UnidadeMedida)
+                                .Where(p => p.FlAtivo != somenteInativos);
 
         if (id.HasValue)
             query = query.Where(p => p.IdProduto == id.Value);
@@ -56,6 +61,15 @@ public class ProdutoBusiness
 
         return await query.OrderBy(p => p.DsProduto).Take(100).ToListAsync();
     }
+
+    // Produtos que ja tiveram entrada por compra finalizada (so eles mostram
+    // custo e estoque no cadastro).
+    public async Task<HashSet<int>> IdsComEntrada() =>
+        (await _db.CompraItens
+            .Where(i => i.IdProduto != null && i.Compra!.TpStatus == Compra.FINALIZADA)
+            .Select(i => i.IdProduto!.Value)
+            .Distinct()
+            .ToListAsync()).ToHashSet();
 
     // ============================================================
     // Gravacao
@@ -83,13 +97,12 @@ public class ProdutoBusiness
         registro.DsProduto = produto.DsProduto;
         registro.IdMarca = produto.IdMarca;
         registro.IdCategoria = produto.IdCategoria;
-        registro.SgUnidade = produto.SgUnidade;
-        registro.VlCusto = produto.VlCusto;
-        registro.VlVendaMinimo = produto.VlVendaMinimo;
+        registro.IdUnidadeMedida = produto.IdUnidadeMedida;
         registro.VlVenda = produto.VlVenda;
         registro.PcComissao = produto.PcComissao;
-        registro.VlDesconto = produto.VlDesconto;
-        registro.QtSaldo = produto.QtSaldo;
+        // Custo e estoque nao vem da tela: so a entrada pela compra (custo medio
+        // e saldo) e a venda (saldo) mexem neles. Produto novo comeca sem estoque.
+        registro.QtSaldo ??= 0;
         registro.DsDescricao = produto.DsDescricao;
         registro.FlAtivo = produto.FlAtivo;
 
@@ -125,34 +138,28 @@ public class ProdutoBusiness
         if (removerAntiga && imagemAntiga != registro.DsImagem)
             _arquivo.Remover(imagemAntiga, PastaImagem);
 
+        // Sigla da unidade para a tela que chamou (ex.: unidade do item da Compra).
+        await _db.Entry(registro).Reference(r => r.UnidadeMedida).LoadAsync();
         return registro;
     }
 
     private async Task Validar(Produto p, IFormFile? imagem)
     {
         p.DsProduto = p.DsProduto?.Trim() ?? string.Empty;
-        p.SgUnidade = string.IsNullOrWhiteSpace(p.SgUnidade) ? null : p.SgUnidade.Trim();
         p.DsDescricao = string.IsNullOrWhiteSpace(p.DsDescricao) ? null : p.DsDescricao.Trim();
 
         if (p.DsProduto.Length == 0)
             throw new ValidacaoException("Informe o nome do produto.");
         if (p.DsProduto.Length > 300)
             throw new ValidacaoException("O nome do produto deve ter no máximo 300 caracteres.");
-        if (p.SgUnidade?.Length > 10)
-            throw new ValidacaoException("A unidade deve ter no máximo 10 caracteres.");
         if (p.DsDescricao?.Length > 500)
             throw new ValidacaoException("A descrição deve ter no máximo 500 caracteres.");
 
         if (p.PcComissao is < 0 or > 999.99m)
             throw new ValidacaoException("Percentual de comissão inválido.", "Informe um percentual entre 0 e 999,99.");
 
-        if (Module.EhNegativo(p.VlCusto) || Module.EhNegativo(p.VlVendaMinimo) ||
-            Module.EhNegativo(p.VlVenda) || Module.EhNegativo(p.VlDesconto) ||
-            Module.EhNegativo(p.QtSaldo))
-            throw new ValidacaoException("Valores monetários e estoque não podem ser negativos.");
-
-        if (p.VlVenda.HasValue && p.VlVendaMinimo.HasValue && p.VlVenda < p.VlVendaMinimo)
-            throw new ValidacaoException("O valor de venda não pode ser menor que o valor de venda mínimo.");
+        if (Module.EhNegativo(p.VlVenda))
+            throw new ValidacaoException("O valor de venda não pode ser negativo.");
 
         // Marca e categoria obrigatorias (vem da pesquisa do campo; valida se existem).
         if (p.IdCategoria is not > 0)
@@ -163,6 +170,10 @@ public class ProdutoBusiness
             throw new ValidacaoException("Selecione a marca do produto.");
         if (!await _marca.Existe(p.IdMarca.Value))
             throw new ValidacaoException("Marca inválida.");
+
+        // Unidade de medida opcional; quando informada, do cadastro e ativa.
+        if (p.IdUnidadeMedida is int idUnidade && !await _unidade.ExisteAtiva(idUnidade))
+            throw new ValidacaoException("Unidade de medida inválida.");
 
         _arquivo.ValidarImagem(imagem, TamanhoMaxImagem, "A imagem");
     }

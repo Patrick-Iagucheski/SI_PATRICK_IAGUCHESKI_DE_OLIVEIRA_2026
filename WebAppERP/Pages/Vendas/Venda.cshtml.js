@@ -19,13 +19,23 @@ function onTipoChange() {
     document.getElementById('grpServico').style.display = t === TIPO_SERVICO ? '' : 'none';
     document.getElementById('itVlUnit').value = '';
     document.getElementById('itTotal').value = '';
-    document.getElementById('itSaldo').textContent = '';
+    mostrarSaldo(null);
+}
+
+// Saldo do produto escolhido: verde com estoque, vermelho (0) sem estoque.
+// Fica abaixo do campo sem ocupar altura (.dica-abaixo, site.css).
+function mostrarSaldo(p) {
+    const el = document.getElementById('itSaldo');
+    const saldo = p ? Math.max(Number(p.saldo) || 0, 0) : 0;
+    el.textContent = p ? 'Saldo em estoque: ' + moeda(saldo) : '';
+    el.classList.toggle('text-success', !!p && saldo > 0);
+    el.classList.toggle('text-danger', !!p && saldo <= 0);
 }
 
 function onProdutoChange() {
     const id = parseInt(document.getElementById('itProduto').value) || 0;
     const p = PRODUTOS.find(x => x.id === id);
-    document.getElementById('itSaldo').textContent = p ? ('Saldo em estoque: ' + moeda(p.saldo)) : '';
+    mostrarSaldo(p);
     if (p) document.getElementById('itVlUnit').value = p.valor;
     calcItemTotal();
 }
@@ -100,7 +110,7 @@ function limparItemForm() {
     document.getElementById('itVlUnit').value = '';
     document.getElementById('itDesc').value = '0';
     document.getElementById('itTotal').value = '';
-    document.getElementById('itSaldo').textContent = '';
+    mostrarSaldo(null);
 }
 
 function removerItem(i) { ITENS.splice(i, 1); renderItens(); }

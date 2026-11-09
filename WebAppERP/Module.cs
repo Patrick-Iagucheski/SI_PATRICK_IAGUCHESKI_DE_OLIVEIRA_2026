@@ -168,11 +168,12 @@ public static class Module
     // Itens de Compra e Venda
     // ============================================================
 
-    // Valida o item (produto ou servico escolhido, quantidade, preco e desconto)
-    // e devolve o total: Quantidade x Preco Unitario - Desconto. seq: numero do
-    // item, para a mensagem dizer qual linha esta errada.
-    public static decimal CalcularTotalItem(int seq, bool produto, int? idProduto, int? idServico,
-                                            decimal quantidade, decimal vlUnitario, decimal vlDesconto)
+    // Validacao comum do item de compra e de venda: produto ou servico escolhido,
+    // quantidade, preco e desconto nao negativos. seq: numero do item, para a
+    // mensagem dizer qual linha esta errada. O total de cada um fica no seu
+    // Business ou em CalcularTotalItem (a compra usa desconto por unidade).
+    public static void ValidarItem(int seq, bool produto, int? idProduto, int? idServico,
+                                   decimal quantidade, decimal vlUnitario, decimal vlDesconto)
     {
         if (produto && idProduto is not > 0)
             throw new ValidacaoException($"Item {seq}: selecione o produto.");
@@ -185,6 +186,14 @@ public static class Module
             throw new ValidacaoException($"Item {seq}: o preço unitário não pode ser negativo.");
         if (vlDesconto < 0)
             throw new ValidacaoException($"Item {seq}: o desconto não pode ser negativo.");
+    }
+
+    // Item da venda: valida (ValidarItem) e devolve o total, com o desconto
+    // sobre o item inteiro: Quantidade x Preco Unitario - Desconto.
+    public static decimal CalcularTotalItem(int seq, bool produto, int? idProduto, int? idServico,
+                                            decimal quantidade, decimal vlUnitario, decimal vlDesconto)
+    {
+        ValidarItem(seq, produto, idProduto, idServico, quantidade, vlUnitario, vlDesconto);
 
         var bruto = Math.Round(quantidade * vlUnitario, 2, MidpointRounding.AwayFromZero);
         var total = bruto - vlDesconto;

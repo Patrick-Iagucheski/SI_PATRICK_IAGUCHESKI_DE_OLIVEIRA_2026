@@ -8,8 +8,13 @@ namespace WebAppERP.Pages.Gerais;
 public class ServicosModel : PaginaBase
 {
     private readonly ServicoBusiness _servico;
+    private readonly CategoriaServicoBusiness _categoria;
 
-    public ServicosModel(ServicoBusiness servico) => _servico = servico;
+    public ServicosModel(ServicoBusiness servico, CategoriaServicoBusiness categoria)
+    {
+        _servico = servico;
+        _categoria = categoria;
+    }
 
     public List<Servico> Servicos { get; set; } = [];
 
@@ -36,6 +41,25 @@ public class ServicosModel : PaginaBase
             return new { sucesso = true, id = s.IdServico, nome = s.DsServico, valor = s.VlServico, duracao = s.NrDuracaoMin };
         });
 
+    // Cadastro rapido de Categoria de Servico via AJAX (pesquisa do campo de categoria).
+    public class CategoriaRapidoDto
+    {
+        public int IdCategoriaServico { get; set; }
+        public string NmCategoria { get; set; } = string.Empty;
+    }
+
+    public Task<IActionResult> OnPostCategoriaRapido([FromBody] CategoriaRapidoDto dto) =>
+        ExecutarJson(async () =>
+        {
+            var c = await _categoria.Salvar(new CategoriaServico
+            {
+                IdCategoriaServico = dto?.IdCategoriaServico ?? 0,
+                NmCategoria = dto?.NmCategoria ?? string.Empty,
+                FlAtivo = true
+            });
+            return new { sucesso = true, id = c.IdCategoriaServico, nome = c.NmCategoria };
+        });
+
     // Pesquisa (componente): por codigo, nome ou categoria, com os dados que a
     // grade e o Editar usam. incluirInativos: so os inativos.
     public async Task<IActionResult> OnGetBuscarServicos(int? id, string? termo, bool incluirInativos = false)
@@ -48,7 +72,8 @@ public class ServicosModel : PaginaBase
             descricao = s.DsDescricao,
             valor = s.VlServico,
             duracao = s.NrDuracaoMin,
-            categoria = s.DsCategoria,
+            idCategoria = s.IdCategoriaServico,
+            categoria = s.CategoriaServico?.NmCategoria,
             ativo = s.FlAtivo
         }));
     }

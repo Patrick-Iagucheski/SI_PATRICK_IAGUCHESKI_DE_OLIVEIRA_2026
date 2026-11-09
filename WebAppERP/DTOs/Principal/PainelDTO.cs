@@ -12,11 +12,9 @@ public class PainelDTO
     public List<Agendamento> ProximosAgendamentos { get; set; } = [];
     public List<Venda> UltimasVendas { get; set; } = [];
 
-    // Graficos: faturamento dos ultimos 7 dias e servicos mais solicitados no mes
+    // Grafico: faturamento dos ultimos 7 dias
     public List<string> FaturamentoSemanaLabels { get; set; } = [];
     public List<decimal> FaturamentoSemanaValores { get; set; } = [];
-    public List<string> ServicosLabels { get; set; } = [];
-    public List<int> ServicosValores { get; set; } = [];
 
     // Painel "Atividades no sistema": ultimas vendas, compras e agendamentos
     // criados ou alterados, do mais recente para o mais antigo

@@ -1,6 +1,8 @@
 ﻿@page
 @model WebAppERP.Pages.Compras.CompraModel
 @{
+    // Tela de digitacao: a aba nao recarrega sozinha ao voltar (site.js)
+    ViewData["ManterAoVoltar"] = true;
     ViewData["Title"] = Model.Vm.Edicao
         ? $"Compra Nº {Model.Vm.Compra.NrNota}"
         : "Cadastro de Compras";
@@ -91,6 +93,7 @@
     <input type="hidden" asp-for="OrigNrSerie" />
     <input type="hidden" asp-for="OrigNrModelo" />
     <input type="hidden" asp-for="OrigIdFornecedor" />
+    <input type="hidden" asp-for="OrigVersao" />
 
     <!-- ================= Dados da Nota ================= -->
     <div class="card mb-3">
@@ -108,11 +111,13 @@
                 </div>
                 <div class="col-md-2 col-lg-1 col-xxl-2">
                     <label class="form-label">Série *</label>
-                    <input type="number" min="0" class="form-control" asp-for="NrSerie" id="NrSerie" disabled="@chaveTravada" />
+                    <input type="text" inputmode="numeric" maxlength="3" class="form-control" asp-for="NrSerie" id="NrSerie"
+                           placeholder="Até 3 dígitos" disabled="@chaveTravada" />
                 </div>
                 <div class="col-md-2">
                     <label class="form-label">Nº *</label>
-                    <input type="number" min="1" class="form-control" asp-for="NrNota" id="NrNota" disabled="@chaveTravada" />
+                    <input type="text" inputmode="numeric" maxlength="9" class="form-control" asp-for="NrNota" id="NrNota"
+                           placeholder="Até 9 dígitos" disabled="@chaveTravada" />
                 </div>
                 <div class="@(chaveTravada ? "col-md-5" : "col-md-4")">
                     <label class="form-label">Fornecedor *</label>
@@ -185,51 +190,40 @@
     <fieldset class="etapa-demais" disabled="@(!chaveOk)">
     @if (!ro)
     {
-        <!-- ================= Adicionar Produto / Servico ================= -->
+        <!-- ================= Adicionar Produto ================= -->
         <div class="card mb-3">
             <div class="card-body">
-                <h6 class="fw-bold mb-3"><i class="bi bi-box-seam me-2"></i>Adicionar Produto / Serviço</h6>
+                <h6 class="fw-bold mb-3"><i class="bi bi-box-seam me-2"></i>Adicionar Produto</h6>
+                @* A compra so tem produtos (entrada de estoque): sem o campo Tipo. *@
                 <div class="row g-2 align-items-end">
-                    <div class="col-md-2 col-xxl-1">
-                        <label class="form-label">Tipo</label>
-                        <select class="form-select" id="itTipo" onchange="onTipoChange()">
-                            <option value="@CompraItem.PRODUTO">Produto</option>
-                            <option value="@CompraItem.SERVICO">Serviço</option>
-                        </select>
-                    </div>
-                    <div class="col-md-6 col-xxl-5">
-                        <label class="form-label">Produto / Serviço</label>
+                    <div class="col-md-5 col-xxl-4">
+                        <label class="form-label">Produto</label>
                         <select class="form-select" id="itCodigo"
-                                data-pesquisa="abrirBuscaItem()" data-titulo-pesquisa="Pesquisar produto / serviço">
+                                data-pesquisa="abrirBuscaItem()" data-titulo-pesquisa="Pesquisar produto">
                             <option value="">Clique no + para pesquisar</option>
                         </select>
                     </div>
-                    <div class="col-md-2 col-xxl-1">
+                    <div class="col-md-1">
+                        @* Unidade do cadastro do produto (vem ao escolher o produto). *@
                         <label class="form-label">UND</label>
-                        <select class="form-select" id="itUnidade">
-                            <option value="">-</option>
-                            <option value="UN">UN</option>
-                            <option value="PC">PC</option>
-                            <option value="CX">CX</option>
-                            <option value="KG">KG</option>
-                            <option value="G">G</option>
-                            <option value="L">L</option>
-                            <option value="ML">ML</option>
-                            <option value="M">M</option>
-                        </select>
+                        <input type="text" class="form-control bg-light text-center" id="itUnidade" readonly tabindex="-1" />
                     </div>
                     <div class="col-md-2 col-xxl-1">
                         <label class="form-label">Quantidade</label>
-                        <input type="number" step="0.0001" min="0" class="form-control" id="itQt" value="1" />
+                        <input type="number" step="0.01" min="0" class="form-control" id="itQt" value="1" />
                     </div>
-                    <div class="col-md-3 col-xxl-1">
+                    <div class="col-md-2">
                         <label class="form-label">Preço Unit.</label>
                         <input type="number" step="0.0001" min="0" class="form-control" id="itVlUnit" value="0" />
                     </div>
-                    <div class="col-md-6 col-xxl-2">
+                    <div class="col-md-2 col-xxl-1">
+                        <label class="form-label">Total</label>
+                        <input type="text" class="form-control" id="itTotal" readonly />
+                    </div>
+                    <div class="col-md-5 col-xxl-3">
                         @* Porcentagem e valor ficam abaixo do rotulo Desconto e
                            se recalculam entre si (ver calcItemTotal). *@
-                        <label class="form-label mb-1">Desconto</label>
+                        <label class="form-label mb-1">Desconto por unidade</label>
                         <div class="row g-1">
                             <div class="col-6">
                                 <small class="text-muted d-block">Porcentagem</small>
@@ -242,14 +236,10 @@
                                 <small class="text-muted d-block">Valor</small>
                                 <div class="input-group">
                                     <span class="input-group-text px-2">R$</span>
-                                    <input type="number" step="0.01" min="0" class="form-control px-2" id="itDesc" value="0" />
+                                    <input type="number" step="0.000001" min="0" class="form-control px-2" id="itDesc" value="0" />
                                 </div>
                             </div>
                         </div>
-                    </div>
-                    <div class="col-md-3 col-xxl-1">
-                        <label class="form-label">Total</label>
-                        <input type="text" class="form-control" id="itTotal" readonly />
                     </div>
                     <div class="col-md-12 mt-3">
                         <button type="button" class="btn btn-primary" onclick="adicionarItem()">
@@ -265,10 +255,10 @@
         </div>
     }
 
-    <!-- ================= Lista de Produtos / Servicos ================= -->
+    <!-- ================= Lista de Produtos ================= -->
     <div class="table-container mb-3">
         <div class="table-header">
-            <h5><i class="bi bi-list-ul me-2"></i>Lista de Produtos / Serviços</h5>
+            <h5><i class="bi bi-list-ul me-2"></i>Lista de Produtos</h5>
             <span class="text-muted small" id="contadorItens">0 itens</span>
         </div>
         <div class="table-responsive">
@@ -276,14 +266,14 @@
                 <thead>
                     <tr>
                         <th style="width: 50px;">#</th>
-                        <th>Produto / Serviço</th>
+                        <th>Produto</th>
                         <th class="text-center">UND</th>
                         <th class="text-end">Qtd.</th>
                         <th class="text-end">Preço Unit.</th>
-                        <th class="text-end">Desconto</th>
+                        <th class="text-end" title="Desconto por unidade">Desc. Unit.</th>
                         <th class="text-end">Total</th>
                         <th class="text-end" title="Parcela do frete + seguro + outros gastos">Rateio</th>
-                        <th class="text-end" title="(Total + Rateio) / Quantidade">Custo Unit.</th>
+                        <th class="text-end" title="Preço Unit. - Desconto por unidade + Rateio / Quantidade, com 6 casas decimais">Custo Unit.</th>
                         <th class="text-center">Ações</th>
                     </tr>
                 </thead>
@@ -521,17 +511,16 @@ else if (!ro)
          aberto pelo Novo/Editar da pesquisa de produto. Tambem grava por AJAX. -->
     @await Component.InvokeAsync("CadastroProduto", new { modo = "ajax" })
 
-    <!-- Cadastros de transportadora, servico e forma de pagamento, abertos pelas pesquisas. -->
+    <!-- Cadastros de transportadora e forma de pagamento, abertos pelas pesquisas. -->
     @await Component.InvokeAsync("CadastroTransportador", new { modo = "ajax" })
-    @await Component.InvokeAsync("CadastroServico", new { modo = "ajax" })
     @await Component.InvokeAsync("CadastroFormaPagamento", new { modo = "ajax" })
 }
 
 @section Scripts {
-    @* Os scripts dos cadastros (fornecedor, condicao, produto, transportadora, servico, forma) vem com os proprios componentes. *@
+    @* Os scripts dos cadastros (fornecedor, condicao, produto, transportadora, forma) vem com os proprios componentes. *@
     <script type="application/json" id="dadosTela">
     {
-        "TIPO_ITEM": { "PRODUTO": @Json.Serialize(CompraItem.PRODUTO), "SERVICO": @Json.Serialize(CompraItem.SERVICO) },
+        "TIPO_ITEM": { "PRODUTO": @Json.Serialize(CompraItem.PRODUTO) },
         "FORMAS": @Json.Serialize(formasJs),
         "CONDICOES": @Json.Serialize(condicoesJs),
         "SOMENTE_LEITURA": @Json.Serialize(Model.Vm.SomenteLeitura),

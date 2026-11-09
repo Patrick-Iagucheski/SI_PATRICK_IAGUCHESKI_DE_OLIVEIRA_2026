@@ -75,7 +75,7 @@
                                     <div class="text-muted small">@s.DsDescricao</div>
                                 }
                             </td>
-                            <td>@(s.DsCategoria ?? "-")</td>
+                            <td>@(s.CategoriaServico?.NmCategoria ?? "-")</td>
                             <td class="text-end"><strong>R$ @s.VlServico.ToString("N2")</strong></td>
                             <td>@(s.NrDuracaoMin.HasValue ? $"{s.NrDuracaoMin} min" : "-")</td>
                             <td>
@@ -92,7 +92,7 @@
                                 <button class="btn btn-icon btn-outline-primary" title="Editar"
                                         data-bs-toggle="modal" data-bs-target="#modalServico"
                                         data-registro="@Module.RegistroJson(s)"
-                                        onclick="editarServico(@s.IdServico,'@s.DsServico.Replace("'", "\\'")','@s.DsDescricao?.Replace("'", "\\'")','@s.VlServico.ToString("F2", inv)','@(s.NrDuracaoMin?.ToString() ?? "")','@s.DsCategoria','@s.FlAtivo')">
+                                        onclick="editarServico(@s.IdServico,'@s.DsServico.Replace("'", "\\'")','@s.DsDescricao?.Replace("'", "\\'")','@s.VlServico.ToString("F2", inv)','@(s.NrDuracaoMin?.ToString() ?? "")','@(s.IdCategoriaServico?.ToString() ?? "")','@s.FlAtivo')">
                                     <i class="bi bi-pencil"></i>
                                 </button>
                                 <form method="post" asp-page-handler="Excluir" class="d-inline" onsubmit="return confirm('Deseja realmente excluir este serviço?')">

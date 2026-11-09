@@ -1,0 +1,145 @@
+﻿@page
+@model WebAppERP.Pages.Estoque.UnidadesMedidaModel
+@{
+    ViewData["Title"] = "Unidades de Medida";
+}
+
+<div class="d-flex justify-content-between align-items-start mb-4">
+    <div>
+        <h1 class="page-title">Unidades de Medida</h1>
+        <p class="page-subtitle">Cadastre as unidades de medida usadas nos produtos (UN, KG, L...)</p>
+    </div>
+    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#modalUnidade" onclick="limparFormUnidade()">
+        <i class="bi bi-plus-lg me-1"></i> Nova Unidade
+    </button>
+</div>
+
+<!-- Filtros de busca (todos opcionais e combinaveis) -->
+<div class="card mb-3">
+    <div class="card-body py-3">
+        <div class="row g-2 align-items-end">
+            <div class="col-md-2">
+                <label class="form-label small mb-1">ID</label>
+                <input type="number" class="form-control" id="buscaId" min="1" autocomplete="off" />
+            </div>
+            <div class="col-md-6">
+                <label class="form-label small mb-1">Sigla / Descrição</label>
+                <input type="text" class="form-control" id="buscaTermo" autocomplete="off" />
+            </div>
+        </div>
+        <div class="d-flex justify-content-between align-items-center mt-3">
+            <div class="form-check mb-0">
+                <input class="form-check-input" type="checkbox" id="buscaInativos" onchange="buscarUnidades()" />
+                <label class="form-check-label" for="buscaInativos">Exibir Unidades Inativas</label>
+            </div>
+            <button type="button" class="btn btn-primary" onclick="buscarUnidades()">
+                <i class="bi bi-search me-1"></i>Buscar
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Tabela -->
+<div class="table-container">
+    <div class="table-header">
+        <h5><i class="bi bi-rulers me-2"></i>Lista de Unidades de Medida</h5>
+        <span class="text-muted small" id="contadorRegistros">@Model.Unidades.Count registros encontrados</span>
+    </div>
+    <div class="table-responsive">
+        <table class="table" id="tblUnidades">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Sigla</th>
+                    <th>Descrição</th>
+                    <th>Status</th>
+                    <th class="text-center">Ações</th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (Model.Unidades.Any())
+                {
+                    @foreach (var u in Model.Unidades)
+                    {
+                        <tr>
+                            <td>@u.IdUnidadeMedida</td>
+                            <td><strong>@u.SgUnidade</strong></td>
+                            <td>@u.DsUnidade</td>
+                            <td>
+                                <span class="badge-status @(u.FlAtivo ? "badge-ativo" : "badge-inativo")">@(u.FlAtivo ? "Ativo" : "Inativo")</span>
+                            </td>
+                            <td class="text-center">
+                                <button class="btn btn-icon btn-outline-primary" title="Editar"
+                                        data-bs-toggle="modal" data-bs-target="#modalUnidade"
+                                        data-registro="@Module.RegistroJson(u)"
+                                        data-unidade="@System.Text.Json.JsonSerializer.Serialize(UnidadesMedidaModel.Registro(u))"
+                                        onclick="editarUnidade(JSON.parse(this.dataset.unidade))">
+                                    <i class="bi bi-pencil"></i>
+                                </button>
+                                <form method="post" asp-page-handler="Excluir" class="d-inline" onsubmit="return confirm('Deseja realmente excluir esta unidade de medida?')">
+                                    <input type="hidden" name="id" value="@u.IdUnidadeMedida" />
+                                    <button type="submit" class="btn btn-icon btn-outline-danger" title="Excluir">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </form>
+                            </td>
+                        </tr>
+                    }
+                }
+                else
+                {
+                    <tr><td colspan="5" class="text-center text-muted py-4">Nenhuma unidade de medida cadastrada</td></tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Modal -->
+<div class="modal fade" id="modalUnidade" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form method="post" data-modal-ajax>
+                <div class="modal-header">
+                    <h5 class="modal-title" id="umTitulo"><i class="bi bi-rulers me-2"></i>Nova Unidade de Medida</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <input type="hidden" asp-for="UnidadeForm.IdUnidadeMedida" id="umId" />
+                    <div class="row g-3">
+                        <div class="col-md-3">
+                            <label class="form-label">Código</label>
+                            <input type="text" class="form-control bg-light" id="umCodigoDisplay" placeholder="(novo)" readonly />
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Sigla *</label>
+                            <input type="text" class="form-control text-uppercase" asp-for="UnidadeForm.SgUnidade" id="umSigla" maxlength="10" placeholder="Ex: UN" required />
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Descrição *</label>
+                            <input type="text" class="form-control" asp-for="UnidadeForm.DsUnidade" id="umNome" maxlength="60" placeholder="Ex: Unidade" required />
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label">Status</label>
+                            @* Marcado = inativo. O valor gravado (FlAtivo) vai no campo escondido (definirAtivo, module.js). *@
+                            <input type="hidden" asp-for="UnidadeForm.FlAtivo" id="umAtivo" />
+                            <div class="form-check mt-2">
+                                <input class="form-check-input" type="checkbox" id="umAtivoInativo" data-inativo-de="umAtivo" checked="@(!Model.UnidadeForm.FlAtivo)" />
+                                <label class="form-check-label" for="umAtivoInativo">Inativo</label>
+                            </div>
+                        </div>
+                    </div>
+                    <partial name="_Registro" />
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary"><i class="bi bi-check-lg me-1"></i>Salvar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="~/Pages/Estoque/UnidadesMedida.cshtml.js" asp-append-version="true"></script>
+}

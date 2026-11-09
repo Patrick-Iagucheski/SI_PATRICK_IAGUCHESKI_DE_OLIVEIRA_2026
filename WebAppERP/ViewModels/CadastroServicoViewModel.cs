@@ -6,6 +6,9 @@ public class CadastroServicoViewModel
     // Valores do formulario (preenchidos pelo script ao editar).
     public Servico ServicoForm { get; set; } = new();
 
+    // Categorias de servico ativas (opcoes do campo de categoria).
+    public List<CategoriaServico> Categorias { get; set; } = [];
+
     // "post": Salvar grava e recarrega a tela de cadastro.
     // "ajax": Salvar grava e dispara o evento 'servico:salvo', para telas que
     //         abriram o cadastro pela pesquisa.

@@ -3,6 +3,8 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace WebAppERP.Models.Financeiro;
 
+// Cadastro: texto gravado em MAIUSCULO (CaixaAltaAttribute).
+[CaixaAlta]
 [Table("tbFinFormasPagamento")]
 public class FormaPagamento : EntidadeComRegistro
 {

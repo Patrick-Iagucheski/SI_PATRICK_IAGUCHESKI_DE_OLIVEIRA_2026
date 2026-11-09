@@ -1,4 +1,4 @@
-﻿// Script da tela Categorias (Pages/Estoque/Categorias.cshtml).
+﻿// Script da tela Categorias de Produto (Pages/Estoque/Categorias.cshtml).
 
 // ===== Busca de Categorias (filtros na pagina -> atualiza a grid via AJAX) =====
 let resultadosBusca = [];
@@ -16,7 +16,7 @@ function montarLinha(c, i) {
         '<td>' + statusBadge(c.ativo) + '</td>' +
         '<td class="text-center">' +
             '<button class="btn btn-icon btn-outline-primary" title="Editar" onclick="abrirEdicao(' + i + ')"><i class="bi bi-pencil"></i></button> ' +
-            '<form method="post" action="?handler=Excluir" class="d-inline" onsubmit="return confirm(\'Deseja realmente excluir esta categoria?\')">' +
+            '<form method="post" action="?handler=Excluir" class="d-inline" onsubmit="return confirm(\'Deseja realmente excluir esta categoria de produto?\')">' +
                 campoToken() +
                 '<input type="hidden" name="id" value="' + c.id + '">' +
                 '<button type="submit" class="btn btn-icon btn-outline-danger" title="Excluir"><i class="bi bi-trash"></i></button>' +
@@ -45,7 +45,7 @@ async function buscarCategorias() {
         if (contador) contador.textContent = resultadosBusca.length + ' registros encontrados';
 
         if (!resultadosBusca.length) {
-            tbody.innerHTML = '<tr><td colspan="4" class="text-center text-muted py-4">Nenhuma categoria encontrada</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="4" class="text-center text-muted py-4">Nenhuma categoria de produto encontrada</td></tr>';
             return;
         }
         tbody.innerHTML = resultadosBusca.map((c, i) => montarLinha(c, i)).join('');
@@ -63,7 +63,7 @@ function abrirEdicao(i) {
 
 // ===== Modal (novo / editar) =====
 function limparForm() {
-    document.getElementById('modalTitle').innerHTML = '<i class="bi bi-collection me-2"></i>Nova Categoria';
+    document.getElementById('modalTitle').innerHTML = '<i class="bi bi-collection me-2"></i>Nova Categoria de Produto';
     document.getElementById('cId').value = '0';
     document.getElementById('cCodigoDisplay').value = '';
     document.getElementById('cNome').value = '';
@@ -71,7 +71,7 @@ function limparForm() {
 }
 
 function editarCategoria(id, nome, ativo) {
-    document.getElementById('modalTitle').innerHTML = '<i class="bi bi-pencil me-2"></i>Editar Categoria';
+    document.getElementById('modalTitle').innerHTML = '<i class="bi bi-pencil me-2"></i>Editar Categoria de Produto';
     document.getElementById('cId').value = id;
     document.getElementById('cCodigoDisplay').value = id;
     document.getElementById('cNome').value = nome;

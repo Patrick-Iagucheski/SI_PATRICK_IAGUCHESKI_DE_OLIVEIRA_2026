@@ -12,7 +12,8 @@
 <!-- Modal Novo/Editar Produto -->
 <div class="modal fade" id="modalProduto" tabindex="-1"
      data-url-produtos="@Url.Page("/Estoque/Produtos")"
-     data-url-marcas="@Url.Page("/Estoque/Marcas")" data-url-categorias="@Url.Page("/Estoque/Categorias")">
+     data-url-marcas="@Url.Page("/Estoque/Marcas")" data-url-categorias="@Url.Page("/Estoque/Categorias")"
+     data-url-unidades="@Url.Page("/Estoque/UnidadesMedida")">
     <div class="modal-dialog modal-lg">
         <div class="modal-content">
             <form method="post" data-modal-ajax asp-page="/Estoque/Produtos" enctype="multipart/form-data"
@@ -25,20 +26,37 @@
                 <div class="modal-body">
                     <input type="hidden" asp-for="ProdutoForm.IdProduto" id="prodIdProduto" />
                     <input type="hidden" asp-for="ProdutoForm.DsImagem" id="prodDsImagem" />
+                    <!-- Secoes no mesmo padrao do cadastro de cliente: Dados Cadastrais,
+                         Valores, Estoque (so com compra finalizada) e Imagem; no fim,
+                         Status e Descricao (sempre o ultimo campo do cadastro). -->
+                    <h6 class="text-primary border-bottom pb-1 mb-3"><i class="bi bi-card-list me-1"></i>Dados Cadastrais</h6>
                     <div class="row g-3">
-                        <!-- Codigo | Produto | Categoria | Status -->
+                        <!-- Codigo | Produto | Unidade de Medida (ao lado do nome) -->
                         <div class="col-md-2">
                             <label class="form-label">Código</label>
                             <input type="text" class="form-control bg-light" id="prodCodigoDisplay" placeholder="(novo)" readonly />
                         </div>
-                        <div class="col-md-4">
+                        <div class="col-md-7">
                             <label class="form-label">Produto *</label>
                             <input type="text" class="form-control" asp-for="ProdutoForm.DsProduto" id="prodDsProduto" maxlength="300" placeholder="Ex: Pomada modeladora" required />
                         </div>
-                        <div class="col-md-4">
+                        <div class="col-md-3">
+                            <label class="form-label">Unidade de Medida</label>
+                            <select class="form-select" asp-for="ProdutoForm.IdUnidadeMedida" id="prodIdUnidadeMedida"
+                                    data-pesquisa="abrirPesquisaAuxProduto('unidade')" data-titulo-pesquisa="Pesquisar unidade de medida">
+                                <option value="">Selecione</option>
+                                @foreach (var unidade in Model.Unidades)
+                                {
+                                    <option value="@unidade.IdUnidadeMedida">@unidade.Descricao</option>
+                                }
+                            </select>
+                        </div>
+
+                        <!-- Categoria | Marca -->
+                        <div class="col-md-6">
                             <label class="form-label">Categoria *</label>
                             <select class="form-select" asp-for="ProdutoForm.IdCategoria" id="prodIdCategoria" required
-                                    data-pesquisa="abrirPesquisaAuxProduto('categoria')" data-titulo-pesquisa="Pesquisar categoria">
+                                    data-pesquisa="abrirPesquisaAuxProduto('categoria')" data-titulo-pesquisa="Pesquisar categoria de produto">
                                 <option value="">Selecione</option>
                                 @foreach (var categoria in Model.Categorias)
                                 {
@@ -46,18 +64,7 @@
                                 }
                             </select>
                         </div>
-                        <div class="col-md-2">
-                            <label class="form-label">Status</label>
-                            @* Marcado = inativo. O valor gravado (FlAtivo) vai no campo escondido (definirAtivo, module.js). *@
-                            <input type="hidden" asp-for="ProdutoForm.FlAtivo" id="prodFlAtivo" />
-                            <div class="form-check mt-2">
-                                <input class="form-check-input" type="checkbox" id="prodFlAtivoInativo" data-inativo-de="prodFlAtivo" checked="@(!Model.ProdutoForm.FlAtivo)" />
-                                <label class="form-check-label" for="prodFlAtivoInativo">Inativo</label>
-                            </div>
-                        </div>
-
-                        <!-- Marca | Unidade de Medida -->
-                        <div class="col-md-8">
+                        <div class="col-md-6">
                             <label class="form-label">Marca *</label>
                             <select class="form-select" asp-for="ProdutoForm.IdMarca" id="prodIdMarca" required
                                     data-pesquisa="abrirPesquisaAuxProduto('marca')" data-titulo-pesquisa="Pesquisar marca">
@@ -68,52 +75,40 @@
                                 }
                             </select>
                         </div>
-                        <div class="col-md-4">
-                            <label class="form-label">Unidade de Medida</label>
-                            <select class="form-select" asp-for="ProdutoForm.SgUnidade" id="prodSgUnidade">
-                                <option value="">Selecione</option>
-                                <option value="UN">UN - Unidade</option>
-                                <option value="PC">PC - Peca</option>
-                                <option value="CX">CX - Caixa</option>
-                                <option value="KG">KG - Quilograma</option>
-                                <option value="G">G - Grama</option>
-                                <option value="L">L - Litro</option>
-                                <option value="ML">ML - Mililitro</option>
-                                <option value="M">M - Metro</option>
-                            </select>
-                        </div>
+                    </div>
 
-                        <!-- Valor Custo | Valor Minimo Venda | Valor Venda | % Comissao -->
-                        <div class="col-md-3">
-                            <label class="form-label">Valor Custo (R$)</label>
-                            <input type="number" step="0.01" min="0" class="form-control" asp-for="ProdutoForm.VlCusto" id="prodVlCusto" placeholder="0,00" />
-                        </div>
-                        <div class="col-md-3">
-                            <label class="form-label">Valor Mínimo Venda (R$)</label>
-                            <input type="number" step="0.01" min="0" class="form-control" asp-for="ProdutoForm.VlVendaMinimo" id="prodVlVendaMinimo" placeholder="0,00" />
-                        </div>
-                        <div class="col-md-3">
+                    <h6 class="text-primary border-bottom pb-1 mb-3 mt-4"><i class="bi bi-cash-coin me-1"></i>Valores</h6>
+                    <div class="row g-3">
+                        <div class="col-md-6">
                             <label class="form-label">Valor Venda (R$)</label>
                             <input type="number" step="0.01" min="0" class="form-control" asp-for="ProdutoForm.VlVenda" id="prodVlVenda" placeholder="0,00" />
                         </div>
-                        <div class="col-md-3">
+                        <div class="col-md-6">
                             <label class="form-label">Percentual Comissão (%)</label>
                             <input type="number" step="0.01" min="0" max="999.99" class="form-control" asp-for="ProdutoForm.PcComissao" id="prodPcComissao" placeholder="0,00" />
                         </div>
+                    </div>
 
-                        <!-- Estoque | Desconto -->
-                        <div class="col-md-6">
-                            <label class="form-label">Estoque</label>
-                            <input type="number" step="0.01" min="0" class="form-control" asp-for="ProdutoForm.QtSaldo" id="prodQtSaldo" placeholder="Ex: 12" />
+                    <!-- Entrada pela compra: custo medio e estoque, so leitura. A secao so
+                         aparece depois da primeira compra finalizada do produto: os dois so
+                         mudam pela entrada da nota de compra (e o estoque tambem pela venda). -->
+                    <div class="d-none" id="prodSecaoEstoque">
+                        <h6 class="text-primary border-bottom pb-1 mb-3 mt-4"><i class="bi bi-box-seam me-1"></i>Estoque</h6>
+                        <div class="row g-3">
+                            <div class="col-md-6" id="prodWrapCusto">
+                                <label class="form-label">Custo Médio (R$)</label>
+                                <input type="text" class="form-control bg-light" id="prodCustoDisplay" readonly tabindex="-1" />
+                            </div>
+                            <div class="col-md-6" id="prodWrapEstoque">
+                                <label class="form-label">Estoque</label>
+                                <input type="text" class="form-control bg-light" id="prodEstoqueDisplay" readonly tabindex="-1" />
+                            </div>
                         </div>
-                        <div class="col-md-6">
-                            <label class="form-label">Desconto (R$)</label>
-                            <input type="number" step="0.01" min="0" class="form-control" asp-for="ProdutoForm.VlDesconto" id="prodVlDesconto" placeholder="0,00" />
-                        </div>
+                    </div>
 
-                        <!-- Imagem -->
+                    <h6 class="text-primary border-bottom pb-1 mb-3 mt-4"><i class="bi bi-image me-1"></i>Imagem</h6>
+                    <div class="row g-3">
                         <div class="col-12">
-                            <label class="form-label">Imagem</label>
                             <input type="file" class="form-control" name="ImagemUpload" id="prodImagemUpload" accept="image/*" onchange="previewImagem(event)" />
                             <small class="text-muted">A imagem será enviada apenas ao salvar o produto. Formatos: JPG, PNG, WEBP, GIF (máx. 500 MB).</small>
                             <div class="mt-2 d-none" id="prodImgPreviewWrap">
@@ -129,8 +124,19 @@
                                 </button>
                             </div>
                         </div>
+                    </div>
 
-                        <!-- Descricao -->
+                    <!-- Status (sempre logo acima do ultimo campo) e Descricao (sempre o ultimo) -->
+                    <div class="row g-3 mt-1">
+                        <div class="col-md-3">
+                            <label class="form-label d-block">Status</label>
+                            @* Marcado = inativo. O valor gravado (FlAtivo) vai no campo escondido (definirAtivo, module.js). *@
+                            <input type="hidden" asp-for="ProdutoForm.FlAtivo" id="prodFlAtivo" />
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="prodFlAtivoInativo" data-inativo-de="prodFlAtivo" checked="@(!Model.ProdutoForm.FlAtivo)" />
+                                <label class="form-check-label" for="prodFlAtivoInativo">Inativo</label>
+                            </div>
+                        </div>
                         <div class="col-12">
                             <label class="form-label">Descrição</label>
                             <textarea class="form-control" rows="2" asp-for="ProdutoForm.DsDescricao" id="prodDsDescricao" maxlength="500" placeholder="Descreva rapidamente o produto"></textarea>
@@ -181,7 +187,7 @@
     <div class="modal-dialog">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title"><i class="bi bi-collection me-2"></i><span id="categoriaTitulo">Cadastrar Categoria</span></h5>
+                <h5 class="modal-title"><i class="bi bi-collection me-2"></i><span id="categoriaTitulo">Cadastrar Categoria de Produto</span></h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
@@ -199,6 +205,39 @@
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
                 <button type="button" class="btn btn-primary" id="btnSalvarCategoriaRapido" onclick="salvarAuxProduto('categoria')">
                     <i class="bi bi-check-lg me-1"></i>Salvar Categoria
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal de Cadastro Rapido de Unidade de Medida (AJAX) -->
+<div class="modal fade" id="modalUnidadeRapido" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="bi bi-rulers me-2"></i><span id="unidadeTitulo">Cadastrar Unidade de Medida</span></h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div id="unidadeMsg"></div>
+                <input type="hidden" id="unidadeId" value="0" />
+                <div class="row g-3">
+                    <div class="col-md-4">
+                        <label class="form-label">Sigla *</label>
+                        <input type="text" class="form-control text-uppercase" id="unidadeSigla" maxlength="10" placeholder="Ex: UN" />
+                    </div>
+                    <div class="col-md-8">
+                        <label class="form-label">Descrição *</label>
+                        <input type="text" class="form-control" id="unidadeNome" maxlength="60" placeholder="Ex: Unidade" />
+                    </div>
+                </div>
+                <partial name="_Registro" />
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-primary" id="btnSalvarUnidadeRapido" onclick="salvarAuxProduto('unidade')">
+                    <i class="bi bi-check-lg me-1"></i>Salvar Unidade
                 </button>
             </div>
         </div>

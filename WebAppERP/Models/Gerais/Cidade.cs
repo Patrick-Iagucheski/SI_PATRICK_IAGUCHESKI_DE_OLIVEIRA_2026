@@ -3,6 +3,8 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace WebAppERP.Models.Gerais;
 
+// Cadastro: texto gravado em MAIUSCULO (CaixaAltaAttribute).
+[CaixaAlta]
 [Table("tbGerCidades")]
 public class Cidade : EntidadeComRegistro
 {

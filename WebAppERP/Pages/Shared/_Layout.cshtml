@@ -1,8 +1,8 @@
 ﻿@{
     var curr = ViewContext.RouteData.Values["page"]?.ToString() ?? "";
-    string[] gCadastros = { "/Gerais/Clientes", "/Gerais/Funcionarios", "/Gerais/Cargos", "/Gerais/Servicos", "/Gerais/Fornecedores", "/Gerais/Transportadores" };
+    string[] gCadastros = { "/Gerais/Clientes", "/Gerais/Funcionarios", "/Gerais/Cargos", "/Gerais/Servicos", "/Gerais/CategoriasServico", "/Gerais/Fornecedores", "/Gerais/Transportadores" };
     string[] gLocalidades = { "/Gerais/Paises", "/Gerais/Estados", "/Gerais/Cidades" };
-    string[] gEstoque = { "/Estoque/Produtos", "/Estoque/Marcas", "/Estoque/Categorias" };
+    string[] gEstoque = { "/Estoque/Produtos", "/Estoque/Marcas", "/Estoque/Categorias", "/Estoque/UnidadesMedida" };
     string[] gFinanceiro = { "/Financeiro/FormasPagamento", "/Financeiro/CondicoesPagamento", "/Financeiro/ContasAPagar" };
     string[] gOperacional = { "/Operacional/Agendamentos", "/Vendas/Vendas", "/Vendas/Venda", "/Compras/Compras", "/Compras/Compra" };
     string[] gVendas = { "/Vendas/Vendas", "/Vendas/Venda" };
@@ -16,7 +16,8 @@
 @inject WebAppERP.Infrastructure.EmpresaService EmpresaSvc
 @inject Microsoft.AspNetCore.Antiforgery.IAntiforgery Antiforgery
 <!DOCTYPE html>
-<html lang="pt-BR" data-empresa="@empresa.Nome">
+@* Tela de digitacao (ViewData["ManterAoVoltar"]): nao recarrega sozinha ao voltar para a aba (site.js). *@
+<html lang="pt-BR" data-empresa="@empresa.Nome" data-manter-ao-voltar="@(ViewData["ManterAoVoltar"] is true ? "1" : "0")">
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -89,6 +90,11 @@
                             </a>
                         </li>
                         <li class="sidebar-item">
+                            <a class="sidebar-link @Active("/Gerais/CategoriasServico")" asp-page="/Gerais/CategoriasServico">
+                                <i class="bi bi-bookmarks-fill"></i><span>Categorias de Serviço</span>
+                            </a>
+                        </li>
+                        <li class="sidebar-item">
                             <a class="sidebar-link @Active("/Gerais/Fornecedores")" asp-page="/Gerais/Fornecedores">
                                 <i class="bi bi-truck"></i><span>Fornecedores</span>
                             </a>
@@ -143,7 +149,12 @@
                         </li>
                         <li class="sidebar-item">
                             <a class="sidebar-link @Active("/Estoque/Categorias")" asp-page="/Estoque/Categorias">
-                                <i class="bi bi-collection-fill"></i><span>Categorias</span>
+                                <i class="bi bi-collection-fill"></i><span>Categorias de Produto</span>
+                            </a>
+                        </li>
+                        <li class="sidebar-item">
+                            <a class="sidebar-link @Active("/Estoque/UnidadesMedida")" asp-page="/Estoque/UnidadesMedida">
+                                <i class="bi bi-rulers"></i><span>Unidades de Medida</span>
                             </a>
                         </li>
                     </ul>
@@ -257,7 +268,8 @@
                     }
                     @if (TempData["Sucesso"] != null)
                     {
-                        <div class="alert alert-success alert-dismissible fade show" role="alert">
+                        @* data-gravou: gravacao confirmada pelo servidor (site.js avisa as outras abas) *@
+                        <div class="alert alert-success alert-dismissible fade show" role="alert" data-gravou>
                             <i class="bi bi-check-circle me-1"></i> @TempData["Sucesso"]
                             <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
                         </div>

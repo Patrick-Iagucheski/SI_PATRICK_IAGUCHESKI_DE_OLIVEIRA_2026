@@ -25,12 +25,4 @@ document.getElementById('buscaTexto').value = filtrosUrl.get('texto') ?? '';
 document.getElementById('buscaSituacao').value = filtrosUrl.get('situacao') ?? '';
 aplicarBusca();
 
-// Texto da opcao de servico no agendamento (igual ao da lista do servidor).
-function textoServicoAgenda(s) {
-    return s.nome + ' - R$ ' + moeda(s.valor) + ' (' + (s.duracao || 0) + ' min)';
-}
-
-function limparForm() {
-    document.getElementById('aId').value = '0';
-}
-
+// Modal de cadastro: componente CadastroAgendamento (limpar, editar, horario fim e pesquisa).

@@ -13,7 +13,7 @@ let resultadosBusca = [];
 function situacaoConta(c) {
     if (c.status === 'PAGO') return 'PAGO';
     if (c.status === 'CANCELADO') return 'CANCELADO';
-    const hoje = new Date().toISOString().slice(0, 10);
+    const hoje = hojeIso();
     if (c.venc && c.venc < hoje) return 'VENCIDA';
     return 'PENDENTE';
 }
@@ -39,7 +39,6 @@ function montarLinha(c, i) {
         '<td class="text-end"><strong>R$ ' + moeda(c.valor) + '</strong></td>' +
         '<td class="text-end">R$ ' + moeda(c.pago) + '</td>' +
         '<td>' + badgeSituacao(sit) + '</td>' +
-        '<td class="text-center">' + (c.ativo ? 'S' : 'N') + '</td>' +
         '<td>' + escaparHtml(c.formaNome || '-') + '</td>' +
         '<td class="text-center" style="white-space: nowrap;">' +
             baixaHtml +
@@ -59,16 +58,16 @@ async function buscarContas() {
     const conta = document.getElementById('buscaConta').value.trim();
     const documento = document.getElementById('buscaDocumento').value.trim();
     const idFornecedor = document.getElementById('buscaFornecedor').value;
-    const inativos = document.getElementById('buscaInativos').checked;
+    const situacao = document.getElementById('buscaSituacao').value;
 
     const params = new URLSearchParams();
     if (id) params.append('id', id);
     if (conta) params.append('conta', conta);
     if (documento) params.append('documento', documento);
     if (idFornecedor) params.append('idFornecedor', idFornecedor);
-    params.append('incluirInativos', inativos);
+    params.append('situacao', situacao);
 
-    tbody.innerHTML = '<tr><td colspan="9" class="text-center text-muted py-3">Buscando...</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="8" class="text-center text-muted py-3">Buscando...</td></tr>';
     try {
         const resp = await fetch('?handler=BuscarContas&' + params.toString());
         resultadosBusca = await resp.json();
@@ -77,24 +76,47 @@ async function buscarContas() {
         if (contador) contador.textContent = resultadosBusca.length + ' registros encontrados';
 
         if (!resultadosBusca.length) {
-            tbody.innerHTML = '<tr><td colspan="9" class="text-center text-muted py-4">Nenhuma conta a pagar encontrada</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="8" class="text-center text-muted py-4">Nenhuma conta a pagar encontrada</td></tr>';
             return;
         }
         tbody.innerHTML = resultadosBusca.map((c, i) => montarLinha(c, i)).join('');
     } catch (e) {
-        tbody.innerHTML = '<tr><td colspan="9" class="text-center text-danger py-4">Erro ao buscar. Tente novamente.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="8" class="text-center text-danger py-4">Erro ao buscar. Tente novamente.</td></tr>';
     }
 }
 
 function abrirEdicao(i) {
     mostrarRegistro('modalConta', resultadosBusca[i].registro);
-    const c = resultadosBusca[i];
-    editarConta(
-        c.id, c.conta || '', c.documento || '', c.idFornecedor, (c.idForma ?? ''),
-        c.emissao || '', c.venc || '', c.pgto || '', c.valor, c.pago,
-        c.status || 'PENDENTE', (c.ativo ? 'true' : 'false'), c.obs || ''
-    );
+    editarConta(resultadosBusca[i]);
     bootstrap.Modal.getOrCreateInstance(document.getElementById('modalConta')).show();
+}
+
+// Titulo gerado pela compra: fornecedor, valor, datas, descricao e documento
+// so mudam pela compra; de compra cancelada, nada muda (as mesmas regras de
+// ContaAPagarBusiness.Salvar, que continua validando). c null: conta nova, tudo liberado.
+const CAMPOS_DA_COMPRA = ['contaDsConta', 'contaNrDocumento', 'contaIdFornecedor', 'contaDtEmissao', 'contaDtVencimento', 'contaVlValor'];
+const CAMPOS_DO_PAGAMENTO = ['contaIdFormaPagamento', 'contaDtPagamento', 'contaVlPago', 'contaDsStatus', 'contaDsObservacao'];
+
+function travarCampoConta(id, travar) {
+    const el = document.getElementById(id);
+    if (el.dataset.pesquisa !== undefined) el.dataset.somenteLeitura = travar ? '1' : '';   // campo com X e +
+    else if (el.tagName === 'SELECT') el.disabled = travar;
+    else el.readOnly = travar;
+    el.classList.toggle('bg-light', travar);
+}
+
+function travarCamposConta(c) {
+    const daCompra = !!c?.origemCompra;
+    const cancelada = daCompra && !!c.compraCancelada;
+    CAMPOS_DA_COMPRA.forEach(id => travarCampoConta(id, daCompra));
+    CAMPOS_DO_PAGAMENTO.forEach(id => travarCampoConta(id, cancelada));
+    document.getElementById('contaBtnSalvar').disabled = cancelada;
+
+    const aviso = document.getElementById('contaAvisoCompra');
+    aviso.classList.toggle('d-none', !daCompra);
+    aviso.innerHTML = !daCompra ? '' : '<i class="bi bi-info-circle me-1"></i>' + (cancelada
+        ? 'Título da compra Nº ' + escaparHtml(c.nota) + ', que foi cancelada: não pode ser alterado.'
+        : 'Título gerado pela compra Nº ' + escaparHtml(c.nota) + ': fornecedor, valor, datas e descrição só mudam pela própria compra.');
 }
 
 function limparFormConta() {
@@ -111,25 +133,26 @@ function limparFormConta() {
     document.getElementById('contaDsStatus').value = 'PENDENTE';
     document.getElementById('contaVlValor').value = '0';
     document.getElementById('contaVlPago').value = '0';
-    definirAtivo('contaFlAtivo', true);
     document.getElementById('contaDsObservacao').value = '';
+    travarCamposConta(null);
 }
 
-function editarConta(id, conta, doc, idForn, idForma, emissao, venc, pgto, valor, pago, status, ativo, obs) {
+// c: conta no formato de ContasAPagarModel.Registro
+function editarConta(c) {
     document.getElementById('contaTitulo').innerHTML = '<i class="bi bi-pencil me-2"></i>Editar Conta a Pagar';
-    document.getElementById('contaIdConta').value = id;
-    document.getElementById('contaCodigoDisplay').value = id;
-    document.getElementById('contaDsConta').value = conta;
-    document.getElementById('contaNrDocumento').value = doc || '';
-    document.getElementById('contaIdFornecedor').value = idForn;
-    document.getElementById('contaIdFormaPagamento').value = idForma || '';
-    document.getElementById('contaDtEmissao').value = emissao || '';
-    document.getElementById('contaDtVencimento').value = venc || '';
-    document.getElementById('contaDtPagamento').value = pgto || '';
-    document.getElementById('contaDsStatus').value = status || 'PENDENTE';
-    document.getElementById('contaVlValor').value = valor;
-    document.getElementById('contaVlPago').value = pago;
-    definirAtivo('contaFlAtivo', ativo === 'true');
-    document.getElementById('contaDsObservacao').value = obs || '';
+    document.getElementById('contaIdConta').value = c.id;
+    document.getElementById('contaCodigoDisplay').value = c.id;
+    document.getElementById('contaDsConta').value = c.conta || '';
+    document.getElementById('contaNrDocumento').value = c.documento || '';
+    document.getElementById('contaIdFornecedor').value = c.idFornecedor;
+    document.getElementById('contaIdFormaPagamento').value = c.idForma ?? '';
+    document.getElementById('contaDtEmissao').value = c.emissao || '';
+    document.getElementById('contaDtVencimento').value = c.venc || '';
+    document.getElementById('contaDtPagamento').value = c.pgto || '';
+    document.getElementById('contaDsStatus').value = c.status || 'PENDENTE';
+    document.getElementById('contaVlValor').value = c.valor;
+    document.getElementById('contaVlPago').value = c.pago;
+    document.getElementById('contaDsObservacao').value = c.obs || '';
+    travarCamposConta(c);
 }
 

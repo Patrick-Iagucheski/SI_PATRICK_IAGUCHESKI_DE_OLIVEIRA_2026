@@ -18,11 +18,14 @@ public class Compra : EntidadeComRegistro
 
     // ===== Chave composta =====
 
+    // Numero (ate 9 digitos) e serie (ate 3) da nota: texto so com digitos.
     [Column("nrNota")]
-    public int NrNota { get; set; }
+    [MaxLength(9)]
+    public string NrNota { get; set; } = string.Empty;
 
     [Column("nrSerie")]
-    public int NrSerie { get; set; }
+    [MaxLength(3)]
+    public string NrSerie { get; set; } = string.Empty;
 
     // Modelo fiscal: 55 = NFe, 65 = NFCe, 1 = NF modelo 1.
     [Column("nrModelo")]

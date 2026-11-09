@@ -1,6 +1,5 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
-using WebAppERP.Business.Gerais;
 using WebAppERP.Business.Operacional;
 
 namespace WebAppERP.Pages.Operacional;
@@ -9,22 +8,12 @@ namespace WebAppERP.Pages.Operacional;
 public class AgendamentosModel : PaginaBase
 {
     private readonly AgendamentoBusiness _agendamento;
-    private readonly ClienteBusiness _cliente;
-    private readonly FuncionarioBusiness _funcionario;
-    private readonly ServicoBusiness _servico;
 
-    public AgendamentosModel(AgendamentoBusiness agendamento, ClienteBusiness cliente, FuncionarioBusiness funcionario, ServicoBusiness servico)
-    {
-        _agendamento = agendamento;
-        _cliente = cliente;
-        _funcionario = funcionario;
-        _servico = servico;
-    }
+    // Listas do modal (clientes, profissionais, servicos) vem do componente
+    // CadastroAgendamento.
+    public AgendamentosModel(AgendamentoBusiness agendamento) => _agendamento = agendamento;
 
     public List<Agendamento> Agendamentos { get; set; } = [];
-    public List<Cliente> Clientes { get; set; } = [];
-    public List<Funcionario> Funcionarios { get; set; } = [];
-    public List<Servico> Servicos { get; set; } = [];
 
     public int QtdAgendados { get; set; }
     public int QtdConfirmados { get; set; }
@@ -51,10 +40,6 @@ public class AgendamentosModel : PaginaBase
         QtdConfirmados = Agendamentos.Count(a => a.TpStatus == Agendamento.CONFIRMADO);
         QtdEmAtendimento = Agendamentos.Count(a => a.TpStatus == Agendamento.EM_ATENDIMENTO);
         QtdConcluidos = Agendamentos.Count(a => a.TpStatus == Agendamento.CONCLUIDO);
-
-        Clientes = await _cliente.Listar();
-        Funcionarios = await _funcionario.Listar();
-        Servicos = await _servico.Listar(somenteAtivos: true);
     }
 
     public Task<IActionResult> OnPost()
@@ -69,6 +54,53 @@ public class AgendamentosModel : PaginaBase
     // Botoes da agenda (Confirmar, Iniciar, Concluir, Cancelar).
     public Task<IActionResult> OnPostAlterarSituacao(int id, string status, string? data) =>
         ExecutarComMensagem(() => _agendamento.AlterarSituacao(id, status), new { DataFiltro = data });
+
+    // Cadastro pelo componente em modo AJAX (Novo / Editar da pesquisa de
+    // agendamento da Venda). Mesmas regras do OnPost, mas responde JSON.
+    public Task<IActionResult> OnPostSalvarAjax() =>
+        ExecutarJson(async () =>
+        {
+            var salvo = await _agendamento.Salvar(AgendamentoForm);
+            // Recarrega com cliente, profissional e servico para o texto do campo.
+            var a = (await _agendamento.Pesquisar(salvo.IdAgendamento, null, null, null)).First();
+            return new { sucesso = true, id = a.IdAgendamento, nome = Texto(a), ativo = a.TpStatus != Agendamento.CANCELADO };
+        });
+
+    // Pesquisa do agendamento (campo de agendamento da Venda), com os filtros
+    // da tela.
+    public async Task<IActionResult> OnGetBuscarAgendamentos(int? id, DateOnly? data, string? texto, string? situacao)
+    {
+        var lista = await _agendamento.Pesquisar(id, data, texto, situacao);
+        return new JsonResult(lista.Select(Registro));
+    }
+
+    // Agendamento no formato que o componente usa (pesquisa e editarAgendamento).
+    // Cancelado nao pode ser escolhido na Venda (ativo false).
+    // Texto do agendamento no campo da Venda (mesmo das opcoes da lista).
+    public static string Texto(Agendamento a) =>
+        $"#{a.IdAgendamento} - {a.DtAgendamento:dd/MM/yyyy} {a.HrInicio:HH:mm} - {a.Cliente?.NmCliente}";
+
+    public static object Registro(Agendamento a) => new
+    {
+        id = a.IdAgendamento,
+        registro = Module.Registro(a),
+        data = a.DtAgendamento.ToString("yyyy-MM-dd"),
+        hora = a.HrInicio.ToString("HH:mm"),
+        horaFim = a.HrFim?.ToString("HH:mm"),
+        idCliente = a.IdCliente,
+        cliente = a.Cliente?.NmCliente,
+        idFuncionario = a.IdFuncionario,
+        profissional = a.Funcionario?.NmFuncionario,
+        idServico = a.IdServico,
+        servico = a.Servico?.DsServico,
+        servicoValor = a.Servico?.VlServico,
+        servicoDuracao = a.Servico?.NrDuracaoMin,
+        situacao = a.TpStatus,
+        observacao = a.DsObservacao,
+        nome = Texto(a),
+        ativo = a.TpStatus != Agendamento.CANCELADO,
+        motivoInativo = "Cancelado"
+    };
 
     public Task<IActionResult> OnPostExcluir(int id, string? data) =>
         Executar(() => _agendamento.Excluir(id), "Agendamento excluído com sucesso.", new { DataFiltro = data });

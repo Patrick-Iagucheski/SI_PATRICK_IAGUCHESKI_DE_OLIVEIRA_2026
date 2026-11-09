@@ -54,13 +54,22 @@ function urlProdutos(handler) {
     return document.getElementById('modalProduto').dataset.urlProdutos + '?handler=' + handler;
 }
 
-// ===== Marca e Categoria: pesquisa (a lupa do campo) e cadastro rapido =====
+// ===== Marca, Categoria e Unidade de Medida: pesquisa (o + do campo) e cadastro rapido =====
 // Mesmo padrao das outras pesquisas: Selecionar coloca no campo do produto,
 // Editar e Novo abrem o cadastro rapido, a lixeira usa o Excluir da tela de
-// Marcas / Categorias (regras do Business).
+// Marcas / Categorias / Unidades de Medida (regras do Business).
+// Opcionais de cada tipo:
+//   sigla:  propriedade do campo Sigla no envio (a unidade tem sigla e descricao;
+//           o campo da tela e pref + 'Sigla')
+//   filtro: rotulo do filtro de texto da pesquisa (padrao: nome)
+//   campo:  como o campo nome e chamado na mensagem de obrigatorio (padrao: nome)
+//   texto:  texto do registro no campo do produto (padrao: r.nome)
 const AUX_PRODUTO = {
     marca:     { nome: 'Marca',     plural: 'Marcas',     select: 'prodIdMarca',     pref: 'marca',     tela: 'urlMarcas',     busca: 'BuscarMarcas',     rapido: 'MarcaRapido',     dto: ['idMarca', 'nmMarca'] },
-    categoria: { nome: 'Categoria', plural: 'Categorias', select: 'prodIdCategoria', pref: 'categoria', tela: 'urlCategorias', busca: 'BuscarCategorias', rapido: 'CategoriaRapido', dto: ['idCategoria', 'nmCategoria'] }
+    categoria: { nome: 'Categoria', titulo: 'Categoria de Produto', plural: 'Categorias', select: 'prodIdCategoria', pref: 'categoria', tela: 'urlCategorias', busca: 'BuscarCategorias', rapido: 'CategoriaRapido', dto: ['idCategoria', 'nmCategoria'] },
+    // Unidade: o campo mostra "SIGLA - Descricao" (r.descricao)
+    unidade:   { nome: 'Unidade',   titulo: 'Unidade de Medida', plural: 'Unidades', select: 'prodIdUnidadeMedida', pref: 'unidade', tela: 'urlUnidades', busca: 'BuscarUnidades', rapido: 'UnidadeRapido', dto: ['idUnidadeMedida', 'dsUnidade'],
+                 sigla: 'sgUnidade', filtro: 'Sigla / Descrição', campo: 'a descrição', texto: r => r.descricao }
 };
 
 function urlTelaProduto(tela, handler) {
@@ -69,29 +78,33 @@ function urlTelaProduto(tela, handler) {
 
 function abrirPesquisaAuxProduto(tipo) {
     const a = AUX_PRODUTO[tipo];
+    const texto = a.texto || (r => r.nome);
     abrirPesquisa({
         chave: tipo,
-        titulo: 'Pesquisar ' + a.nome,
+        titulo: 'Pesquisar ' + (a.titulo || a.nome),
         url: () => urlTelaProduto(a.tela, a.busca),
         inativos: 'Exibir ' + a.plural + ' Inativas',
         filtros: [
             { param: 'id', rotulo: 'ID', tipo: 'number', col: 2 },
-            { param: 'termo', rotulo: a.nome, col: 6 }
+            { param: 'termo', rotulo: a.filtro || a.nome, col: 6 }
         ],
-        colunas: ['Código', a.nome],
-        celulas: r => ['<strong>' + r.id + '</strong>', escaparHtml(r.nome)],
-        selecionar: r => selecionarNoSelect(a.select, r.id, r.nome),
+        colunas: a.sigla ? ['Código', 'Sigla', 'Descrição'] : ['Código', a.nome],
+        celulas: r => a.sigla
+            ? ['<strong>' + r.id + '</strong>', escaparHtml(r.sigla), escaparHtml(r.nome)]
+            : ['<strong>' + r.id + '</strong>', escaparHtml(r.nome)],
+        selecionar: r => selecionarNoSelect(a.select, r.id, texto(r)),
         editar: r => abrirCadastroAuxProduto(tipo, r),
         novo: () => abrirCadastroAuxProduto(tipo, null),
-        excluir: { url: () => urlTelaProduto(a.tela, 'Excluir'), nome: r => r.nome, depois: r => removerDoSelect(a.select, r.id) }
+        excluir: { url: () => urlTelaProduto(a.tela, 'Excluir'), nome: texto, depois: r => removerDoSelect(a.select, r.id) }
     });
 }
 
 function abrirCadastroAuxProduto(tipo, reg) {
     const a = AUX_PRODUTO[tipo];
     document.getElementById(a.pref + 'Msg').innerHTML = '';
-    document.getElementById(a.pref + 'Titulo').textContent = (reg ? 'Editar ' : 'Cadastrar ') + a.nome;
+    document.getElementById(a.pref + 'Titulo').textContent = (reg ? 'Editar ' : 'Cadastrar ') + (a.titulo || a.nome);
     document.getElementById(a.pref + 'Id').value = reg ? reg.id : 0;
+    if (a.sigla) document.getElementById(a.pref + 'Sigla').value = reg ? reg.sigla : '';
     document.getElementById(a.pref + 'Nome').value = reg ? reg.nome : '';
     mostrarRegistro('modal' + a.nome + 'Rapido', reg?.registro);
     abrirModalEmpilhado('modal' + a.nome + 'Rapido');
@@ -102,20 +115,25 @@ function abrirCadastroAuxProduto(tipo, reg) {
 async function salvarAuxProduto(tipo) {
     const a = AUX_PRODUTO[tipo];
     const id = parseInt(document.getElementById(a.pref + 'Id').value) || 0;
+    const sigla = a.sigla ? document.getElementById(a.pref + 'Sigla').value.trim() : null;
     const nome = document.getElementById(a.pref + 'Nome').value.trim();
     const msg = document.getElementById(a.pref + 'Msg');
     const btn = document.getElementById('btnSalvar' + a.nome + 'Rapido');
     msg.innerHTML = '';
-    if (!nome) { msg.innerHTML = alertaErro('Informe o nome da ' + a.nome.toLowerCase() + '.'); return; }
+    if (a.sigla && !sigla) { msg.innerHTML = alertaErro('Informe a sigla da ' + a.nome.toLowerCase() + '.'); return; }
+    if (!nome) { msg.innerHTML = alertaErro('Informe ' + (a.campo || 'o nome') + ' da ' + a.nome.toLowerCase() + '.'); return; }
+
+    const dados = { [a.dto[0]]: id, [a.dto[1]]: nome };
+    if (a.sigla) dados[a.sigla] = sigla;
 
     btn.disabled = true;
     try {
-        const data = await postJson(urlProdutos(a.rapido), { [a.dto[0]]: id, [a.dto[1]]: nome });
+        const data = await postJson(urlProdutos(a.rapido), dados);
         if (!data.sucesso) { msg.innerHTML = alertaErro(data.mensagem); return; }
         if (id) renomearNoSelect(a.select, data.id, data.nome);
         concluirCadastro('modal' + a.nome + 'Rapido', tipo, id > 0, () => selecionarNoSelect(a.select, data.id, data.nome));
     } catch {
-        msg.innerHTML = alertaErro('Erro ao salvar a ' + a.nome.toLowerCase() + '. Tente novamente.');
+        msg.innerHTML = alertaErro('Erro ao salvar a ' + (a.titulo || a.nome).toLowerCase() + '. Tente novamente.');
     } finally {
         btn.disabled = false;
     }
@@ -124,12 +142,25 @@ async function salvarAuxProduto(tipo) {
 // ===== Modal (novo / editar) =====
 function limparFormProduto() {
     document.getElementById('prodModalTitle').innerHTML = '<i class="bi bi-box-seam me-2"></i>Novo Produto';
-    ['prodDsProduto','prodIdMarca','prodIdCategoria','prodSgUnidade','prodVlCusto','prodVlVendaMinimo','prodVlVenda','prodPcComissao','prodVlDesconto','prodQtSaldo','prodDsDescricao','prodCodigoDisplay','prodDsImagem','prodImagemUpload'].forEach(id => {
+    ['prodDsProduto','prodIdMarca','prodIdCategoria','prodIdUnidadeMedida','prodVlVenda','prodPcComissao','prodDsDescricao','prodCodigoDisplay','prodDsImagem','prodImagemUpload'].forEach(id => {
         document.getElementById(id).value = '';
     });
     document.getElementById('prodIdProduto').value = '0';
     definirAtivo('prodFlAtivo', true);
+    mostrarEntradaProduto(null);
     esconderImagem();
+}
+
+// Custo medio e estoque (so leitura): aparecem so quando o produto ja teve
+// entrada por compra finalizada.
+function mostrarEntradaProduto(p) {
+    const tem = !!p?.temEntrada;
+    document.getElementById('prodSecaoEstoque').classList.toggle('d-none', !tem);
+    // Custo medio com 6 casas, como e calculado na compra.
+    document.getElementById('prodCustoDisplay').value = tem
+        ? 'R$ ' + moeda(p.custo, 6) : '';
+    document.getElementById('prodEstoqueDisplay').value = tem
+        ? (Number(p.estoque) || 0).toLocaleString('pt-BR', { maximumFractionDigits: 2 }) + (p.unidade ? ' ' + p.unidade : '') : '';
 }
 
 // Normaliza numero removendo casas decimais sobrando (ex: "15.0000" -> 15)
@@ -137,34 +168,26 @@ function numProduto(v) {
     return (v === '' || v === null || v === undefined) ? '' : parseFloat(v);
 }
 
-function editarProduto(id, nome, idMarca, idCategoria, unidade, custo, vendaMin, venda, comissao, desconto, estoque, descricao, imagem, ativo) {
+// p: registro do produto (ProdutosModel.Registro: busca, pesquisa e linhas da tela).
+function editarProduto(p) {
     document.getElementById('prodModalTitle').innerHTML = '<i class="bi bi-pencil me-2"></i>Editar Produto';
-    document.getElementById('prodIdProduto').value = id;
-    document.getElementById('prodCodigoDisplay').value = id;
-    document.getElementById('prodDsProduto').value = nome;
-    document.getElementById('prodIdMarca').value = idMarca || '';
-    document.getElementById('prodIdCategoria').value = idCategoria || '';
-    document.getElementById('prodSgUnidade').value = unidade || '';
-    document.getElementById('prodVlCusto').value = numProduto(custo);
-    document.getElementById('prodVlVendaMinimo').value = numProduto(vendaMin);
-    document.getElementById('prodVlVenda').value = numProduto(venda);
-    document.getElementById('prodPcComissao').value = numProduto(comissao);
-    document.getElementById('prodVlDesconto').value = numProduto(desconto);
-    document.getElementById('prodQtSaldo').value = numProduto(estoque);
-    document.getElementById('prodDsDescricao').value = descricao || '';
-    document.getElementById('prodDsImagem').value = imagem || '';
+    document.getElementById('prodIdProduto').value = p.id;
+    document.getElementById('prodCodigoDisplay').value = p.id;
+    document.getElementById('prodDsProduto').value = p.nome || '';
+    document.getElementById('prodIdMarca').value = p.idMarca || '';
+    document.getElementById('prodIdCategoria').value = p.idCategoria || '';
+    if (p.idUnidade) selecionarNoSelect('prodIdUnidadeMedida', p.idUnidade, p.unidadeDescricao || p.unidade || String(p.idUnidade));
+    else document.getElementById('prodIdUnidadeMedida').value = '';
+    document.getElementById('prodVlVenda').value = numProduto(p.venda);
+    document.getElementById('prodPcComissao').value = numProduto(p.comissao);
+    document.getElementById('prodDsDescricao').value = p.descricao || '';
+    document.getElementById('prodDsImagem').value = p.imagem || '';
     document.getElementById('prodImagemUpload').value = '';
-    definirAtivo('prodFlAtivo', ativo === 'True');
+    definirAtivo('prodFlAtivo', p.ativo);
+    mostrarEntradaProduto(p);
 
-    if (imagem) { mostrarImagem(imagem); }
+    if (p.imagem) { mostrarImagem(p.imagem); }
     else { esconderImagem(); }
-}
-
-// Registro da pesquisa / busca (BuscarProdutos) no formulario de edicao.
-function editarProdutoPorRegistro(p) {
-    editarProduto(p.id, p.nome || '', (p.idMarca ?? ''), (p.idCategoria ?? ''), p.unidade || '',
-        (p.custo ?? ''), (p.vendaMin ?? ''), (p.venda ?? ''), (p.comissao ?? ''),
-        (p.desconto ?? ''), (p.estoque ?? ''), p.descricao || '', p.imagem || '', (p.ativo ? 'True' : 'False'));
 }
 
 // ===== Pesquisa de produto (a lupa do campo de produto de outras telas) =====
@@ -182,11 +205,11 @@ const PESQUISA_PRODUTO = {
     colunas: ['Código', 'Produto', 'Marca', 'Categoria', 'Unidade', 'Custo', 'Venda', 'Estoque'],
     celulas: p => ['<strong>' + p.id + '</strong>', escaparHtml(p.nome), escaparHtml(p.marca || '-'),
                    escaparHtml(p.categoria || '-'), escaparHtml(p.unidade || '-'),
-                   p.custo != null ? 'R$ ' + moeda(p.custo) : '-', p.venda != null ? 'R$ ' + moeda(p.venda) : '-',
+                   p.custo != null ? 'R$ ' + moeda(p.custo, 6) : '-', p.venda != null ? 'R$ ' + moeda(p.venda) : '-',
                    p.estoque != null ? moeda(p.estoque) : '-'],
     modal: 'modalProduto',
     evento: 'produto:salvo',
-    preencher: editarProdutoPorRegistro,
+    preencher: editarProduto,
     limpar: limparFormProduto,
     urlExcluir: () => urlProdutos('Excluir'),
     nome: p => p.nome

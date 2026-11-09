@@ -3,6 +3,8 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace WebAppERP.Models.Estoque;
 
+// Cadastro: texto gravado em MAIUSCULO (CaixaAltaAttribute).
+[CaixaAlta]
 [Table("tbEstProdutos")]
 public class Produto : EntidadeComRegistro
 {
@@ -30,11 +32,16 @@ public class Produto : EntidadeComRegistro
     [ForeignKey("IdCategoria")]
     public Categoria? Categoria { get; set; }
 
-    [Column("sgUnidade")]
-    [MaxLength(10)]
-    public string? SgUnidade { get; set; }
+    // Unidade de medida: vinculo com o cadastro de Unidades de Medida
+    // (tbEstUnidadesMedida). Substituiu o antigo texto tbEstProdutos.sgUnidade.
+    [Column("idUnidadeMedida")]
+    public int? IdUnidadeMedida { get; set; }
 
-    [Column("vlCusto", TypeName = "decimal(12,2)")]
+    [ForeignKey("IdUnidadeMedida")]
+    public UnidadeMedida? UnidadeMedida { get; set; }
+
+    // Custo medio (6 casas), calculado pela entrada da compra (CompraBusiness).
+    [Column("vlCusto", TypeName = "decimal(18,6)")]
     public decimal? VlCusto { get; set; }
 
     [Column("vlVendaMinimo", TypeName = "decimal(12,2)")]
@@ -56,6 +63,7 @@ public class Produto : EntidadeComRegistro
     // Caminho relativo da imagem salva em wwwroot (ex: /uploads/xxx.png)
     [Column("dsImagem")]
     [MaxLength(260)]
+    [ManterCaixa]
     public string? DsImagem { get; set; }
 
     // Descricao longa / observacao do produto

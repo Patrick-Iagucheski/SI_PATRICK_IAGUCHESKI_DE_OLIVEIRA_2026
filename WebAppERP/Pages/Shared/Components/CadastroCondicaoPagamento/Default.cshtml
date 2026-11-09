@@ -106,6 +106,10 @@
     </div>
 </div>
 
+<!-- Cadastro de forma de pagamento, aberto pelo + da forma em cada parcela
+     (fora do form da condicao: tem o proprio form e grava por AJAX). -->
+@await Component.InvokeAsync("CadastroFormaPagamento", new { modo = "ajax" })
+
 @if (Model.IncluirScript)
 {
     <script src="~/Pages/Shared/Components/CadastroCondicaoPagamento/Default.cshtml.js" asp-append-version="true"></script>

@@ -155,22 +155,12 @@
 
 <!-- Charts Row -->
 <div class="row g-3 mb-4">
-    <div class="col-lg-8">
+    <div class="col-12">
         <div class="card">
             <div class="card-body">
                 <h6 class="fw-bold mb-3">Faturamento Semanal</h6>
                 <div class="chart-wrapper">
                     <canvas id="chartFaturamento"></canvas>
-                </div>
-            </div>
-        </div>
-    </div>
-    <div class="col-lg-4">
-        <div class="card">
-            <div class="card-body">
-                <h6 class="fw-bold mb-3">Serviços Mais Solicitados</h6>
-                <div class="chart-wrapper">
-                    <canvas id="chartServicos"></canvas>
                 </div>
             </div>
         </div>
@@ -276,9 +266,7 @@
     <script type="application/json" id="dadosTela">
     {
         "faturamentoLabels": @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.Painel.FaturamentoSemanaLabels)),
-        "faturamentoValores": @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.Painel.FaturamentoSemanaValores)),
-        "servicosLabels": @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.Painel.ServicosLabels)),
-        "servicosValores": @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.Painel.ServicosValores))
+        "faturamentoValores": @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.Painel.FaturamentoSemanaValores))
     }
     </script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>

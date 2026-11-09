@@ -5,6 +5,8 @@ namespace WebAppERP.Models.Estoque;
 
 // Mapeia a tabela tbEstCategorias (criada no banco via Database/NormalizarBase.sql).
 // Substitui o antigo campo de texto livre tbEstProdutos.dsCategoria.
+// Cadastro: texto gravado em MAIUSCULO (CaixaAltaAttribute).
+[CaixaAlta]
 [Table("tbEstCategorias")]
 public class Categoria : EntidadeComRegistro
 {

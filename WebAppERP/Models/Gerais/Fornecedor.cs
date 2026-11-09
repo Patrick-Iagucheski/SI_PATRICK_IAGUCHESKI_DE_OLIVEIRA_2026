@@ -3,6 +3,8 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace WebAppERP.Models.Gerais;
 
+// Cadastro: texto gravado em MAIUSCULO (CaixaAltaAttribute).
+[CaixaAlta]
 [Table("tbGerFornecedores")]
 public class Fornecedor : EntidadeComRegistro
 {
@@ -57,6 +59,7 @@ public class Fornecedor : EntidadeComRegistro
 
     [Column("dsEmail")]
     [MaxLength(150)]
+    [ManterCaixa]
     public string? DsEmail { get; set; }
 
     [Column("dsObservacao")]
@@ -117,6 +120,7 @@ public class Fornecedor : EntidadeComRegistro
     // dsContatoPrincipal ficaram no banco, mas nao sao mais usados.
     [Column("dsSite")]
     [MaxLength(150)]
+    [ManterCaixa]
     public string? DsSite { get; set; }
 
     // ===== Dados Bancarios =====
@@ -151,6 +155,7 @@ public class Fornecedor : EntidadeComRegistro
 
     [Column("dsChavePix")]
     [MaxLength(100)]
+    [ManterCaixa]
     public string? DsChavePix { get; set; }
 
     // ===== Auditoria =====

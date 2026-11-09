@@ -63,7 +63,7 @@ async function buscarProdutos() {
 
 function abrirEdicao(i) {
     mostrarRegistro('modalProduto', resultadosBusca[i].registro);
-    editarProdutoPorRegistro(resultadosBusca[i]);
+    editarProduto(resultadosBusca[i]);
     bootstrap.Modal.getOrCreateInstance(document.getElementById('modalProduto')).show();
 }
 

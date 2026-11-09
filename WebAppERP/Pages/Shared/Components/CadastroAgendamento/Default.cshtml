@@ -1,0 +1,111 @@
+﻿@model WebAppERP.ViewModels.CadastroAgendamentoViewModel
+@*
+    Componente de cadastro de agendamento (ViewComponents/CadastroAgendamentoViewComponent).
+    Usado pela tela de Agendamentos e pela pesquisa de agendamento da Venda
+    (Novo / Editar). Traz o proprio script (Default.cshtml.js, nesta pasta),
+    incluido uma vez por pagina. Modo "ajax": o Salvar grava pelo module.js e
+    dispara o evento 'agendamento:salvo' (detail: o registro gravado), sem
+    recarregar a tela.
+    As pesquisas de cliente, profissional e servico precisam dos componentes
+    CadastroCliente, CadastroFuncionario e CadastroServico na pagina.
+*@
+
+<div class="modal fade" id="modalAgendamento" tabindex="-1"
+     data-url-agendamentos="@Url.Page("/Operacional/Agendamentos")">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <form method="post" data-modal-ajax asp-page="/Operacional/Agendamentos"
+                  asp-page-handler="@(Model.Modo == "ajax" ? "SalvarAjax" : null)"
+                  data-evento="@(Model.Modo == "ajax" ? "agendamento:salvo" : null)">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="agTitulo"><i class="bi bi-calendar-plus me-2"></i>Novo Agendamento</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <input type="hidden" asp-for="AgendamentoForm.IdAgendamento" id="aId" />
+                    <!-- Secoes no mesmo padrao do cadastro de cliente: Dados do Agendamento,
+                         Data e Horario; no fim, Situacao e Observacoes (sempre o ultimo campo). -->
+                    <h6 class="text-primary border-bottom pb-1 mb-3"><i class="bi bi-card-list me-1"></i>Dados do Agendamento</h6>
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Cliente *</label>
+                            <select class="form-select" asp-for="AgendamentoForm.IdCliente" id="agCliente" required
+                                    data-pesquisa="abrirPesquisaCliente(opcoesDoSelect('agCliente'))" data-titulo-pesquisa="Pesquisar cliente">
+                                <option value="">Selecione o cliente</option>
+                                @foreach (var c in Model.Clientes)
+                                {
+                                    <option value="@c.IdCliente">@c.NmCliente</option>
+                                }
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Profissional *</label>
+                            <select class="form-select" asp-for="AgendamentoForm.IdFuncionario" id="agFuncionario" required
+                                    data-pesquisa="abrirPesquisaFuncionario(opcoesDoSelect('agFuncionario'), 'Pesquisar Profissional')" data-titulo-pesquisa="Pesquisar profissional">
+                                <option value="">Selecione o profissional</option>
+                                @foreach (var f in Model.Funcionarios)
+                                {
+                                    <option value="@f.IdFuncionario">@f.NmFuncionario</option>
+                                }
+                            </select>
+                        </div>
+                        <div class="col-md-12">
+                            <label class="form-label">Serviço *</label>
+                            <select class="form-select" asp-for="AgendamentoForm.IdServico" id="agServico" required
+                                    data-pesquisa="abrirBuscaServicoAgenda()" data-titulo-pesquisa="Pesquisar serviço">
+                                <option value="">Selecione o serviço</option>
+                                @foreach (var s in Model.Servicos)
+                                {
+                                    @* data-duracao: o horario fim sugerido e o inicio + a duracao (sugerirHorarioFim) *@
+                                    <option value="@s.IdServico" data-duracao="@(s.NrDuracaoMin ?? 0)">@s.DsServico - R$ @s.VlServico.ToString("N2") (@(s.NrDuracaoMin ?? 0) min)</option>
+                                }
+                            </select>
+                        </div>
+                    </div>
+
+                    <h6 class="text-primary border-bottom pb-1 mb-3 mt-4"><i class="bi bi-clock me-1"></i>Data e Horário</h6>
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <label class="form-label">Data *</label>
+                            <input type="date" class="form-control" asp-for="AgendamentoForm.DtAgendamento" id="agData" value="@Model.DataPadrao" required />
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Horário Início *</label>
+                            <input type="time" class="form-control" asp-for="AgendamentoForm.HrInicio" id="agHrInicio" required />
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Horário Fim</label>
+                            @* Sugerido: inicio + duracao do servico (sugerirHorarioFim); pode ser mudado *@
+                            <input type="time" class="form-control" asp-for="AgendamentoForm.HrFim" id="agHrFim" />
+                        </div>
+                    </div>
+
+                    <!-- Situacao (logo acima das Observacoes) e Observacoes (sempre o ultimo campo) -->
+                    <div class="row g-3 mt-1">
+                        <div class="col-md-4">
+                            <label class="form-label">Situação</label>
+                            <select class="form-select" asp-for="AgendamentoForm.TpStatus" id="agStatus">
+                                <option value="@Agendamento.AGENDADO">Agendado</option>
+                                <option value="@Agendamento.CONFIRMADO">Confirmado</option>
+                            </select>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label">Observações</label>
+                            <textarea class="form-control" rows="2" asp-for="AgendamentoForm.DsObservacao" id="agObservacao" maxlength="500"></textarea>
+                        </div>
+                    </div>
+                    <partial name="_Registro" />
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary"><i class="bi bi-check-lg me-1"></i>Salvar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@if (Model.IncluirScript)
+{
+    <script src="~/Pages/Shared/Components/CadastroAgendamento/Default.cshtml.js" asp-append-version="true"></script>
+}

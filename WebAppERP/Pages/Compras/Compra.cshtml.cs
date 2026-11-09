@@ -40,17 +40,20 @@ public class CompraModel : PaginaBase
     public int? CondicaoFornecedor { get; set; }
 
     // ===== Cabecalho: chave composta =====
-    [BindProperty] public int NrNota { get; set; }
-    [BindProperty] public int NrSerie { get; set; }
+    [BindProperty] public string NrNota { get; set; } = string.Empty;
+    [BindProperty] public string NrSerie { get; set; } = string.Empty;
     [BindProperty] public int NrModelo { get; set; } = 55;
     [BindProperty] public int IdFornecedor { get; set; }
 
     // Chave com que a compra foi carregada (vazia numa inclusao). Serve para
     // o repositorio detectar tentativa de alterar a propria chave.
-    [BindProperty] public int OrigNrNota { get; set; }
-    [BindProperty] public int OrigNrSerie { get; set; }
+    [BindProperty] public string OrigNrNota { get; set; } = string.Empty;
+    [BindProperty] public string OrigNrSerie { get; set; } = string.Empty;
     [BindProperty] public int OrigNrModelo { get; set; }
     [BindProperty] public int OrigIdFornecedor { get; set; }
+
+    // Versao da compra carregada (DtCriacao em ticks): ver CompraDTO.VersaoOriginal.
+    [BindProperty] public long OrigVersao { get; set; }
 
     // ===== Cabecalho: demais campos =====
     [BindProperty] public DateOnly? DtEmissao { get; set; }
@@ -71,11 +74,11 @@ public class CompraModel : PaginaBase
     // Carregamento da tela
     // ============================================================
 
-    public async Task<IActionResult> OnGet(int? nrNota, int? nrSerie, int? nrModelo, int? idFornecedor)
+    public async Task<IActionResult> OnGet(string? nrNota, string? nrSerie, int? nrModelo, int? idFornecedor)
     {
         Vm.Combos = await _business.GetCombos();
 
-        var chaveInformada = nrNota is > 0 && nrModelo is > 0 && idFornecedor is > 0;
+        var chaveInformada = !string.IsNullOrWhiteSpace(nrNota) && nrModelo is > 0 && idFornecedor is > 0;
         if (!chaveInformada)
         {
             // Nova compra: valores iniciais da tela.
@@ -87,8 +90,8 @@ public class CompraModel : PaginaBase
 
         var chave = new CompraChaveDTO
         {
-            NrNota = nrNota!.Value,
-            NrSerie = nrSerie ?? 0,
+            NrNota = nrNota!,
+            NrSerie = nrSerie ?? string.Empty,
             NrModelo = nrModelo!.Value,
             IdFornecedor = idFornecedor!.Value
         };
@@ -112,6 +115,7 @@ public class CompraModel : PaginaBase
         NrSerie = OrigNrSerie = compra.NrSerie;
         NrModelo = OrigNrModelo = compra.NrModelo;
         IdFornecedor = OrigIdFornecedor = compra.IdFornecedor;
+        OrigVersao = compra.DtCriacao.Ticks;
         DtEmissao = compra.DtEmissao;
         DtChegada = compra.DtChegada;
         IdTransportador = compra.IdTransportador;
@@ -144,6 +148,7 @@ public class CompraModel : PaginaBase
             NrModelo = OrigNrModelo,
             IdFornecedor = OrigIdFornecedor
         },
+        VersaoOriginal = OrigVersao,
         DtEmissao = DtEmissao,
         DtChegada = DtChegada,
         IdTransportador = IdTransportador,
@@ -183,7 +188,7 @@ public class CompraModel : PaginaBase
 
         // Em caso de erro, recarrega os combos e reexibe a tela com os dados digitados.
         Vm.Combos = await _business.GetCombos();
-        Vm.Edicao = OrigNrNota > 0;
+        Vm.Edicao = !string.IsNullOrEmpty(OrigNrNota);
 
         // Numa inclusao, a chave so volta travada se ainda estiver livre.
         ChaveValidada = Vm.Edicao || await ChaveLivre(input.GetChave());
@@ -261,7 +266,8 @@ public class CompraModel : PaginaBase
         {
             ok = true,
             fornecedor = nomeFornecedor,
-            url = Url.Page("Compra", new { nrNota = NrNota, nrSerie = NrSerie, nrModelo = NrModelo, idFornecedor = IdFornecedor })
+            // Chave normalizada (so digitos, com os zeros a esquerda), igual a gravada.
+            url = Url.Page("Compra", new { nrNota = chave.NrNota, nrSerie = chave.NrSerie, nrModelo = NrModelo, idFornecedor = IdFornecedor })
         });
     }
 
@@ -277,6 +283,8 @@ public class CompraModel : PaginaBase
             NrModelo = OrigNrModelo,
             IdFornecedor = OrigIdFornecedor
         });
+        if (status == null)
+            return new JsonResult(new { ok = false, erro = "Esta compra foi excluída em outra tela. Recarregue a tela." });
         if (status != Compra.RASCUNHO)
             return new JsonResult(new { ok = false, erro = "Só compras em rascunho são salvas automaticamente." });
 

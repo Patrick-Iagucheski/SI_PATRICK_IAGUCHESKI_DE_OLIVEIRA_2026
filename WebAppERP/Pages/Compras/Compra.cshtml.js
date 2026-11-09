@@ -4,18 +4,24 @@ const DADOS_TELA = JSON.parse(document.getElementById('dadosTela').textContent);
 
 // Tipos de item (constantes da entidade no servidor).
 const TIPO_PRODUTO = DADOS_TELA.TIPO_ITEM.PRODUTO;
-const TIPO_SERVICO = DADOS_TELA.TIPO_ITEM.SERVICO;
 
 const FORMAS = DADOS_TELA.FORMAS;
 const CONDICOES = DADOS_TELA.CONDICOES;
 const SOMENTE_LEITURA = DADOS_TELA.SOMENTE_LEITURA;
 const CAMPOS_CHAVE = ['NrModelo', 'NrSerie', 'NrNota', 'IdFornecedor'];
+
+// Serie (ate 3) e numero da nota (ate 9): so digitos.
+['NrSerie', 'NrNota'].forEach(id => document.getElementById(id)?.addEventListener('input', e => {
+    e.target.value = e.target.value.replace(/\D/g, '');
+}));
 const CONDICAO_FORNECEDOR = DADOS_TELA.CONDICAO_FORNECEDOR;
 
 // Enquanto a chave nao for validada, nenhum outro campo e editavel.
 let chaveValidada = DADOS_TELA.chaveValidada;
 
-let ITENS = DADOS_TELA.ITENS;
+// Desconto do item e POR UNIDADE: o total e recalculado ao abrir (rascunho
+// gravado antes da regra atual fica certo ao salvar de novo).
+let ITENS = DADOS_TELA.ITENS.map(i => ({ ...i, vlTotal: totalItem(i.qtItem, i.vlUnitario, i.vlDesconto) }));
 let PAGAMENTOS = DADOS_TELA.PAGAMENTOS;
 
 // Indice em edicao (null = incluindo um novo).
@@ -24,8 +30,38 @@ let pagamentoEditandoIdx = null;
 
 // ---------------- Utilitarios ----------------
 
+// Quantidade com 2 casas decimais.
 function qtd(n) {
-    return (Number(n) || 0).toLocaleString('pt-BR', { minimumFractionDigits: 3, maximumFractionDigits: 4 });
+    return (Number(n) || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+// ---- Contas com inteiros ----
+// O numero do JavaScript nao guarda decimais exatos (14,3797855 vira
+// 14,379785499999999 e arredondaria para baixo). As contas da compra sao
+// feitas em inteiros (centavos e milionesimos) e so no fim voltam a decimal,
+// para dar o mesmo resultado do servidor (decimal do C#, 5 arredonda para cima).
+function centavos(v) { return Math.round((Number(v) || 0) * 100); }
+function milionesimos(v) { return Math.round((Number(v) || 0) * 1e6); }
+
+// Arredonda em 6 casas decimais (5 para cima).
+function arred6(n) {
+    return milionesimos(n) / 1e6;
+}
+
+// Total do item: quantidade x (preco - desconto por unidade), em 2 casas.
+// Mesma conta do servidor (CompraBusiness.CalcularTotalItem).
+function totalItem(qt, vlUnit, descUnit) {
+    const liquidoUnit = milionesimos(vlUnit) - milionesimos(descUnit);   // milionesimos
+    return Math.round(centavos(qt) * liquidoUnit / 1e6) / 100;             // centavos -> R$
+}
+
+// Custo unitario: preco - desconto por unidade + rateio / quantidade, em 6 casas.
+// Mesma conta do servidor (CompraBusiness.RatearCustoAdicional).
+function custoUnitario(qt, vlUnit, descUnit, rateio) {
+    const qtCent = centavos(qt);
+    if (qtCent <= 0) return 0;
+    const custo = milionesimos(vlUnit) - milionesimos(descUnit) + milionesimos(rateio) * 100 / qtCent;
+    return Math.round(custo) / 1e6;
 }
 
 function arred2(n) {
@@ -64,18 +100,20 @@ function abrirBuscaFornecedor() {
 }
 
 function abrirBuscaTransportador() {
-    abrirPesquisaTransportador(opcoesDoSelect('IdTransportador'));
+    abrirPesquisaTransportador(opcoesDoSelect('IdTransportador', t => t.razaoSocial));
 }
 
+// A compra so tem produtos: a pesquisa e sempre a de produto.
 function abrirBuscaItem() {
-    const opcoes = {
-        atualizado: r => renomearNoSelect('itCodigo', r.id, r.nome),
-        excluido: r => { if (String(r.id) === document.getElementById('itCodigo').value) limparItemForm(); }
-    };
-    if (document.getElementById('itTipo').value === TIPO_PRODUTO)
-        abrirPesquisaProduto({ ...opcoes, selecionar: p => aplicarItemSelecionado({ id: p.id, nome: p.nome, unidade: p.unidade, custo: p.custo }) });
-    else
-        abrirPesquisaServico({ ...opcoes, selecionar: s => aplicarItemSelecionado({ id: s.id, nome: s.nome, valor: s.valor }) });
+    abrirPesquisaProduto({
+        atualizado: p => { renomearNoSelect('itCodigo', p.id, p.nome); if (String(p.id) === texto('itCodigo')) definirUnidadeItem(p.unidade); },
+        excluido: p => { if (String(p.id) === texto('itCodigo')) limparItemForm(); },
+        selecionar: p => aplicarItemSelecionado({ id: p.id, nome: p.nome, unidade: p.unidade, custo: p.custo })
+    });
+}
+
+function definirUnidadeItem(sigla) {
+    document.getElementById('itUnidade').value = sigla || '';
 }
 
 // Forma da parcela e condicao: alem do campo, mantem as listas FORMAS e
@@ -88,12 +126,13 @@ function abrirBuscaCondicao() {
     abrirPesquisaCondicao(opcoesDoSelectComLista('IdCondicaoPagamento', CONDICOES));
 }
 
-// Preenche os campos do item a partir do produto/servico escolhido.
+// Preenche os campos do item a partir do produto escolhido: a unidade e a
+// do cadastro do produto e o preco sugerido e o custo atual dele.
 function aplicarItemSelecionado(reg) {
     selecionarNoSelect('itCodigo', reg.id, reg.nome);
-    if (reg.unidade) document.getElementById('itUnidade').value = reg.unidade;
-    const preco = reg.custo ?? reg.valor;
-    if (preco) document.getElementById('itVlUnit').value = preco;
+    definirUnidadeItem(reg.unidade);
+    // Sugestao de preco: custo atual do produto, nas 4 casas do preco unitario.
+    if (reg.custo) document.getElementById('itVlUnit').value = Math.round(reg.custo * 1e4) / 1e4;
     calcItemTotal();
 }
 
@@ -105,56 +144,56 @@ function descricaoItem() {
 
 // ---------------- Itens ----------------
 
-function onTipoChange() {
-    document.getElementById('itCodigo').value = '';
-    document.getElementById('itVlUnit').value = '0';
-    calcItemTotal();
-}
-
 // Qual dos dois campos de desconto o usuario digitou por ultimo: o
 // outro e recalculado a partir dele (inclusive quando muda qtd/preco).
 let descontoPorPercentual = false;
 
+// Desconto POR UNIDADE: a porcentagem e sobre o preco unitario e o valor (R$)
+// e o desconto de cada unidade, com ate 6 casas.
 function calcItemTotal() {
-    const bruto = arred2(num('itQt') * num('itVlUnit'));
+    const vlUnit = num('itVlUnit');
 
     if (descontoPorPercentual) {
-        document.getElementById('itDesc').value = arred2(bruto * num('itDescPerc') / 100).toFixed(2);
+        // milionesimos do preco x porcentagem em centesimos / 10000 (em inteiros)
+        document.getElementById('itDesc').value = String(Math.round(milionesimos(vlUnit) * centavos(num('itDescPerc')) / 10000) / 1e6);
     } else {
         document.getElementById('itDescPerc').value =
-            bruto > 0 ? arred2(num('itDesc') / bruto * 100).toFixed(2) : '0';
+            vlUnit > 0 ? arred2(num('itDesc') / vlUnit * 100).toFixed(2) : '0';
     }
 
-    const total = bruto - num('itDesc');
+    const total = totalItem(num('itQt'), vlUnit, num('itDesc'));
     document.getElementById('itTotal').value = (total > 0 ? total : 0).toFixed(2);
 }
 
 function adicionarItem() {
-    const tipo = document.getElementById('itTipo').value;
     const codigo = parseInt(texto('itCodigo')) || 0;
     const descricao = descricaoItem();
+    const secao = secaoDoCampo('itCodigo');
 
-    if (!codigo || !descricao) {
-        exibirErro(secaoDoCampo('itTipo'), 'Selecione um ' + (tipo === TIPO_PRODUTO ? 'produto' : 'serviço') + ' válido.');
-        return;
-    }
+    if (!codigo || !descricao) { exibirErro(secao, 'Selecione um produto válido.'); return; }
 
     const qt = num('itQt');
-    if (qt <= 0) { exibirErro(secaoDoCampo('itTipo'), 'A quantidade deve ser maior que zero.'); return; }
+    if (qt <= 0) { exibirErro(secao, 'A quantidade deve ser maior que zero.'); return; }
+    if (qt !== arred2(qt)) { exibirErro(secao, 'A quantidade aceita no máximo 2 casas decimais.'); return; }
 
     const vlUnit = num('itVlUnit');
-    const desc = num('itDesc');
-    const bruto = arred2(qt * vlUnit);
+    if (vlUnit < 0) { exibirErro(secao, 'O preço unitário não pode ser negativo.'); return; }
 
-    if (desc > bruto) {
-        exibirErro(secaoDoCampo('itTipo'), 'O desconto (R$ ' + moeda(desc) + ') é maior que o valor do item (R$ ' + moeda(bruto) + ').');
+    // Desconto por unidade: o valor (R$) e o que vale; a porcentagem so ajuda a calcular.
+    const perc = num('itDescPerc');
+    const desc = num('itDesc');
+    if (perc < 0 || perc > 100) { exibirErro(secao, 'A porcentagem de desconto deve estar entre 0 e 100.'); return; }
+    if (desc < 0) { exibirErro(secao, 'O desconto não pode ser negativo.'); return; }
+    if (desc !== arred6(desc)) { exibirErro(secao, 'O desconto aceita no máximo 6 casas decimais.'); return; }
+    if (desc > vlUnit) {
+        exibirErro(secao, 'O desconto por unidade (R$ ' + moeda(desc, 6) + ') é maior que o preço unitário (R$ ' + moeda(vlUnit) + ').');
         return;
     }
 
     const item = {
-        tpItem: tipo,
-        idProduto: tipo === TIPO_PRODUTO ? codigo : null,
-        idServico: tipo === TIPO_SERVICO ? codigo : null,
+        tpItem: TIPO_PRODUTO,
+        idProduto: codigo,
+        idServico: null,
         codigo: codigo,
         descricao: descricao,
         // A classificacao saiu da tela. Item antigo que ja tinha uma
@@ -164,7 +203,7 @@ function adicionarItem() {
         qtItem: qt,
         vlUnitario: vlUnit,
         vlDesconto: desc,
-        vlTotal: bruto - desc
+        vlTotal: totalItem(qt, vlUnit, desc)
     };
 
     if (itemEditandoIdx !== null) ITENS[itemEditandoIdx] = item;
@@ -192,7 +231,6 @@ function editarItem(idx) {
     itemEditandoIdx = idx;
     descontoPorPercentual = false;
 
-    document.getElementById('itTipo').value = it.tpItem;
     selecionarNoSelect('itCodigo', it.codigo, it.descricao);
     document.getElementById('itUnidade').value = it.sgUnidade || '';
     document.getElementById('itQt').value = it.qtItem;
@@ -217,36 +255,35 @@ function renderItens() {
     tb.innerHTML = '';
 
     if (!ITENS.length) {
-        tb.innerHTML = '<tr><td colspan="10" class="text-center text-muted py-3">Nenhum produto/serviço adicionado</td></tr>';
+        tb.innerHTML = '<tr><td colspan="10" class="text-center text-muted py-3">Nenhum produto adicionado</td></tr>';
     }
 
     const rateios = calcRateio();
 
     ITENS.forEach((it, idx) => {
-        const badge = it.tpItem === TIPO_PRODUTO ? 'badge-agendado' : 'badge-confirmado';
         const acoes = SOMENTE_LEITURA ? '<td></td>' :
             '<td class="text-center" style="white-space:nowrap;">' +
             '<button type="button" class="btn btn-icon btn-outline-primary" title="Editar" onclick="editarItem(' + idx + ')"><i class="bi bi-pencil"></i></button> ' +
             '<button type="button" class="btn btn-icon btn-outline-danger" title="Excluir" onclick="removerItem(' + idx + ')"><i class="bi bi-trash"></i></button></td>';
 
-        const bruto = arred2(it.qtItem * it.vlUnitario);
-        const percDesc = bruto > 0 && it.vlDesconto > 0
-            ? '<div class="text-muted small">' + moeda(it.vlDesconto / bruto * 100) + '%</div>' : '';
-        // 2 casas, arredondando como o servidor (5 para cima, abaixo de 5 para baixo).
-        const custoUnit = it.qtItem > 0 ? arred2(((Number(it.vlTotal) || 0) + rateios[idx]) / it.qtItem) : 0;
+        const percDesc = it.vlUnitario > 0 && it.vlDesconto > 0
+            ? '<div class="text-muted small">' + moeda(it.vlDesconto / it.vlUnitario * 100) + '% por unidade</div>' : '';
+        // Preco - desconto por unidade + rateio por unidade, com 6 casas como o
+        // servidor (5 para cima, abaixo de 5 para baixo). Ex.: 4,97 - 0,06 = 4,910000.
+        const custoUnit = custoUnitario(it.qtItem, it.vlUnitario, it.vlDesconto, rateios[idx]);
 
         const tr = document.createElement('tr');
         tr.innerHTML =
             '<td>' + (idx + 1) + '</td>' +
             '<td><strong>' + escaparHtml(it.descricao) + '</strong>' +
-                '<div class="text-muted small"><span class="badge-status ' + badge + '">' + it.tpItem + '</span> Cód. ' + it.codigo + '</div></td>' +
+                '<div class="text-muted small">Cód. ' + it.codigo + '</div></td>' +
             '<td class="text-center">' + escaparHtml(it.sgUnidade || '-') + '</td>' +
             '<td class="text-end">' + qtd(it.qtItem) + '</td>' +
             '<td class="text-end">R$ ' + moeda(it.vlUnitario) + '</td>' +
-            '<td class="text-end">R$ ' + moeda(it.vlDesconto) + percDesc + '</td>' +
+            '<td class="text-end">R$ ' + moeda(it.vlDesconto, 6) + percDesc + '</td>' +
             '<td class="text-end"><strong>R$ ' + moeda(it.vlTotal) + '</strong></td>' +
-            '<td class="text-end">' + (it.tpItem === TIPO_PRODUTO ? 'R$ ' + moeda(rateios[idx]) : '-') + '</td>' +
-            '<td class="text-end">R$ ' + moeda(custoUnit) + '</td>' +
+            '<td class="text-end">R$ ' + moeda(rateios[idx], 6) + '</td>' +
+            '<td class="text-end">R$ ' + moeda(custoUnit, 6) + '</td>' +
             acoes;
         tb.appendChild(tr);
     });
@@ -255,9 +292,11 @@ function renderItens() {
     const soma = campo => ITENS.reduce((a, b) => a + (Number(b[campo]) || 0), 0);
     document.getElementById('itensFoot').style.display = ITENS.length ? '' : 'none';
     document.getElementById('totQtd').textContent = qtd(soma('qtItem'));
-    document.getElementById('totDesconto').textContent = 'R$ ' + moeda(soma('vlDesconto'));
+    // Desconto total = soma de quantidade x desconto por unidade.
+    document.getElementById('totDesconto').textContent =
+        'R$ ' + moeda(ITENS.reduce((a, b) => a + Math.round(centavos(b.qtItem) * milionesimos(b.vlDesconto) / 1e6), 0) / 100);
     document.getElementById('totItens').textContent = 'R$ ' + moeda(soma('vlTotal'));
-    document.getElementById('totRateio').textContent = 'R$ ' + moeda(rateios.reduce((a, b) => a + b, 0));
+    document.getElementById('totRateio').textContent = 'R$ ' + moeda(rateios.reduce((a, b) => a + b, 0), 6);
 
     document.getElementById('contadorItens').textContent =
         ITENS.length + (ITENS.length === 1 ? ' item' : ' itens');
@@ -270,17 +309,19 @@ function renderItens() {
 // proporcional ao total de cada um. O ultimo produto absorve a diferenca
 // de arredondamento. Mesma conta de RatearCustoAdicional no servidor.
 function calcRateio() {
-    const custo = custoAdicional();
+    // Em inteiros: custo em milionesimos e totais em centavos (ver centavos()).
+    const custo = milionesimos(custoAdicional());
     const produtos = ITENS.map((it, i) => it.tpItem === TIPO_PRODUTO ? i : -1).filter(i => i >= 0);
-    const base = produtos.reduce((a, i) => a + (Number(ITENS[i].vlTotal) || 0), 0);
+    const base = produtos.reduce((a, i) => a + centavos(ITENS[i].vlTotal), 0);
     const rateios = ITENS.map(() => 0);
     let acumulado = 0;
 
     produtos.forEach((i, n) => {
-        const proporcao = base > 0 ? (Number(ITENS[i].vlTotal) || 0) / base : 1 / produtos.length;
-        const valor = n === produtos.length - 1 ? arred2(custo - acumulado) : arred2(custo * proporcao);
+        const valor = n === produtos.length - 1
+            ? custo - acumulado
+            : Math.round(base > 0 ? custo * centavos(ITENS[i].vlTotal) / base : custo / produtos.length);
         acumulado += valor;
-        rateios[i] = valor;
+        rateios[i] = valor / 1e6;
     });
 
     return rateios;
@@ -296,8 +337,13 @@ function custoAdicional() {
     return num('VlFrete') + num('VlSeguro') + num('VlOutrasDespesas');
 }
 
+// Total da compra (valor da nota, regra da NF-e: produtos - desconto + frete +
+// seguro + outros) = total dos produtos ja com o desconto + custo adicional.
+// Ex.: 279,72 + 71,51 + 13,11 = 364,34. Somado em centavos (sem erro de
+// casa decimal). Mesma conta do servidor (CompraBusiness.Salvar).
 function totalCompra() {
-    return totalProdutos() + custoAdicional();
+    const produtos = ITENS.reduce((a, b) => a + centavos(b.vlTotal), 0);
+    return (produtos + centavos(custoAdicional())) / 100;
 }
 
 function calcTotais() {
@@ -528,11 +574,6 @@ async function validarChave() {
     location.replace(r.url);
 }
 
-function hojeIso() {
-    const d = new Date();
-    return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
-}
-
 function marcarErroData(id, msg) {
     document.getElementById(id).classList.toggle('is-invalid', !!msg);
     document.getElementById(id + 'Erro').textContent = msg;
@@ -594,7 +635,7 @@ function salvar(status) {
     }
 
     if (status === 'FINALIZADA') {
-        if (!ITENS.length) { exibirErro(secaoDoCampo('itTipo'), 'Adicione ao menos um produto/serviço para finalizar a compra.'); return; }
+        if (!ITENS.length) { exibirErro(secaoDoCampo('itCodigo'), 'Adicione ao menos um produto para finalizar a compra.'); return; }
         if (!PAGAMENTOS.length) { exibirErro(secaoDoCampo('pgValor'), 'Informe ao menos uma parcela de pagamento para finalizar a compra.'); return; }
 
         const soma = PAGAMENTOS.reduce((a, b) => a + (Number(b.vlParcela) || 0), 0);

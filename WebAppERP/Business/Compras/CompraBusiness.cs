@@ -80,10 +80,7 @@ public class CompraBusiness
     {
         if (chave.NrModelo <= 0)
             throw new ValidacaoException("Informe o modelo da nota.");
-        if (chave.NrSerie < 0)
-            throw new ValidacaoException("Informe a série da nota.");
-        if (chave.NrNota <= 0)
-            throw new ValidacaoException("Informe o número da nota.");
+        ValidarNumeroSerie(chave.NrNota, chave.NrSerie);
         if (chave.IdFornecedor <= 0)
             throw new ValidacaoException("Informe o fornecedor.");
 
@@ -154,7 +151,13 @@ public class CompraBusiness
         // Inclusao sobre chave ja existente: a PK barraria, mas a mensagem
         // amigavel vem daqui. O catch de DbUpdateException cobre a corrida.
         if (existente == null && input.ChaveOriginal is { Preenchida: true })
-            throw new ValidacaoException("Compra não encontrada para edição.");
+            throw new ValidacaoException("Esta compra foi excluída em outra tela.", "Recarregue a tela.");
+
+        // Mesma chave, mas outra compra: a que a tela abriu foi excluida e a
+        // nota foi lancada de novo em outra tela. A tela antiga nao grava por cima.
+        if (existente != null && input.VersaoOriginal != 0 && existente.DtCriacao.Ticks != input.VersaoOriginal)
+            throw new ValidacaoException("Esta compra foi excluída e lançada de novo em outra tela.",
+                                         "Recarregue a tela para abrir a compra atual.");
 
         if (existente != null && input.ChaveOriginal is not { Preenchida: true })
             throw new ValidacaoException($"Já existe uma compra com modelo {chave.NrModelo}, série {chave.NrSerie}, "
@@ -173,6 +176,10 @@ public class CompraBusiness
         var (novosItens, totalProdutos) = MontarItens(input, chave);
 
         var custoAdicional = input.VlFrete + input.VlSeguro + input.VlOutrasDespesas;
+        // Total da compra (valor da nota, regra da NF-e: produtos - desconto +
+        // frete + seguro + outros) = total dos produtos ja com o desconto +
+        // custo adicional. Ex.: 279,72 + 71,51 + 13,11 = 364,34. Bate com o que
+        // entra no estoque (soma de quantidade x custo unitario).
         var totalCompra = totalProdutos + custoAdicional;
         RatearCustoAdicional(novosItens, custoAdicional);
 
@@ -277,8 +284,11 @@ public class CompraBusiness
     // Cancelamento e exclusao
     // ============================================================
 
-    // Cancela a compra estornando o estoque e cancelando os titulos gerados.
-    public async Task Cancelar(CompraChaveDTO chave)
+    // Cancela a compra estornando o estoque e cancelando os titulos gerados, e
+    // libera o numero da nota: a cancelada recebe zeros na frente (99001 ->
+    // 099001) e o numero certo fica livre para lancar a nota de novo. Devolve a
+    // mensagem para a tela.
+    public async Task<string> Cancelar(CompraChaveDTO chave)
     {
         var compra = await _db.Compras
             .Include(c => c.Itens)
@@ -289,7 +299,11 @@ public class CompraBusiness
             ?? throw new ValidacaoException("Compra não encontrada.");
 
         if (compra.TpStatus == Compra.CANCELADA)
-            return;
+            throw new ValidacaoException("Esta compra já está cancelada.");
+        // Rascunho nao deu entrada no estoque nem gerou titulos: nao ha o que
+        // cancelar. Sai pelo Excluir.
+        if (compra.TpStatus == Compra.RASCUNHO)
+            throw new ValidacaoException("Rascunho não pode ser cancelado.", "Para desistir do rascunho, use Excluir.");
 
         var contas = await GetContasGeradas(chave);
         if (contas.Any(c => c.DsStatus == ContaAPagar.PAGO || c.VlPago > 0))
@@ -307,14 +321,58 @@ public class CompraBusiness
             foreach (var conta in contas)
             {
                 conta.DsStatus = ContaAPagar.CANCELADO;
-                conta.FlAtivo = false;
             }
         }
 
         compra.TpStatus = Compra.CANCELADA;
 
         await _db.SaveChangesAsync();
+
+        var novoNumero = await NumeroParaCancelada(chave);
+        if (novoNumero != null)
+            await TrocarNumeroDaCancelada(chave, novoNumero);
+
         await tx.CommitAsync();
+
+        const string mensagem = "Compra cancelada. Estoque estornado e títulos cancelados.";
+        return novoNumero != null
+            ? $"{mensagem} O número {chave.NrNota} ficou livre: a compra cancelada passou a ser a Nº {novoNumero}."
+            : $"{mensagem} O número {chave.NrNota} não pôde ser liberado: com mais um zero passaria de 9 dígitos.";
+    }
+
+    // Numero para a compra cancelada: o mesmo com zeros na frente, o primeiro
+    // que ainda nao existe, ate 9 digitos. null se nao couber.
+    private async Task<string?> NumeroParaCancelada(CompraChaveDTO chave)
+    {
+        for (var numero = "0" + chave.NrNota; numero.Length <= 9; numero = "0" + numero)
+        {
+            var tentativa = numero;
+            if (!await _db.Compras.AnyAsync(c => c.NrNota == tentativa && c.NrSerie == chave.NrSerie
+                                              && c.NrModelo == chave.NrModelo && c.IdFornecedor == chave.IdFornecedor))
+                return tentativa;
+        }
+        return null;
+    }
+
+    // Troca o numero da compra cancelada. Itens, parcelas e titulos acompanham
+    // pelas FKs com ON UPDATE CASCADE
+    // (Database/Migracoes/1794071000000_Alter_Table_Compras_Cancelada_Libera_Numero.sql);
+    // o texto dos titulos ("Compra NF 55/488/99001 ...") tambem passa ao numero novo.
+    private async Task TrocarNumeroDaCancelada(CompraChaveDTO chave, string novoNumero)
+    {
+        await _db.Database.ExecuteSqlInterpolatedAsync($@"
+            UPDATE dbo.tbCmpCompras SET nrNota = {novoNumero}
+            WHERE nrNota = {chave.NrNota} AND nrSerie = {chave.NrSerie}
+              AND nrModelo = {chave.NrModelo} AND idFornecedor = {chave.IdFornecedor}");
+
+        var antigo = $"{chave.NrModelo}/{chave.NrSerie}/{chave.NrNota}";
+        var novo = $"{chave.NrModelo}/{chave.NrSerie}/{novoNumero}";
+        await _db.Database.ExecuteSqlInterpolatedAsync($@"
+            UPDATE dbo.tbFinContasAPagar
+            SET dsConta = REPLACE(dsConta, {"NF " + antigo + " "}, {"NF " + novo + " "}),
+                dsObservacao = REPLACE(dsObservacao, {"COMPRA " + antigo + "."}, {"COMPRA " + novo + "."})
+            WHERE nrNota = {novoNumero} AND nrSerie = {chave.NrSerie}
+              AND nrModelo = {chave.NrModelo} AND idFornecedor = {chave.IdFornecedor}");
     }
 
     // Exclusao definitiva. So permitida enquanto a compra nao gerou financeiro.
@@ -354,10 +412,7 @@ public class CompraBusiness
     {
         if (input.NrModelo <= 0)
             throw new ValidacaoException("Informe o modelo da nota.");
-        if (input.NrSerie < 0)
-            throw new ValidacaoException("Informe a série da nota.");
-        if (input.NrNota <= 0)
-            throw new ValidacaoException("Informe o número da nota.");
+        ValidarNumeroSerie(input.NrNota, input.NrSerie);
         if (input.IdFornecedor <= 0)
             throw new ValidacaoException("Selecione o fornecedor.");
         if (input.DtEmissao == null)
@@ -403,6 +458,37 @@ public class CompraBusiness
             throw new ValidacaoException("Situação da compra inválida.");
     }
 
+    // Numero da nota: 1 a 9 digitos (nao pode ser so zeros). Serie: 1 a 3 digitos
+    // (pode ser 0). Chegam so com digitos e com os zeros a esquerda digitados
+    // (CompraChaveDTO.Normalizar): o zero a esquerda faz parte da chave.
+    private static void ValidarNumeroSerie(string nrNota, string nrSerie)
+    {
+        if (nrSerie.Length == 0)
+            throw new ValidacaoException("Informe a série da nota.");
+        if (nrSerie.Length > 3)
+            throw new ValidacaoException("A série da nota deve ter no máximo 3 dígitos.");
+        if (nrNota.Length == 0 || nrNota.All(c => c == '0'))
+            throw new ValidacaoException("Informe o número da nota.");
+        if (nrNota.Length > 9)
+            throw new ValidacaoException("O número da nota deve ter no máximo 9 dígitos.");
+    }
+
+    // Total do item da compra. O desconto e POR UNIDADE (6 casas):
+    //   total = quantidade x (preco unitario - desconto unitario), em 2 casas.
+    // Ex.: 12 x (4,97 - 0,06) = 12 x 4,91 = 58,92.
+    // A validacao comum com a venda fica em Module.ValidarItem.
+    private static decimal CalcularTotalItem(int seq, int? idProduto, decimal quantidade, decimal vlUnitario, decimal vlDesconto)
+    {
+        Module.ValidarItem(seq, produto: true, idProduto, idServico: null, quantidade, vlUnitario, vlDesconto);
+        if (vlDesconto != Math.Round(vlDesconto, 6))
+            throw new ValidacaoException($"Item {seq}: o desconto aceita no máximo 6 casas decimais.");
+        if (vlDesconto > vlUnitario)
+            throw new ValidacaoException($"Item {seq}: o desconto por unidade (R$ {vlDesconto:N6}) é maior que o preço "
+                                       + $"unitário (R$ {vlUnitario:N2}).");
+
+        return Math.Round(quantidade * (vlUnitario - vlDesconto), 2, MidpointRounding.AwayFromZero);
+    }
+
     // Recalcula os itens no servidor. O total enviado pela tela e ignorado.
     private static (List<CompraItem> itens, decimal total) MontarItens(CompraDTO input, CompraChaveDTO chave)
     {
@@ -414,9 +500,14 @@ public class CompraBusiness
         {
             seq++;
 
-            var produto = dto.TpItem == CompraItem.PRODUTO;
-            var totalItem = Module.CalcularTotalItem(seq, produto, dto.IdProduto, dto.IdServico,
-                                                     dto.QtItem, dto.VlUnitario, dto.VlDesconto);
+            // A compra so tem produtos (entrada de estoque).
+            if (dto.TpItem != CompraItem.PRODUTO)
+                throw new ValidacaoException($"Item {seq}: a compra aceita apenas produtos.");
+            // Quantidade com no maximo 2 casas decimais.
+            if (dto.QtItem != Math.Round(dto.QtItem, 2))
+                throw new ValidacaoException($"Item {seq}: a quantidade aceita no máximo 2 casas decimais.");
+
+            var totalItem = CalcularTotalItem(seq, dto.IdProduto, dto.QtItem, dto.VlUnitario, dto.VlDesconto);
             total += totalItem;
 
             itens.Add(new CompraItem
@@ -426,9 +517,8 @@ public class CompraBusiness
                 NrModelo = chave.NrModelo,
                 IdFornecedor = chave.IdFornecedor,
                 NrItem = seq,
-                TpItem = produto ? CompraItem.PRODUTO : CompraItem.SERVICO,
-                IdProduto = produto ? dto.IdProduto : null,
-                IdServico = produto ? null : dto.IdServico,
+                TpItem = CompraItem.PRODUTO,
+                IdProduto = dto.IdProduto,
                 IdClassificacaoConta = dto.IdClassificacaoConta,
                 SgUnidade = Module.Truncar(dto.SgUnidade, 10),
                 QtItem = dto.QtItem,
@@ -441,26 +531,26 @@ public class CompraBusiness
         return (itens, total);
     }
 
-    // Rateia o custo adicional (frete + seguro + outros) entre os PRODUTOS,
-    // proporcional ao total de cada item. O ultimo produto absorve a
+    // Rateia o custo adicional (frete + seguro + outros) entre os itens (a
+    // compra so tem produtos), proporcional ao total de cada item. O ultimo produto absorve a
     // diferenca de arredondamento, para a soma fechar com o custo adicional.
+    // Rateio com 6 casas decimais.
     // Mesma conta feita pela tela em calcRateio().
     private static void RatearCustoAdicional(List<CompraItem> itens, decimal custoAdicional)
     {
-        var produtos = itens.Where(i => i.TpItem == CompraItem.PRODUTO).ToList();
-        var baseRateio = produtos.Sum(i => i.VlTotal);
+        var baseRateio = itens.Sum(i => i.VlTotal);
         decimal acumulado = 0;
 
-        for (var n = 0; n < produtos.Count; n++)
+        for (var n = 0; n < itens.Count; n++)
         {
-            var item = produtos[n];
+            var item = itens[n];
 
             // Sem valor para ponderar (itens zerados): divide em partes iguais.
-            var proporcao = baseRateio > 0 ? item.VlTotal / baseRateio : 1m / produtos.Count;
+            var proporcao = baseRateio > 0 ? item.VlTotal / baseRateio : 1m / itens.Count;
 
-            var rateio = n == produtos.Count - 1
+            var rateio = n == itens.Count - 1
                 ? custoAdicional - acumulado
-                : Math.Round(custoAdicional * proporcao, 2, MidpointRounding.AwayFromZero);
+                : Math.Round(custoAdicional * proporcao, 6, MidpointRounding.AwayFromZero);
 
             acumulado += rateio;
             item.VlRateio = rateio;
@@ -468,9 +558,10 @@ public class CompraBusiness
 
         foreach (var item in itens)
         {
-            if (item.TpItem != CompraItem.PRODUTO) item.VlRateio = 0;
-            // 2 casas decimais, igual a tela: 5 arredonda para cima, abaixo de 5 para baixo.
-            item.VlCustoUnitario = Math.Round((item.VlTotal + item.VlRateio) / item.QtItem, 2,
+            // Custo unitario = preco - desconto por unidade + rateio por unidade,
+            // com 6 casas decimais, igual a tela (5 arredonda para cima).
+            // Ex.: 4,97 - 0,06 + 0 = 4,910000.
+            item.VlCustoUnitario = Math.Round(item.VlUnitario - item.VlDesconto + item.VlRateio / item.QtItem, 6,
                                               MidpointRounding.AwayFromZero);
         }
     }
@@ -530,7 +621,6 @@ public class CompraBusiness
                 VlValor = parcela.VlParcela,
                 VlPago = 0,
                 DsStatus = ContaAPagar.PENDENTE,
-                FlAtivo = true,
                 DsObservacao = Module.Truncar($"Gerado automaticamente pela compra "
                                      + $"{compra.NrModelo}/{compra.NrSerie}/{compra.NrNota}.", 500),
 
@@ -590,6 +680,7 @@ public class CompraBusiness
         var custoMedio = (saldo * custo + qtde * custoUnit) / saldoFinal;
         if (custoMedio < 0) return null;
 
-        return Math.Round(custoMedio, 2, MidpointRounding.AwayFromZero);
+        // 6 casas, igual ao custo unitario do item (VlCustoUnitario).
+        return Math.Round(custoMedio, 6, MidpointRounding.AwayFromZero);
     }
 }

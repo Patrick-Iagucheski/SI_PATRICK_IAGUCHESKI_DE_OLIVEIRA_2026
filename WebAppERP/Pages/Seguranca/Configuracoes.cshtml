@@ -1,6 +1,8 @@
 ﻿@page
 @model WebAppERP.Pages.Seguranca.ConfiguracoesModel
 @{
+    // Tela de digitacao: a aba nao recarrega sozinha ao voltar (site.js)
+    ViewData["ManterAoVoltar"] = true;
     ViewData["Title"] = "Configurações";
     var logoAtual = Url.Content("~" + (string.IsNullOrEmpty(Model.DsLogo) ? WebAppERP.Infrastructure.EmpresaService.LogoPadrao : Model.DsLogo));
     var logoPadrao = Url.Content("~" + WebAppERP.Infrastructure.EmpresaService.LogoPadrao);

@@ -1,0 +1,139 @@
+﻿@page
+@model WebAppERP.Pages.Gerais.CategoriasServicoModel
+@{
+    ViewData["Title"] = "Categorias de Serviço";
+}
+
+<div class="d-flex justify-content-between align-items-start mb-4">
+    <div>
+        <h1 class="page-title">Categorias de Serviço</h1>
+        <p class="page-subtitle">Cadastre categorias para classificar os serviços (Corte, Barba...)</p>
+    </div>
+    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#modalCategoriaServico" onclick="limparFormCategoriaServico()">
+        <i class="bi bi-plus-lg me-1"></i> Nova Categoria
+    </button>
+</div>
+
+<!-- Filtros de busca (todos opcionais e combinaveis) -->
+<div class="card mb-3">
+    <div class="card-body py-3">
+        <div class="row g-2 align-items-end">
+            <div class="col-md-2">
+                <label class="form-label small mb-1">ID</label>
+                <input type="number" class="form-control" id="buscaId" min="1" autocomplete="off" />
+            </div>
+            <div class="col-md-6">
+                <label class="form-label small mb-1">Categoria</label>
+                <input type="text" class="form-control" id="buscaTermo" autocomplete="off" />
+            </div>
+        </div>
+        <div class="d-flex justify-content-between align-items-center mt-3">
+            <div class="form-check mb-0">
+                <input class="form-check-input" type="checkbox" id="buscaInativos" onchange="buscarCategorias()" />
+                <label class="form-check-label" for="buscaInativos">Exibir Categorias Inativas</label>
+            </div>
+            <button type="button" class="btn btn-primary" onclick="buscarCategorias()">
+                <i class="bi bi-search me-1"></i>Buscar
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Tabela -->
+<div class="table-container">
+    <div class="table-header">
+        <h5><i class="bi bi-bookmarks-fill me-2"></i>Lista de Categorias de Serviço</h5>
+        <span class="text-muted small" id="contadorRegistros">@Model.Categorias.Count registros encontrados</span>
+    </div>
+    <div class="table-responsive">
+        <table class="table" id="tblCategorias">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Categoria</th>
+                    <th>Status</th>
+                    <th class="text-center">Ações</th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (Model.Categorias.Any())
+                {
+                    @foreach (var c in Model.Categorias)
+                    {
+                        <tr>
+                            <td>@c.IdCategoriaServico</td>
+                            <td><strong>@c.NmCategoria</strong></td>
+                            <td>
+                                <span class="badge-status @(c.FlAtivo ? "badge-ativo" : "badge-inativo")">@(c.FlAtivo ? "Ativo" : "Inativo")</span>
+                            </td>
+                            <td class="text-center">
+                                <button class="btn btn-icon btn-outline-primary" title="Editar"
+                                        data-bs-toggle="modal" data-bs-target="#modalCategoriaServico"
+                                        data-registro="@Module.RegistroJson(c)"
+                                        data-categoria="@System.Text.Json.JsonSerializer.Serialize(CategoriasServicoModel.Registro(c))"
+                                        onclick="editarCategoriaServico(JSON.parse(this.dataset.categoria))">
+                                    <i class="bi bi-pencil"></i>
+                                </button>
+                                <form method="post" asp-page-handler="Excluir" class="d-inline" onsubmit="return confirm('Deseja realmente excluir esta categoria de serviço?')">
+                                    <input type="hidden" name="id" value="@c.IdCategoriaServico" />
+                                    <button type="submit" class="btn btn-icon btn-outline-danger" title="Excluir">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </form>
+                            </td>
+                        </tr>
+                    }
+                }
+                else
+                {
+                    <tr><td colspan="4" class="text-center text-muted py-4">Nenhuma categoria de serviço cadastrada</td></tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Modal -->
+<div class="modal fade" id="modalCategoriaServico" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form method="post" data-modal-ajax>
+                <div class="modal-header">
+                    <h5 class="modal-title" id="csTitulo"><i class="bi bi-bookmarks me-2"></i>Nova Categoria de Serviço</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <input type="hidden" asp-for="CategoriaForm.IdCategoriaServico" id="csId" />
+                    <div class="row g-3">
+                        <div class="col-md-3">
+                            <label class="form-label">Código</label>
+                            <input type="text" class="form-control bg-light" id="csCodigoDisplay" placeholder="(novo)" readonly />
+                        </div>
+                        <div class="col-md-9">
+                            <label class="form-label">Categoria *</label>
+                            <input type="text" class="form-control" asp-for="CategoriaForm.NmCategoria" id="csNome" maxlength="100" placeholder="Ex: Corte" required />
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label">Status</label>
+                            @* Marcado = inativo. O valor gravado (FlAtivo) vai no campo escondido (definirAtivo, module.js). *@
+                            <input type="hidden" asp-for="CategoriaForm.FlAtivo" id="csAtivo" />
+                            <div class="form-check mt-2">
+                                <input class="form-check-input" type="checkbox" id="csAtivoInativo" data-inativo-de="csAtivo" checked="@(!Model.CategoriaForm.FlAtivo)" />
+                                <label class="form-check-label" for="csAtivoInativo">Inativo</label>
+                            </div>
+                        </div>
+                    </div>
+                    <partial name="_Registro" />
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary"><i class="bi bi-check-lg me-1"></i>Salvar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="~/Pages/Gerais/CategoriasServico.cshtml.js" asp-append-version="true"></script>
+}

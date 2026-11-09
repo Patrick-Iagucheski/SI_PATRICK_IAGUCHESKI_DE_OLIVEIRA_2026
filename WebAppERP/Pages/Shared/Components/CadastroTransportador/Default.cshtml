@@ -3,9 +3,12 @@
     Componente de cadastro de transportadora (ViewComponents/CadastroTransportadorViewComponent).
     Traz o proprio script (Default.cshtml.js, nesta pasta), incluido uma vez por
     pagina. Modo "ajax": o Salvar grava pelo module.js e dispara o evento
-    'transportador:salvo' (detail: id, nome), sem recarregar a tela.
+    'transportador:salvo' (detail: o registro gravado), sem recarregar a tela.
+    Mesmo layout do cadastro de fornecedor, sem dados bancarios e PIX. Os ids
+    tem o prefixo "tr": na Compra este modal fica na mesma pagina do fornecedor.
 *@
 
+<!-- Modal Nova/Editar Transportadora -->
 <div class="modal fade" id="modalTransportador" tabindex="-1"
      data-url-transportadores="@Url.Page("/Gerais/Transportadores")">
     <div class="modal-dialog modal-lg">
@@ -14,31 +17,144 @@
                   asp-page-handler="@(Model.Modo == "ajax" ? "SalvarAjax" : null)"
                   data-evento="@(Model.Modo == "ajax" ? "transportador:salvo" : null)">
                 <div class="modal-header">
-                    <h5 class="modal-title" id="trTitulo"><i class="bi bi-truck-front me-2"></i>Novo Transportador</h5>
+                    <h5 class="modal-title" id="trTitulo"><i class="bi bi-truck-front me-2"></i>Nova Transportadora</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
                     <input type="hidden" asp-for="TransportadorForm.IdTransportador" id="trId" />
+
+                    <!-- ===== Dados Cadastrais ===== -->
+                    <!-- Layout por tipo (toggleTipoPessoaTransportador), igual ao do fornecedor:
+                         Juridica:  Razao Social | Nome Fantasia
+                                    CNPJ | Insc. Estadual | Insc. Municipal
+                         Fisica:    CPF | RG | Nascimento
+                         Estrangeiro / Outro: Documento | Insc. Estadual | Nascimento
+                         Depois: Endereco, Contato, Status e, no fim, Observacoes.
+                         Transportadora nao tem condicao de pagamento. -->
+                    <h6 class="text-primary border-bottom pb-1 mb-3"><i class="bi bi-card-list me-1"></i>Dados Cadastrais</h6>
                     <div class="row g-3">
-                        <div class="col-md-8">
-                            <label class="form-label">Razão Social *</label>
-                            <input type="text" class="form-control" asp-for="TransportadorForm.DsRazaoSocial" id="trRazao" maxlength="200" required />
+                        <div class="col-md-2">
+                            <label class="form-label">Código</label>
+                            <input type="text" class="form-control bg-light" id="trCodigoDisplay" placeholder="(novo)" readonly />
                         </div>
                         <div class="col-md-4">
-                            <label class="form-label">CPF / CNPJ *</label>
-                            <input type="text" class="form-control" asp-for="TransportadorForm.NrCpfCnpj" id="trDoc" maxlength="18" placeholder="000.000.000-00" required />
+                            <label class="form-label">Tipo de Pessoa *</label>
+                            <select class="form-select" asp-for="TransportadorForm.TpPessoa" id="trTpPessoa" onchange="toggleTipoPessoaTransportador()">
+                                <option value="J">Pessoa Jurídica</option>
+                                <option value="F">Pessoa Física</option>
+                                <option value="E">Estrangeiro</option>
+                                <option value="O">Outro</option>
+                            </select>
+                        </div>
+                        <!-- Juridica: Razao Social desce para a linha do Nome Fantasia -->
+                        <div class="w-100 m-0" id="trQuebraRazao"></div>
+                        <div class="col-md-6">
+                            <label class="form-label" id="trLblRazao">Razão Social *</label>
+                            <input type="text" class="form-control" asp-for="TransportadorForm.DsRazaoSocial" id="trDsRazaoSocial" maxlength="100" required />
+                        </div>
+                        <div class="col-md-6" id="trWrapFantasia">
+                            <label class="form-label">Nome Fantasia</label>
+                            <input type="text" class="form-control" asp-for="TransportadorForm.DsNomeFantasia" id="trDsNomeFantasia" maxlength="150" />
+                        </div>
+
+                        <div class="col-md-4" id="trWrapCnpj">
+                            <label class="form-label">CNPJ *</label>
+                            <input type="text" class="form-control" asp-for="TransportadorForm.NrCNPJ" id="trNrCNPJ" maxlength="18" placeholder="00.000.000/0000-00" required />
+                        </div>
+                        <div class="col-md-4 d-none" id="trWrapCpf">
+                            <label class="form-label">CPF *</label>
+                            <input type="text" class="form-control" asp-for="TransportadorForm.NrCpf" id="trNrCpf" maxlength="14" placeholder="000.000.000-00" />
+                        </div>
+                        <div class="col-md-4 d-none" id="trWrapDoc">
+                            <label class="form-label" id="trLblDoc">Documento</label>
+                            <input type="text" class="form-control" asp-for="TransportadorForm.NrDocumento" id="trNrDocumento" maxlength="30" placeholder="Documento" />
+                        </div>
+                        <!-- Slot A: Inscricao Estadual (PJ / Estrangeiro / Outro) ou RG (Pessoa Fisica) -->
+                        <div class="col-md-4" id="trWrapInscEstadual">
+                            <label class="form-label">Inscrição Estadual</label>
+                            <input type="text" class="form-control" asp-for="TransportadorForm.NrInscEstadual" id="trNrInscEstadual" maxlength="13" placeholder="8 a 13 dígitos" />
+                        </div>
+                        <div class="col-md-4 d-none" id="trWrapRG">
+                            <label class="form-label">RG</label>
+                            <input type="text" class="form-control" asp-for="TransportadorForm.NrRG" id="trNrRG" maxlength="12" placeholder="00.000.000-0" />
+                        </div>
+
+                        <!-- Slot B: Inscricao Municipal (PJ) ou Data de Nascimento (Pessoa Fisica / Estrangeiro / Outro) -->
+                        <div class="col-md-4" id="trWrapInscMunicipal">
+                            <label class="form-label">Inscrição Municipal</label>
+                            <input type="text" class="form-control" asp-for="TransportadorForm.NrInscMunicipal" id="trNrInscMunicipal" maxlength="15" placeholder="7 a 15 caracteres" />
+                        </div>
+                        <div class="col-md-4 d-none" id="trWrapDataNasc">
+                            <label class="form-label">Data de Nascimento</label>
+                            <input type="date" class="form-control" asp-for="TransportadorForm.DtNascimento" id="trDtNascimento" />
+                        </div>
+                    </div>
+
+                    <!-- ===== Endereco ===== -->
+                    <h6 class="text-primary border-bottom pb-1 mb-3 mt-4"><i class="bi bi-geo-alt me-1"></i>Endereço</h6>
+                    <div class="row g-3">
+                        <div class="col-md-3">
+                            <label class="form-label">CEP</label>
+                            <input type="text" class="form-control" asp-for="TransportadorForm.NrCEP" id="trNrCEP" maxlength="9" placeholder="00000-000" />
                         </div>
                         <div class="col-md-7">
-                            <label class="form-label">Endereço</label>
-                            <input type="text" class="form-control" asp-for="TransportadorForm.DsEndereco" id="trEndereco" />
+                            <label class="form-label">Logradouro</label>
+                            <input type="text" class="form-control" asp-for="TransportadorForm.DsEndereco" id="trDsEndereco" maxlength="100" />
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label">Número</label>
+                            <input type="text" class="form-control" asp-for="TransportadorForm.NrNumero" id="trNrNumero" maxlength="10" />
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Complemento</label>
+                            <input type="text" class="form-control" asp-for="TransportadorForm.DsComplemento" id="trDsComplemento" maxlength="100" />
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Bairro</label>
+                            <input type="text" class="form-control" asp-for="TransportadorForm.DsBairro" id="trDsBairro" maxlength="100" />
                         </div>
                         <div class="col-md-5">
                             <label class="form-label">Cidade</label>
-                            @await Component.InvokeAsync("CampoCidade", new { nome = "TransportadorForm.IdCidade", id = "trCidade" })
+                            @await Component.InvokeAsync("CampoCidade", new { nome = "TransportadorForm.IdCidade", id = "trIdCidade", idCidade = Model.TransportadorForm.IdCidade })
                         </div>
-                        <div class="col-md-6">
-                            <label class="form-label">Inscrição Estadual</label>
-                            <input type="text" class="form-control" asp-for="TransportadorForm.NrInscEstadual" id="trIE" maxlength="20" />
+                    </div>
+
+                    <!-- ===== Contato ===== -->
+                    <h6 class="text-primary border-bottom pb-1 mb-3 mt-4"><i class="bi bi-telephone me-1"></i>Contato</h6>
+                    <div class="row g-3">
+                        <div class="col-md-3">
+                            <label class="form-label">Telefone Fixo</label>
+                            <input type="text" class="form-control" asp-for="TransportadorForm.NrTelefoneFixo" id="trNrTelefoneFixo" maxlength="15" placeholder="(00) 0000-0000" />
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Celular/WhatsApp</label>
+                            <input type="text" class="form-control" asp-for="TransportadorForm.NrCelular" id="trNrCelular" maxlength="15" placeholder="(00) 00000-0000" />
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">E-mail</label>
+                            <input type="email" class="form-control" asp-for="TransportadorForm.DsEmail" id="trDsEmail" maxlength="150" />
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Site</label>
+                            <input type="text" class="form-control sem-caixa-alta" asp-for="TransportadorForm.DsSite" id="trDsSite" maxlength="150" placeholder="www.exemplo.com.br" />
+                        </div>
+                    </div>
+
+                    <!-- Status (sempre logo acima das Observacoes) e Observacoes
+                         (sempre o ultimo campo do cadastro) -->
+                    <div class="row g-3 mt-1">
+                        <div class="col-md-3">
+                            <label class="form-label">Status</label>
+                            @* Marcado = inativo. O valor gravado (FlAtivo) vai no campo escondido (definirAtivo, module.js). *@
+                            <input type="hidden" asp-for="TransportadorForm.FlAtivo" id="trFlAtivo" />
+                            <div class="form-check mt-2">
+                                <input class="form-check-input" type="checkbox" id="trFlAtivoInativo" data-inativo-de="trFlAtivo" checked="@(!Model.TransportadorForm.FlAtivo)" />
+                                <label class="form-check-label" for="trFlAtivoInativo">Inativo</label>
+                            </div>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label">Observações</label>
+                            <textarea class="form-control" rows="2" asp-for="TransportadorForm.DsObservacao" id="trDsObservacao" maxlength="500"></textarea>
                         </div>
                     </div>
                     <partial name="_Registro" />

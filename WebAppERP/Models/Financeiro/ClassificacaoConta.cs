@@ -6,6 +6,8 @@ namespace WebAppERP.Models.Financeiro;
 // Classificacao contabil/gerencial usada nos itens da compra
 // (ex: Mercadorias para Revenda, Material de Uso e Consumo).
 // Tabela criada em Database/CriarCompras.sql.
+// Cadastro: texto gravado em MAIUSCULO (CaixaAltaAttribute).
+[CaixaAlta]
 [Table("tbFinClassificacoesConta")]
 public class ClassificacaoConta : EntidadeComRegistro
 {

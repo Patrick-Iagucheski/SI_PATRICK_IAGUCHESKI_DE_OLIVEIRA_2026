@@ -26,6 +26,31 @@ public class AgendamentoBusiness
     // Consultas
     // ============================================================
 
+    // Pesquisa do agendamento (lupa do campo de agendamento da Venda), com os
+    // mesmos filtros da tela de Agendamentos: data, cliente / servico /
+    // profissional e situacao, alem do codigo. Os mais recentes primeiro.
+    public async Task<List<Agendamento>> Pesquisar(int? id, DateOnly? data, string? texto, string? situacao)
+    {
+        var query = _db.Agendamentos
+            .Include(a => a.Cliente)
+            .Include(a => a.Funcionario)
+            .Include(a => a.Servico)
+            .AsQueryable();
+
+        if (id.HasValue)
+            query = query.Where(a => a.IdAgendamento == id.Value);
+        if (data.HasValue)
+            query = query.Where(a => a.DtAgendamento == data.Value);
+        if (!string.IsNullOrWhiteSpace(texto))
+            query = query.Where(Module.MontarFiltroTexto<Agendamento>(texto,
+                a => a.Cliente!.NmCliente, a => a.Servico!.DsServico, a => a.Funcionario!.NmFuncionario));
+        if (!string.IsNullOrWhiteSpace(situacao))
+            query = query.Where(a => a.TpStatus == situacao);
+
+        return await query.OrderByDescending(a => a.DtAgendamento).ThenByDescending(a => a.HrInicio)
+                          .Take(100).ToListAsync();
+    }
+
     // Agenda do dia.
     public async Task<List<Agendamento>> Listar(DateOnly data) =>
         await _db.Agendamentos

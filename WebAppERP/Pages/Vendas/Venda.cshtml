@@ -1,6 +1,8 @@
 ﻿@page
 @model WebAppERP.Pages.Vendas.VendaModel
 @{
+    // Tela de digitacao: a aba nao recarrega sozinha ao voltar (site.js)
+    ViewData["ManterAoVoltar"] = true;
     ViewData["Title"] = Model.Vm.Venda.IdVenda > 0 ? $"Venda #{Model.Vm.Venda.IdVenda}" : "Nova Venda";
     var ro = Model.Vm.SomenteLeitura;
     var disabledAttr = ro ? "disabled" : null;
@@ -90,7 +92,9 @@
                 </div>
                 <div class="col-md-5">
                     <label class="form-label">Agendamento (opcional)</label>
-                    <select class="form-select" asp-for="IdAgendamento" id="IdAgendamento" disabled="@ro">
+                    @* Campo de selecao: a pesquisa (componente CadastroAgendamento) seleciona, edita e cadastra *@
+                    <select class="form-select" asp-for="IdAgendamento" id="IdAgendamento" disabled="@ro"
+                            data-pesquisa="abrirPesquisaAgendamento(opcoesDoSelect('IdAgendamento'))" data-titulo-pesquisa="Pesquisar agendamento">
                         <option value="">Nenhum</option>
                         @foreach (var a in Model.Vm.Combos.Agendamentos)
                         {
@@ -117,7 +121,7 @@
     {
         <!-- Adicionar Item -->
         <div class="card mb-3">
-            <div class="card-body">
+            <div class="card-body pb-4">
                 <h6 class="fw-bold mb-3"><i class="bi bi-plus-circle me-2"></i>Adicionar Item</h6>
                 <div class="row g-2 align-items-end">
                     <div class="col-md-2">
@@ -127,7 +131,9 @@
                             <option value="@VendaItem.SERVICO">Serviço</option>
                         </select>
                     </div>
-                    <div class="col-md-4" id="grpProduto">
+                    <!-- O saldo fica abaixo do campo sem ocupar altura (.dica-abaixo):
+                         assim o campo nao sobe em relacao aos outros da linha. -->
+                    <div class="col-md-4 position-relative" id="grpProduto">
                         <label class="form-label">Produto</label>
                         <select class="form-select" id="itProduto" onchange="onProdutoChange()"
                                 data-pesquisa="abrirBuscaProdutoVenda()" data-titulo-pesquisa="Pesquisar produto">
@@ -137,7 +143,7 @@
                                 <option value="@p.IdProduto">@p.DsProduto</option>
                             }
                         </select>
-                        <small class="text-muted" id="itSaldo"></small>
+                        <small class="dica-abaixo" id="itSaldo"></small>
                     </div>
                     <div class="col-md-4" id="grpServico" style="display:none;">
                         <label class="form-label">Serviço</label>
@@ -255,6 +261,8 @@
     @await Component.InvokeAsync("CadastroFuncionario", new { modo = "ajax" })
     @await Component.InvokeAsync("CadastroProduto", new { modo = "ajax" })
     @await Component.InvokeAsync("CadastroServico", new { modo = "ajax" })
+    @* Agendamento: Novo / Editar da pesquisa do campo (usa cliente, profissional e servico acima) *@
+    @await Component.InvokeAsync("CadastroAgendamento", new { modo = "ajax" })
     @await Component.InvokeAsync("CadastroFormaPagamento", new { modo = "ajax" })
 }
 

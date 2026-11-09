@@ -3,6 +3,8 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace WebAppERP.Models.Gerais;
 
+// Cadastro: texto gravado em MAIUSCULO (CaixaAltaAttribute).
+[CaixaAlta]
 [Table("tbGerFuncionarios")]
 public class Funcionario : EntidadeComRegistro
 {
@@ -36,6 +38,7 @@ public class Funcionario : EntidadeComRegistro
 
     [Column("dsEmail")]
     [MaxLength(150)]
+    [ManterCaixa]
     public string? DsEmail { get; set; }
 
     [Column("dsEndereco")]

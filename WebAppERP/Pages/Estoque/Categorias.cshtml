@@ -1,16 +1,16 @@
 ﻿@page
 @model WebAppERP.Pages.Estoque.CategoriasModel
 @{
-    ViewData["Title"] = "Categorias";
+    ViewData["Title"] = "Categorias de Produto";
 }
 
 <div class="d-flex justify-content-between align-items-start mb-4">
     <div>
-        <h1 class="page-title">Categorias</h1>
+        <h1 class="page-title">Categorias de Produto</h1>
         <p class="page-subtitle">Cadastre categorias para classificar os produtos do estoque</p>
     </div>
     <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#modalCategoria" onclick="limparForm()">
-        <i class="bi bi-plus-lg me-1"></i> Nova Categoria
+        <i class="bi bi-plus-lg me-1"></i> Nova Categoria de Produto
     </button>
 </div>
 
@@ -42,7 +42,7 @@
 <!-- Tabela -->
 <div class="table-container">
     <div class="table-header">
-        <h5><i class="bi bi-collection-fill me-2"></i>Lista de Categorias</h5>
+        <h5><i class="bi bi-collection-fill me-2"></i>Lista de Categorias de Produto</h5>
         <span class="text-muted small" id="contadorRegistros">@Model.Categorias.Count registros encontrados</span>
     </div>
     <div class="table-responsive">
@@ -80,7 +80,7 @@
                                         onclick="editarCategoria(@c.IdCategoria,'@c.NmCategoria.Replace("'", "\\'")','@c.FlAtivo')">
                                     <i class="bi bi-pencil"></i>
                                 </button>
-                                <form method="post" asp-page-handler="Excluir" class="d-inline" onsubmit="return confirm('Deseja realmente excluir esta categoria?')">
+                                <form method="post" asp-page-handler="Excluir" class="d-inline" onsubmit="return confirm('Deseja realmente excluir esta categoria de produto?')">
                                     <input type="hidden" name="id" value="@c.IdCategoria" />
                                     <button type="submit" class="btn btn-icon btn-outline-danger" title="Excluir">
                                         <i class="bi bi-trash"></i>
@@ -92,7 +92,7 @@
                 }
                 else
                 {
-                    <tr><td colspan="4" class="text-center text-muted py-4">Nenhuma categoria cadastrada</td></tr>
+                    <tr><td colspan="4" class="text-center text-muted py-4">Nenhuma categoria de produto cadastrada</td></tr>
                 }
             </tbody>
         </table>
@@ -105,7 +105,7 @@
         <div class="modal-content">
             <form method="post" data-modal-ajax>
                 <div class="modal-header">
-                    <h5 class="modal-title" id="modalTitle"><i class="bi bi-collection me-2"></i>Nova Categoria</h5>
+                    <h5 class="modal-title" id="modalTitle"><i class="bi bi-collection me-2"></i>Nova Categoria de Produto</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">

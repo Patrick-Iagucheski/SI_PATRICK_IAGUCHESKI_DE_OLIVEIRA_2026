@@ -853,3 +853,29 @@ body {
    o clique abre a pesquisa */
 .campo-selecao:not(:disabled) { cursor: pointer; }
 
+/* ============================================
+   Cadastros em MAIUSCULO
+   ============================================
+   O servidor grava o texto dos cadastros em maiusculo (CaixaAltaAttribute,
+   AppDbContext). Aqui so o que se digita nos modais ja aparece assim.
+   E-mail (type=email), site e chave PIX (.sem-caixa-alta) ficam como digitados. */
+.modal input[type="text"]:not(.sem-caixa-alta),
+.modal textarea:not(.sem-caixa-alta) {
+    text-transform: uppercase;
+}
+
+.modal input[type="text"]::placeholder,
+.modal textarea::placeholder {
+    text-transform: none;
+}
+
+/* Dica logo abaixo de um campo sem ocupar altura (ex.: saldo em estoque do
+   item da Venda): o campo nao sobe em relacao aos outros da linha.
+   A coluna precisa de position-relative. */
+.dica-abaixo {
+    position: absolute;
+    top: 100%;
+    left: calc(var(--bs-gutter-x) * .5);
+    font-size: .8rem;
+    white-space: nowrap;
+}

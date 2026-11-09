@@ -8,29 +8,54 @@
 // bootstrap dentro dos eventos, nunca no carregamento.
 
 // ===== Grid de parcelas =====
+// Formas ativas (data-formas do modal). Guardadas numa lista para que a forma
+// cadastrada ou renomeada pelo + entre tambem nas parcelas adicionadas depois.
+let FORMAS_CONDICAO = null;
+function formasCondicao() {
+    return FORMAS_CONDICAO ??= JSON.parse(document.getElementById('modalCondicao').dataset.formas || '[]');
+}
+
 function opcoesFormaCondicao(selecionado) {
-    const formas = JSON.parse(document.getElementById('modalCondicao').dataset.formas || '[]');
     let html = '<option value="">Selecione</option>';
-    formas.forEach(f => {
+    formasCondicao().forEach(f => {
         const sel = (String(f.id) === String(selecionado)) ? ' selected' : '';
         html += `<option value="${f.id}"${sel}>${escaparHtml(f.nome)}</option>`;
     });
     return html;
 }
 
+// Cada parcela tem um id proprio no select da forma (o + seleciona nele).
+let seqFormaCondicao = 0;
+
 function addParcelaCondicao(dias, idForma, perc) {
     const tbody = document.querySelector('#condTblParcelas tbody');
     const tr = document.createElement('tr');
+    const idSelect = 'condForma' + (++seqFormaCondicao);
     tr.innerHTML =
         '<td><input type="text" class="form-control form-control-sm p-num bg-light" readonly></td>' +
         '<td><input type="number" min="0" class="form-control form-control-sm p-dias" value="' + (dias ?? 0) + '"></td>' +
-        '<td><select class="form-select form-select-sm p-forma">' + opcoesFormaCondicao(idForma ?? '') + '</select></td>' +
+        '<td><select class="form-select form-select-sm p-forma" id="' + idSelect + '"' +
+            ' data-pesquisa="abrirPesquisaFormaCondicao(\'' + idSelect + '\')">' +
+            opcoesFormaCondicao(idForma ?? '') + '</select></td>' +
         '<td><input type="number" step="0.01" min="0" max="100" class="form-control form-control-sm p-perc" value="' + (perc ?? '') + '"></td>' +
         '<td class="text-center"><button type="button" class="btn btn-icon btn-outline-danger" title="Remover" onclick="removeParcelaCondicao(this)"><i class="bi bi-trash"></i></button></td>';
     tbody.appendChild(tr);
+    montarCampoSelecao(tr.querySelector('.p-forma'));
     tr.querySelector('.p-perc').addEventListener('input', atualizarTotalCondicao);
     renumerarParcelasCondicao();
     atualizarTotalCondicao();
+}
+
+// + da forma na parcela: pesquisa de forma de pagamento (seleciona, edita e
+// cadastra pelo Novo). Renomear ou excluir vale para todas as parcelas.
+function abrirPesquisaFormaCondicao(idSelect) {
+    const parcela = opcoesDoSelectComLista(idSelect, formasCondicao());
+    const emTodas = acao => document.querySelectorAll('#condTblParcelas .p-forma').forEach(s => acao(s.id));
+    abrirPesquisaForma({
+        selecionar: parcela.selecionar,
+        atualizado: r => { parcela.atualizado(r); emTodas(id => renomearNoSelect(id, r.id, r.nome)); },
+        excluido: r => { parcela.excluido(r); emTodas(id => removerDoSelect(id, r.id)); }
+    });
 }
 
 function removeParcelaCondicao(btn) {

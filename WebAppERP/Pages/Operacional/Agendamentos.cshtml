@@ -9,7 +9,7 @@
         <h1 class="page-title">Agendamentos</h1>
         <p class="page-subtitle">Gerencie a agenda da barbearia</p>
     </div>
-    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#modalAgendamento" onclick="limparForm()">
+    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#modalAgendamento" onclick="limparFormAgendamento()">
         <i class="bi bi-plus-lg me-1"></i> Novo Agendamento
     </button>
 </div>
@@ -190,84 +190,8 @@
     </div>
 </div>
 
-<!-- Modal Novo Agendamento -->
-<div class="modal fade" id="modalAgendamento" tabindex="-1">
-    <div class="modal-dialog modal-lg">
-        <div class="modal-content">
-            <form method="post" data-modal-ajax>
-                <div class="modal-header">
-                    <h5 class="modal-title"><i class="bi bi-calendar-plus me-2"></i>Novo Agendamento</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                </div>
-                <div class="modal-body">
-                    <input type="hidden" asp-for="AgendamentoForm.IdAgendamento" id="aId" />
-                    <div class="row g-3">
-                        <div class="col-md-6">
-                            <label class="form-label">Cliente *</label>
-                            <select class="form-select" asp-for="AgendamentoForm.IdCliente" id="agCliente" required
-                                    data-pesquisa="abrirPesquisaCliente(opcoesDoSelect('agCliente'))" data-titulo-pesquisa="Pesquisar cliente">
-                                <option value="">Selecione o cliente</option>
-                                @foreach (var c in Model.Clientes)
-                                {
-                                    <option value="@c.IdCliente">@c.NmCliente</option>
-                                }
-                            </select>
-                        </div>
-                        <div class="col-md-6">
-                            <label class="form-label">Profissional *</label>
-                            <select class="form-select" asp-for="AgendamentoForm.IdFuncionario" id="agFuncionario" required
-                                    data-pesquisa="abrirPesquisaFuncionario(opcoesDoSelect('agFuncionario'), 'Pesquisar Profissional')" data-titulo-pesquisa="Pesquisar profissional">
-                                <option value="">Selecione o profissional</option>
-                                @foreach (var f in Model.Funcionarios)
-                                {
-                                    <option value="@f.IdFuncionario">@f.NmFuncionario</option>
-                                }
-                            </select>
-                        </div>
-                        <div class="col-md-6">
-                            <label class="form-label">Serviço *</label>
-                            <select class="form-select" asp-for="AgendamentoForm.IdServico" id="agServico" required
-                                    data-pesquisa="abrirPesquisaServico(opcoesDoSelect('agServico', textoServicoAgenda))" data-titulo-pesquisa="Pesquisar serviço">
-                                <option value="">Selecione o serviço</option>
-                                @foreach (var s in Model.Servicos)
-                                {
-                                    <option value="@s.IdServico">@s.DsServico - R$ @s.VlServico.ToString("N2") (@(s.NrDuracaoMin ?? 0) min)</option>
-                                }
-                            </select>
-                        </div>
-                        <div class="col-md-3">
-                            <label class="form-label">Data *</label>
-                            <input type="date" class="form-control" asp-for="AgendamentoForm.DtAgendamento" value="@Model.DataFiltro" required />
-                        </div>
-                        <div class="col-md-3">
-                            <label class="form-label">Horário *</label>
-                            <input type="time" class="form-control" asp-for="AgendamentoForm.HrInicio" required />
-                        </div>
-                        <div class="col-md-4">
-                            <label class="form-label">Horário Fim</label>
-                            <input type="time" class="form-control" asp-for="AgendamentoForm.HrFim" />
-                        </div>
-                        <div class="col-md-4">
-                            <label class="form-label">Status</label>
-                            <select class="form-select" asp-for="AgendamentoForm.TpStatus">
-                                <option value="@Agendamento.AGENDADO">Agendado</option>
-                                <option value="@Agendamento.CONFIRMADO">Confirmado</option>
-                            </select>
-                        </div>
-                        <div class="col-12">
-                            <label class="form-label">Observações</label>
-                            <textarea class="form-control" rows="2" asp-for="AgendamentoForm.DsObservacao"></textarea>
-                        </div>
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                    <button type="submit" class="btn btn-primary"><i class="bi bi-check-lg me-1"></i>Agendar</button>
-                </div>
-            </form>
-        </div>
-    </div>
-</div>
+<!-- Modal Novo/Editar Agendamento (componente compartilhado com a Venda) -->
+@await Component.InvokeAsync("CadastroAgendamento", new { modo = "post", data = Model.DataFiltro })
 
 <!-- Cadastros compartilhados, abertos pelo Novo/Editar das pesquisas de cliente,
      profissional e servico. Gravam por AJAX e voltam para a pesquisa. -->

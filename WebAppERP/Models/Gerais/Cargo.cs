@@ -4,6 +4,8 @@ using System.ComponentModel.DataAnnotations.Schema;
 namespace WebAppERP.Models.Gerais;
 
 // Mapeia a tabela tbGerCargos (ja criada no banco via SQL).
+// Cadastro: texto gravado em MAIUSCULO (CaixaAltaAttribute).
+[CaixaAlta]
 [Table("tbGerCargos")]
 public class Cargo : EntidadeComRegistro
 {

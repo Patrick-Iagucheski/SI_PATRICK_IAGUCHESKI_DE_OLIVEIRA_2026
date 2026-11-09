@@ -119,6 +119,15 @@ function campoToken() {
     return '<input type="hidden" name="__RequestVerificationToken" value="' + tokenAntiforgery() + '">';
 }
 
+// Gravacao confirmada pelo servidor: avisa a janela principal (abas, site.js),
+// que atualiza as telas de consulta abertas em outras abas quando o usuario
+// voltar para elas. Pagina aberta direto (sem abas): nada.
+function avisarGravacao() {
+    try {
+        if (window.top !== window && typeof window.top.dadosAlterados === 'function') window.top.dadosAlterados(window);
+    } catch { /* outra origem */ }
+}
+
 // POST com corpo JSON e o token. Devolve a resposta ja convertida
 // (padrao das telas: { sucesso: true, ... } ou { sucesso: false, mensagem }).
 async function postJson(url, dados) {
@@ -127,7 +136,9 @@ async function postJson(url, dados) {
         headers: { 'Content-Type': 'application/json', 'RequestVerificationToken': tokenAntiforgery() },
         body: JSON.stringify(dados)
     });
-    return await resp.json();
+    const r = await resp.json();
+    if (r?.sucesso) avisarGravacao();
+    return r;
 }
 
 // Caixa de erro dos modais (cadastro e cadastro rapido): mesma aparencia em todos.
@@ -161,6 +172,9 @@ document.addEventListener('submit', async e => {
         });
         const data = await resp.json();
         if (data.sucesso && evento) {
+            // Sem recarregar: avisa aqui. Com recarga, avisa a pagina ao voltar
+            // com a mensagem de sucesso (data-gravou, site.js).
+            avisarGravacao();
             bootstrap.Modal.getInstance(form.closest('.modal'))?.hide();
             document.dispatchEvent(new CustomEvent(evento, { detail: data }));
             return;
@@ -219,7 +233,9 @@ function secaoDoCampo(id) {
 // pais...), montado por este codigo. Assim uma pesquisa abre por cima da
 // outra (Cidade > Estado > Pais) sem misturar. A pesquisa declara:
 //   chave, titulo, url() (handler que devolve JSON), filtros
-//   [{ param, rotulo, tipo, col }], colunas, celulas(reg) (HTML ja escapado
+//   [{ param, rotulo, tipo, col, opcoes, padrao }] (opcoes: [{ valor, texto }]
+//   vira uma lista; padrao: valor inicial do filtro, ex.: hojeIso() na data),
+//   colunas, celulas(reg) (HTML ja escapado
 //   de cada coluna), selecionar(reg) (preenche o campo de quem chamou) e, se
 //   houver cadastro, editar(reg), novo() e excluir: { url(), nome(reg),
 //   depois(reg) } (lixeira: usa o Excluir da tela do cadastro, com as regras do
@@ -241,12 +257,19 @@ function abrirPesquisa(cfg) {
     filtros.innerHTML = cfg.filtros.map(f =>
         '<div class="col-md-' + f.col + '">' +
             '<label class="form-label small mb-1">' + f.rotulo + '</label>' +
-            '<input type="' + (f.tipo || 'text') + '" class="form-control" data-param="' + f.param + '" autocomplete="off"' +
-            (f.tipo === 'number' ? ' min="1"' : '') + ' />' +
+            (f.opcoes
+                ? '<select class="form-select" data-param="' + f.param + '">' +
+                      f.opcoes.map(o => '<option value="' + escaparHtml(o.valor) + '"' + (o.valor === f.padrao ? ' selected' : '') + '>' +
+                                        escaparHtml(o.texto) + '</option>').join('') +
+                  '</select>'
+                : '<input type="' + (f.tipo || 'text') + '" class="form-control" data-param="' + f.param + '" autocomplete="off"' +
+                  (f.tipo === 'number' ? ' min="1"' : '') +
+                  (f.padrao != null ? ' value="' + escaparHtml(f.padrao) + '"' : '') + ' />') +
         '</div>').join('');
     filtros.querySelectorAll('input').forEach(i => i.addEventListener('keydown', e => {
         if (e.key === 'Enter') { e.preventDefault(); recarregarPesquisa(cfg.chave); }
     }));
+    filtros.querySelectorAll('select').forEach(s => s.addEventListener('change', () => recarregarPesquisa(cfg.chave)));
     modal.querySelector('[data-cabecalho]').innerHTML =
         cfg.colunas.map((c, i) => '<th' + (i === 0 ? ' style="width: 90px;"' : '') + '>' + c + '</th>').join('') +
         '<th class="text-center" style="width: 150px;">Ações</th>';
@@ -290,8 +313,10 @@ async function recarregarPesquisa(chave) {
                 '<td class="text-center text-nowrap">' +
                     (cfg.editar ? '<button type="button" class="btn btn-icon btn-outline-primary me-1" data-acao="editar" title="Editar"><i class="bi bi-pencil"></i></button>' : '') +
                     (cfg.excluir ? '<button type="button" class="btn btn-icon btn-outline-danger me-1" data-acao="excluir" title="Excluir"><i class="bi bi-trash"></i></button>' : '') +
+                    // Nao selecionavel (ativo false): selo "Inativo" ou o motivo
+                    // que o registro trouxer (ex.: agendamento "Cancelado").
                     (reg.ativo === false
-                        ? '<span class="badge-status badge-inativo ms-1">Inativo</span>'
+                        ? '<span class="badge-status badge-inativo ms-1">' + escaparHtml(reg.motivoInativo || 'Inativo') + '</span>'
                         : '<button type="button" class="btn btn-icon btn-outline-success" data-acao="selecionar" title="Selecionar"><i class="bi bi-check-lg"></i></button>') +
                 '</td>';
             tr.querySelector('[data-acao="selecionar"]')?.addEventListener('click', () => {
@@ -322,6 +347,7 @@ async function excluirDaPesquisa(chave, reg) {
         });
         const r = await resp.json();
         if (!r.sucesso) { exibirErro(modal, r.mensagem); return; }
+        avisarGravacao();
         cfg.excluir.depois?.(reg);
         await recarregarPesquisa(chave);
         exibirSucesso(modal, r.mensagem || 'Registro excluído com sucesso.');
@@ -476,9 +502,12 @@ function montarCampoSelecao(sel) {
     });
     sel.addEventListener('change', atualizarTexto);
 
-    const pesquisar = () => { if (!sel.disabled) executar(sel.dataset.pesquisa); };
+    // Travado: desabilitado ou somente leitura (data-somente-leitura="1": o valor
+    // aparece e vai no post, mas nao da para trocar; select desabilitado nao vai no post).
+    const travado = () => sel.disabled || sel.dataset.somenteLeitura === '1';
+    const pesquisar = () => { if (!travado()) executar(sel.dataset.pesquisa); };
     const limpar = () => {
-        if (sel.disabled || sel.value === '') return;
+        if (travado() || sel.value === '') return;
         sel.value = '';
         sel.dispatchEvent(new Event('change', { bubbles: true }));
     };
@@ -494,6 +523,8 @@ function montarCampoSelecao(sel) {
 
     const grupo = document.createElement('div');
     grupo.className = 'input-group';
+    // <select> pequeno (ex.: grade de parcelas): o campo e os botoes tambem.
+    if (sel.classList.contains('form-select-sm')) grupo.classList.add('input-group-sm');
     sel.parentNode.insertBefore(grupo, sel);
     sel.classList.add('d-none');
     grupo.append(sel, texto);
@@ -505,24 +536,29 @@ function montarCampoSelecao(sel) {
     botaoLimpar.innerHTML = '<i class="bi bi-x-lg"></i>';
     botaoLimpar.addEventListener('click', limpar);
 
+    // A pesquisa seleciona, edita e cadastra (Novo): botao + com essa dica.
+    // Campo sem cadastro (data-somente-pesquisa, ex.: agendamento da Venda):
+    // lupa, porque a pesquisa so seleciona.
+    const somentePesquisa = sel.dataset.somentePesquisa !== undefined;
     const botaoPesquisar = document.createElement('button');
     botaoPesquisar.type = 'button';
     botaoPesquisar.className = 'btn btn-outline-primary';
-    // A pesquisa seleciona, edita e cadastra (Novo): a dica diz isso.
-    botaoPesquisar.title = 'Adicionar / Editar / Pesquisar';
-    botaoPesquisar.innerHTML = '<i class="bi bi-plus-lg"></i>';
+    botaoPesquisar.title = somentePesquisa ? 'Pesquisar' : 'Adicionar / Editar / Pesquisar';
+    botaoPesquisar.innerHTML = somentePesquisa ? '<i class="bi bi-search"></i>' : '<i class="bi bi-plus-lg"></i>';
+    if (somentePesquisa) texto.title = 'Pesquisar';
     botaoPesquisar.addEventListener('click', pesquisar);
     grupo.append(botaoLimpar, botaoPesquisar);
 
-    // Campo desabilitado (somente leitura ou travado pelo JS da tela): o texto
+    // Campo travado (desabilitado ou somente leitura, pelo JS da tela): o texto
     // fica desabilitado e os botoes somem; voltam quando o <select> e liberado.
     // O X so aparece com algo escolhido.
     function atualizarBotoes() {
-        texto.disabled = sel.disabled;
-        botaoPesquisar.classList.toggle('d-none', sel.disabled);
-        botaoLimpar.classList.toggle('d-none', sel.disabled || valorDoSelect.get.call(sel) === '');
+        const t = travado();
+        texto.disabled = t;
+        botaoPesquisar.classList.toggle('d-none', t);
+        botaoLimpar.classList.toggle('d-none', t || valorDoSelect.get.call(sel) === '');
     }
-    new MutationObserver(atualizarBotoes).observe(sel, { attributes: true, attributeFilter: ['disabled'] });
+    new MutationObserver(atualizarBotoes).observe(sel, { attributes: true, attributeFilter: ['disabled', 'data-somente-leitura'] });
 
     atualizarTexto();
 }
@@ -746,15 +782,22 @@ function escaparHtml(s) {
     return String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }
 
+// Data de hoje no formato ISO (2026-11-07), pelo relogio do computador.
+// toISOString() nao serve: e em UTC e, depois das 21h, ja daria o dia seguinte.
+function hojeIso() {
+    const d = new Date();
+    return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+}
+
 // Data ISO (2026-11-01 ou 2026-11-01T00:00:00) no formato brasileiro (01/11/2026).
 function dataBr(d, vazio = '-') {
     return d ? String(d).split('T')[0].split('-').reverse().join('/') : vazio;
 }
 
-// Valor com 2 casas no padrao brasileiro, sem o "R$" (ex.: 1.234,50).
-// Vazio ou invalido vira 0,00.
-function moeda(v) {
-    return (Number(v) || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+// Valor no padrao brasileiro, sem o "R$" (ex.: 1.234,50). Vazio ou invalido
+// vira zero. casas: 2 por padrao; 6 no custo e no rateio da compra.
+function moeda(v, casas = 2) {
+    return (Number(v) || 0).toLocaleString('pt-BR', { minimumFractionDigits: casas, maximumFractionDigits: casas });
 }
 
 // Selo Ativo/Inativo das listagens.

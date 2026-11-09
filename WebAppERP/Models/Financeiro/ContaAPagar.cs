@@ -4,6 +4,8 @@ using System.ComponentModel.DataAnnotations.Schema;
 namespace WebAppERP.Models.Financeiro;
 
 // Conta a pagar financeira (modelo autonomo, chave surrogate idContaPagar).
+// Cadastro: texto gravado em MAIUSCULO (CaixaAltaAttribute).
+[CaixaAlta]
 [Table("tbFinContasAPagar")]
 public class ContaAPagar : EntidadeComRegistro
 {
@@ -58,8 +60,9 @@ public class ContaAPagar : EntidadeComRegistro
     [Required, MaxLength(20)]
     public string DsStatus { get; set; } = PENDENTE;
 
-    [Column("flAtivo")]
-    public bool FlAtivo { get; set; } = true;
+    // Sem flAtivo: o titulo funciona so pela situacao (dsStatus). Cancelado
+    // sai da lista padrao da tela
+    // (Database/Migracoes/1794069000000_Alter_Table_tbFinContasAPagar_Remove_flAtivo.sql).
 
     [Column("dsObservacao")]
     [MaxLength(500)]
@@ -72,10 +75,12 @@ public class ContaAPagar : EntidadeComRegistro
     // nrNota + nrSerie + nrModelo + idFornecedor + nrParcela.
 
     [Column("nrNota")]
-    public int? NrNota { get; set; }
+    [MaxLength(9)]
+    public string? NrNota { get; set; }
 
     [Column("nrSerie")]
-    public int? NrSerie { get; set; }
+    [MaxLength(3)]
+    public string? NrSerie { get; set; }
 
     [Column("nrModelo")]
     public int? NrModelo { get; set; }

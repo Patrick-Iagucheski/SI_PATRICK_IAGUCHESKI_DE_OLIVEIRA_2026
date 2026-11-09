@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.Mvc;
+using WebAppERP.Business.Gerais;
 using WebAppERP.ViewModels;
 
 namespace WebAppERP.ViewComponents;
@@ -9,9 +10,17 @@ namespace WebAppERP.ViewComponents;
 // por pagina. A gravacao fica no Business (chamado pela tela /Gerais/Servicos).
 public class CadastroServicoViewComponent : ComponenteBase
 {
-    public IViewComponentResult Invoke(string modo = "post")
+    private readonly CategoriaServicoBusiness _categoria;
+
+    public CadastroServicoViewComponent(CategoriaServicoBusiness categoria) => _categoria = categoria;
+
+    public async Task<IViewComponentResult> InvokeAsync(string modo = "post")
     {
-        var vm = new CadastroServicoViewModel { Modo = modo == "ajax" ? "ajax" : "post" };
+        var vm = new CadastroServicoViewModel
+        {
+            Modo = modo == "ajax" ? "ajax" : "post",
+            Categorias = await _categoria.Listar()
+        };
 
         // O script entra so na primeira vez que o componente aparece na pagina.
         vm.IncluirScript = PrimeiraVezNaPagina();

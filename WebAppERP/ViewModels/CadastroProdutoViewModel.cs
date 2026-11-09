@@ -9,6 +9,7 @@ public class CadastroProdutoViewModel
     // Apenas marcas e categorias ativas (opcoes dos campos de marca e categoria).
     public List<Marca> Marcas { get; set; } = [];
     public List<Categoria> Categorias { get; set; } = [];
+    public List<UnidadeMedida> Unidades { get; set; } = [];
 
     // "post": Salvar faz o submit normal da tela de Produtos.
     // "ajax": Salvar grava por fetch e dispara o evento 'produto:salvo',

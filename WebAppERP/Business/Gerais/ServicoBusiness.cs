@@ -8,8 +8,13 @@ namespace WebAppERP.Business.Gerais;
 public class ServicoBusiness
 {
     private readonly AppDbContext _db;
+    private readonly CategoriaServicoBusiness _categoria;
 
-    public ServicoBusiness(AppDbContext db) => _db = db;
+    public ServicoBusiness(AppDbContext db, CategoriaServicoBusiness categoria)
+    {
+        _db = db;
+        _categoria = categoria;
+    }
 
     // ============================================================
     // Consultas
@@ -18,6 +23,7 @@ public class ServicoBusiness
     // A tela lista todos; as listas para escolher, so os ativos.
     public async Task<List<Servico>> Listar(bool somenteAtivos = false) =>
         await _db.Servicos
+            .Include(s => s.CategoriaServico)
             .Where(s => !somenteAtivos || s.FlAtivo)
             .OrderBy(s => s.DsServico)
             .ToListAsync();
@@ -26,13 +32,13 @@ public class ServicoBusiness
     // "inativos" marcado traz so os ativos; marcado, so os inativos.
     public async Task<List<Servico>> Pesquisar(int? id, string? termo, bool somenteInativos = false)
     {
-        var query = _db.Servicos.Where(s => s.FlAtivo != somenteInativos);
+        var query = _db.Servicos.Include(s => s.CategoriaServico).Where(s => s.FlAtivo != somenteInativos);
 
         if (id.HasValue)
             query = query.Where(s => s.IdServico == id.Value);
         else if (!string.IsNullOrWhiteSpace(termo))
         {
-            query = query.Where(Module.MontarFiltroTexto<Servico>(termo, s => s.DsServico, s => s.DsCategoria));
+            query = query.Where(Module.MontarFiltroTexto<Servico>(termo, s => s.DsServico, s => s.CategoriaServico!.NmCategoria));
         }
 
         return await query.OrderBy(s => s.DsServico).Take(50).ToListAsync();
@@ -47,7 +53,6 @@ public class ServicoBusiness
     {
         var nome = servico.DsServico?.Trim() ?? string.Empty;
         var descricao = string.IsNullOrWhiteSpace(servico.DsDescricao) ? null : servico.DsDescricao.Trim();
-        var categoria = string.IsNullOrWhiteSpace(servico.DsCategoria) ? null : servico.DsCategoria.Trim();
 
         if (nome.Length == 0)
             throw new ValidacaoException("Informe o nome do serviço.");
@@ -55,8 +60,9 @@ public class ServicoBusiness
             throw new ValidacaoException("O nome do serviço deve ter no máximo 200 caracteres.");
         if (descricao?.Length > 500)
             throw new ValidacaoException("A descrição do serviço deve ter no máximo 500 caracteres.");
-        if (categoria?.Length > 100)
-            throw new ValidacaoException("A categoria deve ter no máximo 100 caracteres.");
+        // Categoria opcional; quando informada, do cadastro e ativa.
+        if (servico.IdCategoriaServico is int idCategoria && !await _categoria.ExisteAtiva(idCategoria))
+            throw new ValidacaoException("Categoria de serviço inválida.");
         if (servico.VlServico <= 0)
             throw new ValidacaoException("Informe o valor do serviço.", "O valor deve ser maior que zero.");
         if (servico.NrDuracaoMin is <= 0 or > 1440)
@@ -87,10 +93,11 @@ public class ServicoBusiness
         registro.DsDescricao = descricao;
         registro.VlServico = servico.VlServico;
         registro.NrDuracaoMin = servico.NrDuracaoMin;
-        registro.DsCategoria = categoria;
+        registro.IdCategoriaServico = servico.IdCategoriaServico;
         registro.FlAtivo = servico.FlAtivo;
 
         await _db.SaveChangesAsync();
+        await _db.Entry(registro).Reference(r => r.CategoriaServico).LoadAsync();
         return registro;
     }
 

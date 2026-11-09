@@ -35,14 +35,25 @@ public class ContaAPagarBusiness
             .ThenBy(c => c.IdContaPagar)
             .ToListAsync();
 
-    // Pesquisa da tela: por codigo, descricao, documento ou fornecedor. Sem
-    // "inativas" marcado traz so as ativas; marcado, so as inativas.
-    public async Task<List<ContaAPagar>> Buscar(int? id, string? conta, string? documento, int? idFornecedor, bool somenteInativas)
+    // Pesquisa da tela: por codigo, descricao, documento, fornecedor e situacao.
+    //   situacao: PENDENTE (inclui as vencidas, padrao da tela), VENCIDA, PAGO,
+    //             CANCELADO ou vazio (todas).
+    public async Task<List<ContaAPagar>> Buscar(int? id, string? conta, string? documento, int? idFornecedor, string? situacao)
     {
         var query = _db.ContasAPagar
             .Include(c => c.Fornecedor)
             .Include(c => c.FormaPagamento)
-            .Where(c => c.FlAtivo != somenteInativas);
+            .AsQueryable();
+
+        var hoje = DateOnly.FromDateTime(DateTime.Today);
+        query = (situacao ?? "").Trim().ToUpper() switch
+        {
+            ContaAPagar.PENDENTE => query.Where(c => c.DsStatus == ContaAPagar.PENDENTE),
+            ContaAPagar.VENCIDA => query.Where(c => c.DsStatus == ContaAPagar.PENDENTE && c.DtVencimento < hoje),
+            ContaAPagar.PAGO => query.Where(c => c.DsStatus == ContaAPagar.PAGO),
+            ContaAPagar.CANCELADO => query.Where(c => c.DsStatus == ContaAPagar.CANCELADO),
+            _ => query
+        };
 
         if (id.HasValue)
             query = query.Where(c => c.IdContaPagar == id.Value);
@@ -105,6 +116,11 @@ public class ContaAPagarBusiness
             // observacao mudam por aqui; o resto vem das parcelas da compra.
             if (registro.OriginadoDeCompra)
             {
+                // Compra cancelada: o titulo fica como o cancelamento deixou
+                // (cancelado), sem reabrir nem pagar.
+                if (await CompraCancelada(registro))
+                    throw new ValidacaoException($"Este título é da compra Nº {registro.NrNota}, que foi cancelada.",
+                                                 "Título de compra cancelada não pode ser alterado.");
                 if (registro.IdFornecedor != conta.IdFornecedor || registro.VlValor != conta.VlValor
                     || registro.DtEmissao != conta.DtEmissao || registro.DtVencimento != conta.DtVencimento
                     || registro.DsConta != descricao || registro.NrDocumento != documento)
@@ -126,7 +142,6 @@ public class ContaAPagarBusiness
         registro.VlValor = conta.VlValor;
         registro.VlPago = conta.VlPago;
         registro.DsStatus = status;
-        registro.FlAtivo = conta.FlAtivo;
         registro.DsObservacao = observacao;
 
         await _db.SaveChangesAsync();
@@ -138,7 +153,7 @@ public class ContaAPagarBusiness
     {
         var conta = await _db.ContasAPagar.FindAsync(id)
             ?? throw new ValidacaoException("Conta a pagar não encontrada.");
-        if (conta.DsStatus == ContaAPagar.CANCELADO)
+        if (conta.DsStatus == ContaAPagar.CANCELADO || (conta.OriginadoDeCompra && await CompraCancelada(conta)))
             throw new ValidacaoException("Conta cancelada não pode receber baixa.");
         if (conta.DsStatus == ContaAPagar.PAGO)
             throw new ValidacaoException("Esta conta já está paga.");
@@ -149,12 +164,38 @@ public class ContaAPagarBusiness
         await _db.SaveChangesAsync();
     }
 
+    // Titulo gerado por uma compra que ja foi cancelada.
+    private Task<bool> CompraCancelada(ContaAPagar c) =>
+        _db.Compras.AnyAsync(x => x.NrNota == c.NrNota && x.NrSerie == c.NrSerie && x.NrModelo == c.NrModelo
+                               && x.IdFornecedor == c.IdFornecedor && x.TpStatus == Compra.CANCELADA);
+
+    // Codigos dos titulos (da lista) gerados por compra ja cancelada: na tela
+    // eles abrem com todos os campos travados.
+    public async Task<HashSet<int>> IdsDeCompraCancelada(IEnumerable<ContaAPagar> contas)
+    {
+        var ids = contas.Where(c => c.OriginadoDeCompra).Select(c => c.IdContaPagar).ToList();
+        if (ids.Count == 0) return [];
+
+        var cancelados = await _db.ContasAPagar
+            .Where(c => ids.Contains(c.IdContaPagar)
+                     && _db.Compras.Any(x => x.NrNota == c.NrNota && x.NrSerie == c.NrSerie && x.NrModelo == c.NrModelo
+                                          && x.IdFornecedor == c.IdFornecedor && x.TpStatus == Compra.CANCELADA))
+            .Select(c => c.IdContaPagar)
+            .ToListAsync();
+        return cancelados.ToHashSet();
+    }
+
     public async Task Excluir(int id)
     {
         var conta = await _db.ContasAPagar.FindAsync(id);
         if (conta == null)
             return;
 
+        // Titulo da compra nao e excluido (fica o historico). Compra ja cancelada:
+        // a mensagem diz que o titulo ja esta cancelado, nao manda cancelar de novo.
+        if (conta.OriginadoDeCompra && await CompraCancelada(conta))
+            throw new ValidacaoException($"Este título é da compra Nº {conta.NrNota}, que foi cancelada.",
+                                         "O título já está cancelado e não pode ser excluído: ele fica como histórico da compra.");
         if (conta.OriginadoDeCompra)
             throw new ValidacaoException($"Este título foi gerado pela compra Nº {conta.NrNota}.",
                                          "Para retirá-lo, altere ou cancele a compra.");

@@ -15,11 +15,14 @@ public class CompraItem
     public const string PRODUTO = "PRODUTO";
     public const string SERVICO = "SERVICO";
 
+    // Numero (ate 9 digitos) e serie (ate 3) da nota: texto so com digitos.
     [Column("nrNota")]
-    public int NrNota { get; set; }
+    [MaxLength(9)]
+    public string NrNota { get; set; } = string.Empty;
 
     [Column("nrSerie")]
-    public int NrSerie { get; set; }
+    [MaxLength(3)]
+    public string NrSerie { get; set; } = string.Empty;
 
     [Column("nrModelo")]
     public int NrModelo { get; set; }
@@ -67,7 +70,8 @@ public class CompraItem
     [Column("vlUnitario", TypeName = "decimal(12,4)")]
     public decimal VlUnitario { get; set; }
 
-    [Column("vlDesconto", TypeName = "decimal(12,2)")]
+    // Desconto POR UNIDADE (6 casas): total = quantidade x (preco - desconto).
+    [Column("vlDesconto", TypeName = "decimal(18,6)")]
     public decimal VlDesconto { get; set; }
 
     [Column("vlTotal", TypeName = "decimal(12,2)")]
@@ -76,11 +80,11 @@ public class CompraItem
     // Parcela do custo adicional (frete + seguro + outros) rateada para
     // este item, proporcional ao seu total. So produtos recebem rateio.
     // Colunas criadas em Database/AlterCompraItensRateio.sql.
-    [Column("vlRateio", TypeName = "decimal(12,2)")]
+    [Column("vlRateio", TypeName = "decimal(18,6)")]
     public decimal VlRateio { get; set; }
 
-    // Custo unitario final = (vlTotal + vlRateio) / qtItem, arredondado em
-    // 2 casas (a coluna aceita 4, mas o sistema grava so 2).
-    [Column("vlCustoUnitario", TypeName = "decimal(12,4)")]
+    // Custo unitario final = preco - desconto por unidade + vlRateio / qtItem,
+    // com 6 casas decimais (CompraBusiness.RatearCustoAdicional).
+    [Column("vlCustoUnitario", TypeName = "decimal(18,6)")]
     public decimal VlCustoUnitario { get; set; }
 }

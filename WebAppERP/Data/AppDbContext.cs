@@ -1,4 +1,5 @@
 ﻿using System.Collections.Concurrent;
+using System.Globalization;
 using Microsoft.EntityFrameworkCore;
 using WebAppERP.Infrastructure;
 using WebAppERP.Models;
@@ -30,6 +31,8 @@ public class AppDbContext : DbContext
     public DbSet<Produto> Produtos => Set<Produto>();
     public DbSet<Marca> Marcas => Set<Marca>();
     public DbSet<Categoria> Categorias => Set<Categoria>();
+    public DbSet<UnidadeMedida> UnidadesMedida => Set<UnidadeMedida>();
+    public DbSet<CategoriaServico> CategoriasServico => Set<CategoriaServico>();
     public DbSet<ContaAPagar> ContasAPagar => Set<ContaAPagar>();
     public DbSet<CondicaoPagamento> CondicoesPagamento => Set<CondicaoPagamento>();
     public DbSet<CondicaoPagamentoParcela> CondicoesPagamentoParcelas => Set<CondicaoPagamentoParcela>();
@@ -86,12 +89,14 @@ public class AppDbContext : DbContext
 
     public override int SaveChanges(bool acceptAllChangesOnSuccess)
     {
+        ConverterCaixaAlta();
         PreencherRegistro(IdUsuarioAtual());
         return base.SaveChanges(acceptAllChangesOnSuccess);
     }
 
     public override async Task<int> SaveChangesAsync(bool acceptAllChangesOnSuccess, CancellationToken cancellationToken = default)
     {
+        ConverterCaixaAlta();
         PreencherRegistro(IdUsuarioAtual());
         return await base.SaveChangesAsync(acceptAllChangesOnSuccess, cancellationToken);
     }
@@ -126,6 +131,33 @@ public class AppDbContext : DbContext
                 // Quem incluiu nao muda numa alteracao.
                 e.Property(x => x.IdUsuario).IsModified = false;
                 e.Property(x => x.DtCriacao).IsModified = false;
+            }
+        }
+    }
+
+    // ============================================================
+    // Cadastros em maiusculo
+    // ============================================================
+    // Entidade marcada com [CaixaAlta] (cadastros) grava todo texto em
+    // MAIUSCULO, menos as propriedades [ManterCaixa] (e-mail, site, imagem,
+    // chave PIX). Fica aqui, num lugar so, para valer em todo cadastro e em
+    // toda forma de gravar (tela, modal, cadastro rapido).
+    private static readonly CultureInfo PtBr = CultureInfo.GetCultureInfo("pt-BR");
+
+    private void ConverterCaixaAlta()
+    {
+        foreach (var e in ChangeTracker.Entries())
+        {
+            if (e.State is not (EntityState.Added or EntityState.Modified)) continue;
+            if (!Attribute.IsDefined(e.Entity.GetType(), typeof(CaixaAltaAttribute))) continue;
+
+            foreach (var p in e.Properties)
+            {
+                if (p.CurrentValue is not string texto) continue;
+                if (p.Metadata.PropertyInfo is { } info && Attribute.IsDefined(info, typeof(ManterCaixaAttribute))) continue;
+
+                var maiusculo = texto.ToUpper(PtBr);
+                if (maiusculo != texto) p.CurrentValue = maiusculo;
             }
         }
     }

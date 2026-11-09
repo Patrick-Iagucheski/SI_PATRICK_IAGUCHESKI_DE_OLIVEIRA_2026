@@ -47,7 +47,7 @@ public class PrincipalBusiness
             .Take(5)
             .ToListAsync();
 
-        await CarregarGraficos(painel, hoje, inicioMes);
+        await CarregarGraficos(painel, hoje);
         painel.Atividades = await GetAtividades();
 
         return painel;
@@ -120,7 +120,7 @@ public class PrincipalBusiness
         return atividades.OrderByDescending(x => x.Data).Take(QtdAtividades).ToList();
     }
 
-    private async Task CarregarGraficos(PainelDTO painel, DateOnly hoje, DateOnly inicioMes)
+    private async Task CarregarGraficos(PainelDTO painel, DateOnly hoje)
     {
         // Faturamento dos ultimos 7 dias (vendas finalizadas), agrupado por dia
         var inicioSemana = hoje.AddDays(-6);
@@ -141,22 +141,6 @@ public class PrincipalBusiness
         {
             painel.FaturamentoSemanaLabels.Add(diasSemana[(int)dia.DayOfWeek]);
             painel.FaturamentoSemanaValores.Add(porDia.TryGetValue(dia, out var total) ? total : 0m);
-        }
-
-        // Servicos mais solicitados no mes (top 5 por quantidade de agendamentos)
-        var servicosTop = await _db.Agendamentos
-            .Where(a => a.DtAgendamento >= inicioMes && a.DtAgendamento <= hoje
-                        && a.TpStatus != Agendamento.CANCELADO && a.Servico != null)
-            .GroupBy(a => a.Servico!.DsServico)
-            .Select(g => new { Servico = g.Key, Quantidade = g.Count() })
-            .OrderByDescending(g => g.Quantidade)
-            .Take(5)
-            .ToListAsync();
-
-        foreach (var item in servicosTop)
-        {
-            painel.ServicosLabels.Add(item.Servico);
-            painel.ServicosValores.Add(item.Quantidade);
         }
     }
 }

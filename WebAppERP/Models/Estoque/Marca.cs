@@ -4,6 +4,8 @@ using System.ComponentModel.DataAnnotations.Schema;
 namespace WebAppERP.Models.Estoque;
 
 // Mapeia a tabela tbEstMarcas (criada no banco via Database/CriarMarcas.sql).
+// Cadastro: texto gravado em MAIUSCULO (CaixaAltaAttribute).
+[CaixaAlta]
 [Table("tbEstMarcas")]
 public class Marca : EntidadeComRegistro
 {

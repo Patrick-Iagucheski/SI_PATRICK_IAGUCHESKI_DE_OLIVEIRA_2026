@@ -7,7 +7,7 @@
 *@
 
 <div class="modal fade" id="modalServico" tabindex="-1"
-     data-url-cadastro="@Url.Page("/Gerais/Servicos")">
+     data-url-cadastro="@Url.Page("/Gerais/Servicos")" data-url-categorias="@Url.Page("/Gerais/CategoriasServico")">
     <div class="modal-dialog">
         <div class="modal-content">
             <form method="post" data-modal-ajax asp-page="/Gerais/Servicos"
@@ -38,12 +38,13 @@
                         </div>
                         <div class="col-md-6">
                             <label class="form-label">Categoria</label>
-                            <select class="form-select" asp-for="ServicoForm.DsCategoria" id="sCat">
+                            <select class="form-select" asp-for="ServicoForm.IdCategoriaServico" id="sCat"
+                                    data-pesquisa="abrirPesquisaCategoriaServico()" data-titulo-pesquisa="Pesquisar categoria de serviço">
                                 <option value="">Selecione</option>
-                                <option value="Corte">Corte</option>
-                                <option value="Barba">Barba</option>
-                                <option value="Combo">Combo</option>
-                                <option value="Tratamento">Tratamento</option>
+                                @foreach (var categoria in Model.Categorias)
+                                {
+                                    <option value="@categoria.IdCategoriaServico">@categoria.NmCategoria</option>
+                                }
                             </select>
                         </div>
                         <div class="col-md-6">
@@ -63,6 +64,35 @@
                     <button type="submit" class="btn btn-primary"><i class="bi bi-check-lg me-1"></i>Salvar</button>
                 </div>
             </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal de Cadastro Rapido de Categoria de Servico (AJAX) -->
+<div class="modal fade" id="modalCategoriaServicoRapido" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="bi bi-bookmarks me-2"></i><span id="catServTitulo">Cadastrar Categoria de Serviço</span></h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div id="catServMsg"></div>
+                <input type="hidden" id="catServId" value="0" />
+                <div class="row g-3">
+                    <div class="col-12">
+                        <label class="form-label">Categoria *</label>
+                        <input type="text" class="form-control" id="catServNome" maxlength="100" placeholder="Ex: Corte" />
+                    </div>
+                </div>
+                <partial name="_Registro" />
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-primary" id="btnSalvarCategoriaServicoRapido" onclick="salvarCategoriaServico()">
+                    <i class="bi bi-check-lg me-1"></i>Salvar Categoria
+                </button>
+            </div>
         </div>
     </div>
 </div>
