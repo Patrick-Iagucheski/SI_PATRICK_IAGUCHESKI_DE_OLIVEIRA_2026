@@ -5,6 +5,7 @@
     ViewData["ManterAoVoltar"] = true;
     ViewData["Title"] = Model.Vm.Venda.IdVenda > 0 ? $"Venda #{Model.Vm.Venda.IdVenda}" : "Nova Venda";
     var ro = Model.Vm.SomenteLeitura;
+    var salvarSozinho = !ro && Model.Vm.Venda.TpStatus == Venda.RASCUNHO;
     var disabledAttr = ro ? "disabled" : null;
     var statusBadge = Model.Vm.Venda.TpStatus switch
     {
@@ -13,8 +14,8 @@
         _ => "badge-agendado"
     };
 
-    var produtosJs = Model.Vm.Combos.Produtos.Select(p => new { id = p.IdProduto, nome = p.DsProduto, saldo = p.QtSaldo ?? 0, valor = p.VlVenda ?? 0 });
-    var servicosJs = Model.Vm.Combos.Servicos.Select(s => new { id = s.IdServico, nome = s.DsServico, valor = s.VlServico });
+    var produtosJs = WebAppERP.Pages.Vendas.VendaModel.ProdutosDaTela(Model.Vm.Combos.Produtos);
+    var servicosJs = WebAppERP.Pages.Vendas.VendaModel.ServicosDaTela(Model.Vm.Combos.Servicos);
     var itensJs = Model.Vm.Itens.Select(i => new
     {
         tpItem = i.TpItem,
@@ -31,14 +32,24 @@
 <div class="d-flex justify-content-between align-items-start mb-4">
     <div>
         <h1 class="page-title">
-            @(Model.Vm.Venda.IdVenda > 0 ? $"Venda #{Model.Vm.Venda.IdVenda}" : "Nova Venda")
+            <span id="tituloVenda">@(Model.Vm.Venda.IdVenda > 0 ? $"Venda #{Model.Vm.Venda.IdVenda}" : "Nova Venda")</span>
             <span class="badge-status @statusBadge ms-2">@Model.Vm.Venda.TpStatus</span>
         </h1>
         <p class="page-subtitle">Cabecalho, itens e totais da venda</p>
     </div>
-    <a class="btn btn-secondary" asp-page="/Vendas/Vendas">
-        <i class="bi bi-arrow-left me-1"></i> Voltar
-    </a>
+    <div class="d-flex gap-2">
+        <span class="small text-muted align-self-center" id="autoSalvarStatus"></span>
+        @if (!ro)
+        {
+            <button type="button" class="btn btn-outline-primary" id="btnAtualizar" onclick="atualizarDados()"
+                    title="Busca de novo clientes, funcionários, agendamentos, formas, condições, produtos e serviços. Em rascunho, também atualiza os preços dos itens e a condição do cliente.">
+                <i class="bi bi-arrow-clockwise me-1"></i> Atualizar
+            </button>
+        }
+        <a class="btn btn-secondary" asp-page="/Vendas/Vendas">
+            <i class="bi bi-arrow-left me-1"></i> Voltar
+        </a>
+    </div>
 </div>
 
 @if (!string.IsNullOrEmpty(Model.Erro))
@@ -62,7 +73,7 @@
             <div class="row g-3">
                 <div class="col-md-2">
                     <label class="form-label">Número</label>
-                    <input type="text" class="form-control" value="@(Model.Vm.Venda.IdVenda > 0 ? "#" + Model.Vm.Venda.IdVenda : "Novo")" disabled />
+                    <input type="text" class="form-control" id="vendaNumero" value="@(Model.Vm.Venda.IdVenda > 0 ? "#" + Model.Vm.Venda.IdVenda : "Novo")" disabled />
                 </div>
                 <div class="col-md-3">
                     <label class="form-label">Data da Venda</label>
@@ -98,7 +109,7 @@
                         <option value="">Nenhum</option>
                         @foreach (var a in Model.Vm.Combos.Agendamentos)
                         {
-                            <option value="@a.IdAgendamento">#@a.IdAgendamento - @a.DtAgendamento.ToString("dd/MM/yyyy") @a.HrInicio.ToString("HH:mm") - @a.Cliente?.NmCliente</option>
+                            <option value="@a.IdAgendamento">@WebAppERP.Pages.Vendas.VendaModel.TextoAgendamento(a)</option>
                         }
                     </select>
                 </div>
@@ -110,6 +121,22 @@
                         @foreach (var fp in Model.Vm.Combos.Formas)
                         {
                             <option value="@fp.IdFormaPagamento">@fp.DsFormaPagamento</option>
+                        }
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Condição de Pagamento</label>
+                    @* Com condicao, a forma vem das parcelas dela; sem condicao, a venda e a vista *@
+                    <select class="form-select" asp-for="IdCondicaoPagamento" id="IdCondicaoPagamento" disabled="@ro"
+                            data-pesquisa="abrirPesquisaCondicao(opcoesDoSelect('IdCondicaoPagamento'))" data-titulo-pesquisa="Pesquisar condição de pagamento">
+                        <option value="">À vista (sem condição)</option>
+                        @foreach (var cp in Model.Vm.Combos.Condicoes)
+                        {
+                            <option value="@cp.IdCondicaoPagamento">@cp.DsCondicao</option>
+                        }
+                        @if (Model.Vm.Venda.CondicaoPagamento is { FlAtivo: false } inativa)
+                        {
+                            <option value="@inativa.IdCondicaoPagamento">@inativa.DsCondicao</option>
                         }
                     </select>
                 </div>
@@ -244,8 +271,8 @@
                     <button type="button" class="btn btn-success btn-lg" onclick="salvar('FINALIZADA')">
                         <i class="bi bi-check2-circle me-1"></i>Finalizar Venda
                     </button>
-                    <button type="button" class="btn btn-outline-primary" onclick="salvar('ABERTA')">
-                        <i class="bi bi-save me-1"></i>Salvar como Aberta
+                    <button type="button" class="btn btn-outline-primary" onclick="salvar('@Venda.RASCUNHO')">
+                        <i class="bi bi-save me-1"></i>Salvar Rascunho
                     </button>
                 </div>
             }
@@ -274,6 +301,8 @@
         "PRODUTOS": @Json.Serialize(produtosJs),
         "SERVICOS": @Json.Serialize(servicosJs),
         "SOMENTE_LEITURA": @Json.Serialize(Model.Vm.SomenteLeitura),
+        "AUTO_SALVAR": @Json.Serialize(salvarSozinho),
+        "RASCUNHO": @Json.Serialize(Venda.RASCUNHO),
         "ITENS": @Json.Serialize(itensJs)
     }
     </script>

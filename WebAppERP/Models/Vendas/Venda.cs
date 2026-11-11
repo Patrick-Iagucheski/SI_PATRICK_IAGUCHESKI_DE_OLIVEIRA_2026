@@ -7,7 +7,7 @@ namespace WebAppERP.Models.Vendas;
 public class Venda : EntidadeComRegistro
 {
     // Situacoes da venda (TpStatus)
-    public const string ABERTA     = "ABERTA";
+    public const string RASCUNHO   = "RASCUNHO";
     public const string FINALIZADA = "FINALIZADA";
     public const string CANCELADA  = "CANCELADA";
 
@@ -47,7 +47,7 @@ public class Venda : EntidadeComRegistro
 
     [Column("tpStatus")]
     [Required, MaxLength(20)]
-    public string TpStatus { get; set; } = ABERTA;
+    public string TpStatus { get; set; } = RASCUNHO;
 
     [Column("dsObservacao")]
     [MaxLength(500)]
@@ -55,6 +55,14 @@ public class Venda : EntidadeComRegistro
 
     [ForeignKey("IdFormaPagamento")]
     public FormaPagamento? FormaPagamento { get; set; }
+
+    // Condicao usada para gerar as parcelas no Contas a Receber (sem condicao:
+    // a venda e a vista, na forma de pagamento escolhida).
+    [Column("idCondicaoPagamento")]
+    public int? IdCondicaoPagamento { get; set; }
+
+    [ForeignKey("IdCondicaoPagamento")]
+    public CondicaoPagamento? CondicaoPagamento { get; set; }
 
     public List<VendaItem> Itens { get; set; } = [];
 }

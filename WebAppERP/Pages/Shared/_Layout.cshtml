@@ -3,7 +3,7 @@
     string[] gCadastros = { "/Gerais/Clientes", "/Gerais/Funcionarios", "/Gerais/Cargos", "/Gerais/Servicos", "/Gerais/CategoriasServico", "/Gerais/Fornecedores", "/Gerais/Transportadores" };
     string[] gLocalidades = { "/Gerais/Paises", "/Gerais/Estados", "/Gerais/Cidades" };
     string[] gEstoque = { "/Estoque/Produtos", "/Estoque/Marcas", "/Estoque/Categorias", "/Estoque/UnidadesMedida" };
-    string[] gFinanceiro = { "/Financeiro/FormasPagamento", "/Financeiro/CondicoesPagamento", "/Financeiro/ContasAPagar" };
+    string[] gFinanceiro = { "/Financeiro/FormasPagamento", "/Financeiro/CondicoesPagamento", "/Financeiro/ContasAPagar", "/Financeiro/ContasAReceber" };
     string[] gOperacional = { "/Operacional/Agendamentos", "/Vendas/Vendas", "/Vendas/Venda", "/Compras/Compras", "/Compras/Compra" };
     string[] gVendas = { "/Vendas/Vendas", "/Vendas/Venda" };
     string[] gCompras = { "/Compras/Compras", "/Compras/Compra" };
@@ -179,6 +179,11 @@
                         <li class="sidebar-item">
                             <a class="sidebar-link @Active("/Financeiro/ContasAPagar")" asp-page="/Financeiro/ContasAPagar">
                                 <i class="bi bi-cash-stack"></i><span>Contas a Pagar</span>
+                            </a>
+                        </li>
+                        <li class="sidebar-item">
+                            <a class="sidebar-link @Active("/Financeiro/ContasAReceber")" asp-page="/Financeiro/ContasAReceber">
+                                <i class="bi bi-wallet2"></i><span>Contas a Receber</span>
                             </a>
                         </li>
                     </ul>

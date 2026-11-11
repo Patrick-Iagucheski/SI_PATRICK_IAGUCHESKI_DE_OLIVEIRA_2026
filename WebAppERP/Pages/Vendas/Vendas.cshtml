@@ -30,7 +30,7 @@
                 <label class="form-label small mb-1">Situação</label>
                 <select class="form-select" id="buscaSituacao">
                     <option value="">Todas</option>
-                    <option value="@Venda.ABERTA">Aberta</option>
+                    <option value="@Venda.RASCUNHO">Rascunho</option>
                     <option value="@Venda.FINALIZADA">Finalizada</option>
                     <option value="@Venda.CANCELADA">Cancelada</option>
                 </select>
@@ -88,7 +88,7 @@
                                 </a>
                                 @if (v.TpStatus != Venda.CANCELADA)
                                 {
-                                    <form method="post" asp-page-handler="Cancelar" class="d-inline" onsubmit="return confirm('Deseja cancelar esta venda? O estoque será estornado se estiver finalizada.')">
+                                    <form method="post" asp-page-handler="Cancelar" class="d-inline" onsubmit="return confirm('Deseja cancelar esta venda? Se estiver finalizada, o estoque será estornado e os títulos do Contas a Receber serão cancelados.')">
                                         <input type="hidden" name="id" value="@v.IdVenda" />
                                         <button type="submit" class="btn btn-icon btn-outline-warning" title="Cancelar venda">
                                             <i class="bi bi-x-circle"></i>

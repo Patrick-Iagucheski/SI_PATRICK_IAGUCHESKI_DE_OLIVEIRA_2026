@@ -107,6 +107,8 @@ public class FormaPagamentoBusiness
             throw new ValidacaoException("Não é possível excluir: existe compra paga com esta forma de pagamento.", dica);
         if (await _db.Vendas.AnyAsync(v => v.IdFormaPagamento == id))
             throw new ValidacaoException("Não é possível excluir: existe venda com esta forma de pagamento.", dica);
+        if (await _db.ContasAReceber.AnyAsync(c => c.IdFormaPagamento == id))
+            throw new ValidacaoException("Não é possível excluir: existe conta a receber com esta forma de pagamento.", dica);
 
         try
         {

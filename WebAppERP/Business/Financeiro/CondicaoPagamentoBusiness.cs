@@ -154,6 +154,8 @@ public class CondicaoPagamentoBusiness
         if (await _db.Compras.AnyAsync(c => c.IdCondicaoPagamento == id)
             || await _db.CompraPagamentos.AnyAsync(p => p.IdCondicaoPagamento == id))
             throw new ValidacaoException("Não é possível excluir: existe compra com esta condição de pagamento.", dica);
+        if (await _db.Vendas.AnyAsync(v => v.IdCondicaoPagamento == id))
+            throw new ValidacaoException("Não é possível excluir: existe venda com esta condição de pagamento.", dica);
 
         try
         {

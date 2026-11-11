@@ -153,6 +153,7 @@ function renderItens() {
         tb.appendChild(tr);
     });
     calcTotais();
+    agendarAutoSalvar();
 }
 
 function calcTotais() {
@@ -164,23 +165,244 @@ function calcTotais() {
     document.getElementById('lblTotal').textContent = 'R$ ' + moeda(total);
 }
 
-function salvar(status) {
-    const func = document.getElementById('IdFuncionario');
-    if (!func.value) { exibirErro(secaoDoCampo('IdFuncionario'), 'Selecione o funcionário responsável.'); func.focus(); return; }
-    if (status === 'FINALIZADA' && ITENS.length === 0) { exibirErro(secaoDoCampo('itTipo'), 'Adicione ao menos um item para finalizar.'); return; }
-    if (status === 'FINALIZADA' && !document.getElementById('IdFormaPagamento').value) { exibirErro(secaoDoCampo('IdFormaPagamento'), 'Selecione a forma de pagamento para finalizar a venda.'); return; }
+function prepararEnvio(status) {
     document.getElementById('TpStatus').value = status;
     document.getElementById('ItensJson').value = JSON.stringify(ITENS.map(i => ({
         TpItem: i.tpItem, IdServico: i.idServico, IdProduto: i.idProduto,
         QtItem: i.qtItem, VlUnitario: i.vlUnitario, VlDesconto: i.vlDesconto
     })));
+}
+
+async function salvar(status) {
+    const func = document.getElementById('IdFuncionario');
+    if (!func.value) { exibirErro(secaoDoCampo('IdFuncionario'), 'Selecione o funcionário responsável.'); func.focus(); return; }
+    if (status === 'FINALIZADA' && ITENS.length === 0) { exibirErro(secaoDoCampo('itTipo'), 'Adicione ao menos um item para finalizar.'); return; }
+    if (status === 'FINALIZADA' && !document.getElementById('IdFormaPagamento').value && !document.getElementById('IdCondicaoPagamento').value) { exibirErro(secaoDoCampo('IdFormaPagamento'), 'Selecione a forma ou a condição de pagamento para finalizar a venda.'); return; }
+
+    // Espera a gravacao automatica em andamento: ela pode estar criando esta venda.
+    enviandoFormulario = true;
+    clearTimeout(autoSalvarTimer);
+    autoSalvarTimer = null;
+    while (autoSalvarEmAndamento) await new Promise(r => setTimeout(r, 100));
+
+    prepararEnvio(status);
     document.getElementById('formVenda').submit();
 }
 
+// Com condicao de pagamento, a forma vem das parcelas dela: o campo fica travado.
+function travarFormaPelaCondicao() {
+    const condicao = document.getElementById('IdCondicaoPagamento');
+    if (condicao.disabled) return;
+    document.getElementById('IdFormaPagamento').dataset.somenteLeitura = condicao.value ? '1' : '';
+}
+
+function aoTrocarCondicao() {
+    if (document.getElementById('IdCondicaoPagamento').value) document.getElementById('IdFormaPagamento').value = '';
+    travarFormaPelaCondicao();
+}
+
+// Ao escolher o cliente, sugere a condicao de pagamento dele (o usuario pode trocar).
+// Cliente sem condicao so limpa o campo se o valor atual veio do cliente anterior,
+// para nao apagar uma condicao escolhida a mao.
+let condicaoDoCliente = '';
+
+async function aoTrocarCliente() {
+    const cliente = document.getElementById('IdCliente');
+    const idCliente = cliente.value;
+    let sugerida = null;
+    if (idCliente) {
+        try {
+            const resp = await fetch('?handler=CondicaoDoCliente&idCliente=' + encodeURIComponent(idCliente));
+            sugerida = await resp.json();
+        } catch {
+            return; // sem resposta, mantem o que esta na tela
+        }
+        if (cliente.value !== idCliente) return; // trocou de cliente enquanto buscava
+    }
+
+    const condicao = document.getElementById('IdCondicaoPagamento');
+    if (sugerida?.id) {
+        condicaoDoCliente = String(sugerida.id);
+        if (condicao.value !== condicaoDoCliente) selecionarNoSelect('IdCondicaoPagamento', sugerida.id, sugerida.nome);
+    } else {
+        if (condicaoDoCliente && condicao.value === condicaoDoCliente) {
+            condicao.value = '';
+            condicao.dispatchEvent(new Event('change', { bubbles: true }));
+        }
+        condicaoDoCliente = '';
+    }
+}
+
+// ---------------- Salvamento automatico do rascunho ----------------
+// Venda em rascunho e salva sozinha a cada alteracao (campo do cabecalho ou
+// item), com um pequeno atraso para juntar a digitacao. A primeira gravacao
+// acontece quando ha funcionario, o unico campo obrigatorio do rascunho.
+// Venda finalizada so muda pelos botoes.
+
+const AUTO_SALVAR = DADOS_TELA.AUTO_SALVAR;
+let autoSalvarTimer = null;
+let autoSalvarEmAndamento = false;
+let autoSalvarPendente = false;
+let enviandoFormulario = false;
+let telaIniciada = false;
+
+function statusAutoSalvar(html, classe) {
+    const el = document.getElementById('autoSalvarStatus');
+    el.className = 'small align-self-center ' + classe;
+    el.innerHTML = html;
+}
+
+function temFuncionario() { return !!document.getElementById('IdFuncionario').value; }
+function campoIdVenda() { return document.querySelector('[name="IdVenda"]'); }
+
+function agendarAutoSalvar() {
+    if (!AUTO_SALVAR || !telaIniciada || enviandoFormulario) return;
+    clearTimeout(autoSalvarTimer);
+    statusAutoSalvar('<i class="bi bi-pencil me-1"></i>Alterações ainda não salvas...', 'text-muted');
+    autoSalvarTimer = setTimeout(autoSalvar, 1500);
+}
+
+function dadosRascunho() {
+    prepararEnvio(DADOS_TELA.RASCUNHO);
+    return new FormData(document.getElementById('formVenda'));
+}
+
+// Primeira gravacao: dali em diante a tela altera esta mesma venda.
+function assumirVendaGravada(id) {
+    const campo = campoIdVenda();
+    if (Number(campo.value) === id) return;
+    campo.value = id;
+    document.getElementById('vendaNumero').value = '#' + id;
+    document.getElementById('tituloVenda').textContent = 'Venda #' + id;
+    history.replaceState(null, '', '?id=' + id);
+    avisarGravacao();
+}
+
+async function autoSalvar() {
+    autoSalvarTimer = null;
+    if (enviandoFormulario) return;
+    if (!temFuncionario()) {
+        statusAutoSalvar('<i class="bi bi-info-circle me-1"></i>Selecione o funcionário para salvar o rascunho.', 'text-muted');
+        return;
+    }
+    // Uma gravacao por vez: o que mudar durante ela sai logo em seguida.
+    if (autoSalvarEmAndamento) { autoSalvarPendente = true; return; }
+
+    autoSalvarEmAndamento = true;
+    statusAutoSalvar('<span class="spinner-border spinner-border-sm me-1"></span>Salvando rascunho...', 'text-muted');
+    try {
+        const resp = await fetch('?handler=AutoSalvar', { method: 'POST', body: dadosRascunho() });
+        const r = await resp.json();
+        if (r.ok) {
+            assumirVendaGravada(r.id);
+            statusAutoSalvar('<i class="bi bi-cloud-check me-1"></i>Rascunho salvo às ' + r.hora, 'text-success');
+        } else {
+            statusAutoSalvar('<i class="bi bi-exclamation-triangle me-1"></i>Rascunho não salvo: ' + escaparHtml(r.erro), 'text-danger');
+        }
+    } catch {
+        statusAutoSalvar('<i class="bi bi-exclamation-triangle me-1"></i>Não foi possível salvar o rascunho. Verifique a conexão.', 'text-danger');
+    } finally {
+        autoSalvarEmAndamento = false;
+        if (autoSalvarPendente) { autoSalvarPendente = false; autoSalvar(); }
+    }
+}
+
+// Saindo da tela com alteracao ainda esperando o atraso: o navegador envia
+// mesmo com a pagina sendo descarregada. Se a primeira gravacao ainda esta em
+// andamento, nao envia de novo (criaria outra venda).
+window.addEventListener('pagehide', () => {
+    if (!autoSalvarTimer || enviandoFormulario || !temFuncionario()) return;
+    if (autoSalvarEmAndamento && Number(campoIdVenda().value) === 0) return;
+    clearTimeout(autoSalvarTimer);
+    navigator.sendBeacon('?handler=AutoSalvar', dadosRascunho());
+});
+
+// ---------------- Botao Atualizar ----------------
+
+// Troca as opcoes do campo pelas atuais, mantendo a escolha. A opcao escolhida
+// que saiu da lista (ex.: cliente inativado) continua, para nao perder o valor.
+function recarregarOpcoes(id, lista) {
+    const sel = document.getElementById(id);
+    if (!sel) return;
+    const atual = sel.value;
+    const escolhida = sel.selectedOptions[0];
+    [...sel.options].forEach(o => { if (o.value !== '' && o !== escolhida) o.remove(); });
+    lista.forEach(item => {
+        const manter = String(item.id) === atual;
+        const opt = manter ? escolhida : document.createElement('option');
+        opt.value = item.id;
+        opt.textContent = item.nome;
+        sel.appendChild(opt);
+    });
+    sel.value = atual;
+}
+
+// Nome sempre; preco so em rascunho (venda finalizada mantem o preco vendido).
+function atualizarItens(precos) {
+    ITENS.forEach(it => {
+        const atual = it.tpItem === TIPO_PRODUTO ? PRODUTOS.find(p => p.id === it.idProduto)
+                                                 : SERVICOS.find(s => s.id === it.idServico);
+        if (!atual) return;
+        it.descricao = atual.nome;
+        if (precos) {
+            it.vlUnitario = atual.valor;
+            it.vlTotal = Math.max(it.qtItem * it.vlUnitario - it.vlDesconto, 0);
+        }
+    });
+    renderItens();
+}
+
+// Busca os cadastros de novo e atualiza a tela sem gravar a venda: o que ja
+// foi digitado continua aqui.
+async function atualizarDados() {
+    const btn = document.getElementById('btnAtualizar');
+    const secao = secaoDoCampo('IdCliente');
+    btn.disabled = true;
+    try {
+        const resp = await fetch('?handler=AtualizarDados&id=' + encodeURIComponent(campoIdVenda().value));
+        if (!resp.ok) throw new Error();
+        const d = await resp.json();
+
+        PRODUTOS.splice(0, PRODUTOS.length, ...d.produtos);
+        SERVICOS.splice(0, SERVICOS.length, ...d.servicos);
+        recarregarOpcoes('IdCliente', d.clientes);
+        recarregarOpcoes('IdFuncionario', d.funcionarios);
+        recarregarOpcoes('IdAgendamento', d.agendamentos);
+        recarregarOpcoes('IdFormaPagamento', d.formas);
+        recarregarOpcoes('IdCondicaoPagamento', d.condicoes);
+        recarregarOpcoes('itProduto', d.produtos);
+        recarregarOpcoes('itServico', d.servicos);
+        atualizarItens(d.emRascunho);
+
+        // Item que esta sendo digitado: saldo e preco atuais.
+        if (document.getElementById('itProduto').value) onProdutoChange();
+        if (document.getElementById('itServico').value) onServicoChange();
+        if (d.emRascunho) await aoTrocarCliente();
+
+        exibirSucesso(secao, d.emRascunho ? 'Cadastros, preços e condição do cliente atualizados.'
+                                          : 'Cadastros atualizados. Os preços da venda finalizada não mudam.');
+    } catch {
+        exibirErro(secao, 'Não foi possível atualizar os dados. Verifique a conexão.');
+    } finally {
+        btn.disabled = false;
+    }
+}
+
 document.addEventListener('DOMContentLoaded', function () {
+    document.getElementById('IdCliente').addEventListener('change', aoTrocarCliente);
+    document.getElementById('IdCondicaoPagamento').addEventListener('change', aoTrocarCondicao);
+    travarFormaPelaCondicao();
     onTipoChange();
     renderItens();
     document.getElementById('VlDesconto')?.addEventListener('input', calcTotais);
     ['itQt', 'itVlUnit', 'itDesc'].forEach(id => document.getElementById(id)?.addEventListener('input', calcItemTotal));
+
+    // Rascunho: qualquer campo do form (os que tem name) salva sozinho. Os campos
+    // de digitacao do item nao tem name: so contam quando o item entra na grade.
+    ['input', 'change'].forEach(ev => document.getElementById('formVenda').addEventListener(ev, e => {
+        if (e.target.name && e.target.type !== 'hidden') agendarAutoSalvar();
+    }));
+    if (AUTO_SALVAR) statusAutoSalvar('<i class="bi bi-cloud-check me-1"></i>O rascunho é salvo automaticamente', 'text-muted');
+    telaIniciada = true;
 });
 

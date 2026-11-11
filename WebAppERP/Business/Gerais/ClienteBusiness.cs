@@ -25,6 +25,13 @@ public class ClienteBusiness
             .OrderBy(c => c.NmCliente)
             .ToListAsync();
 
+    // Condicao de pagamento do cliente, se ainda estiver ativa (sugerida na venda).
+    public async Task<CondicaoPagamento?> GetCondicaoPagamento(int idCliente) =>
+        await _db.Clientes
+            .Where(c => c.IdCliente == idCliente && c.CondicaoPagamento != null && c.CondicaoPagamento.FlAtivo)
+            .Select(c => c.CondicaoPagamento)
+            .FirstOrDefaultAsync();
+
     // Pesquisa da tela: por codigo, nome, documento (CPF/CNPJ/outro) ou e-mail.
     // Sem "inativos" marcado traz so os ativos; marcado, so os inativos.
     public async Task<List<Cliente>> Buscar(int? id, string? nome, string? documento, string? email, bool somenteInativos)
@@ -227,6 +234,8 @@ public class ClienteBusiness
             throw new ValidacaoException("Não é possível excluir: existe agendamento para este cliente.", "Inative o cliente em vez de excluí-lo.");
         if (await _db.Vendas.AnyAsync(v => v.IdCliente == id))
             throw new ValidacaoException("Não é possível excluir: existe venda para este cliente.", "Inative o cliente em vez de excluí-lo.");
+        if (await _db.ContasAReceber.AnyAsync(c => c.IdCliente == id))
+            throw new ValidacaoException("Não é possível excluir: existe conta a receber para este cliente.", "Inative o cliente em vez de excluí-lo.");
 
         try
         {

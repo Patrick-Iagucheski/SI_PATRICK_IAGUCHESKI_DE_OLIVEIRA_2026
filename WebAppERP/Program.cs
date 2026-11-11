@@ -63,6 +63,7 @@ builder.Services.AddScoped<ProdutoBusiness>();
 builder.Services.AddScoped<FormaPagamentoBusiness>();
 builder.Services.AddScoped<CondicaoPagamentoBusiness>();
 builder.Services.AddScoped<ContaAPagarBusiness>();
+builder.Services.AddScoped<ContaAReceberBusiness>();
 
 // Nome e logo da empresa do layout (lidos do banco, em cache)
 builder.Services.AddMemoryCache();

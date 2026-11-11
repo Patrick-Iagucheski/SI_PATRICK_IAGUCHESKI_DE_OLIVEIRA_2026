@@ -34,6 +34,7 @@ public class AppDbContext : DbContext
     public DbSet<UnidadeMedida> UnidadesMedida => Set<UnidadeMedida>();
     public DbSet<CategoriaServico> CategoriasServico => Set<CategoriaServico>();
     public DbSet<ContaAPagar> ContasAPagar => Set<ContaAPagar>();
+    public DbSet<ContaAReceber> ContasAReceber => Set<ContaAReceber>();
     public DbSet<CondicaoPagamento> CondicoesPagamento => Set<CondicaoPagamento>();
     public DbSet<CondicaoPagamentoParcela> CondicoesPagamentoParcelas => Set<CondicaoPagamentoParcela>();
     public DbSet<VendaItem> VendaItens => Set<VendaItem>();

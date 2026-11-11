@@ -25,7 +25,8 @@ public class VendaModel : PaginaBase
     [BindProperty] public int IdFuncionario { get; set; }
     [BindProperty] public int? IdAgendamento { get; set; }
     [BindProperty] public int? IdFormaPagamento { get; set; }
-    [BindProperty] public string TpStatus { get; set; } = Venda.ABERTA;
+    [BindProperty] public int? IdCondicaoPagamento { get; set; }
+    [BindProperty] public string TpStatus { get; set; } = Venda.RASCUNHO;
     [BindProperty] public decimal VlDesconto { get; set; }
     [BindProperty] public string? DsObservacao { get; set; }
 
@@ -50,6 +51,7 @@ public class VendaModel : PaginaBase
             IdFuncionario = venda.IdFuncionario;
             IdAgendamento = venda.IdAgendamento;
             IdFormaPagamento = venda.IdFormaPagamento;
+            IdCondicaoPagamento = venda.IdCondicaoPagamento;
             TpStatus = venda.TpStatus;
             VlDesconto = venda.VlDesconto;
             DsObservacao = venda.DsObservacao;
@@ -58,29 +60,82 @@ public class VendaModel : PaginaBase
         return Page();
     }
 
+    // Condicao de pagamento do cliente escolhido (a tela sugere na venda).
+    public async Task<IActionResult> OnGetCondicaoDoCliente(int idCliente)
+    {
+        var condicao = await _business.GetCondicaoDoCliente(idCliente);
+        return new JsonResult(new { id = condicao?.IdCondicaoPagamento, nome = condicao?.DsCondicao });
+    }
+
+    // Botao Atualizar: listas e precos atuais dos cadastros, sem gravar a venda.
+    public async Task<IActionResult> OnGetAtualizarDados(int? id)
+    {
+        var combos = await _business.GetCombos();
+        return new JsonResult(new
+        {
+            emRascunho = await _business.GetSituacao(id) == Venda.RASCUNHO,
+            clientes = combos.Clientes.Select(c => new { id = c.IdCliente, nome = c.NmCliente }),
+            funcionarios = combos.Funcionarios.Select(f => new { id = f.IdFuncionario, nome = f.NmFuncionario }),
+            agendamentos = combos.Agendamentos.Select(a => new { id = a.IdAgendamento, nome = TextoAgendamento(a) }),
+            formas = combos.Formas.Select(f => new { id = f.IdFormaPagamento, nome = f.DsFormaPagamento }),
+            condicoes = combos.Condicoes.Select(c => new { id = c.IdCondicaoPagamento, nome = c.DsCondicao }),
+            produtos = ProdutosDaTela(combos.Produtos),
+            servicos = ServicosDaTela(combos.Servicos)
+        });
+    }
+
+    // Formatos usados tanto ao abrir a tela quanto no botao Atualizar.
+    public static string TextoAgendamento(Agendamento a) =>
+        $"#{a.IdAgendamento} - {a.DtAgendamento:dd/MM/yyyy} {a.HrInicio:HH:mm} - {a.Cliente?.NmCliente}";
+
+    public static IEnumerable<object> ProdutosDaTela(IEnumerable<Produto> produtos) =>
+        produtos.Select(p => new { id = p.IdProduto, nome = p.DsProduto, saldo = p.QtSaldo ?? 0, valor = p.VlVenda ?? 0 });
+
+    public static IEnumerable<object> ServicosDaTela(IEnumerable<Servico> servicos) =>
+        servicos.Select(s => new { id = s.IdServico, nome = s.DsServico, valor = s.VlServico });
+
+    private List<VendaItemDTO> ItensDaTela() =>
+        JsonSerializer.Deserialize<List<VendaItemDTO>>(ItensJson ?? "[]", JsonOpts) ?? [];
+
+    private VendaDTO MontarDados(List<VendaItemDTO> itens) => new()
+    {
+        IdVenda = IdVenda,
+        IdCliente = IdCliente,
+        IdFuncionario = IdFuncionario,
+        IdAgendamento = IdAgendamento,
+        IdFormaPagamento = IdFormaPagamento,
+        IdCondicaoPagamento = IdCondicaoPagamento,
+        TpStatus = TpStatus,
+        VlDesconto = VlDesconto,
+        DsObservacao = DsObservacao,
+        Itens = itens
+    };
+
+    // Salvamento automatico do rascunho: devolve o numero da venda, para a tela
+    // continuar alterando a mesma venda.
+    public async Task<IActionResult> OnPostAutoSalvar()
+    {
+        try
+        {
+            var id = await _business.SalvarRascunho(MontarDados(ItensDaTela()));
+            return new JsonResult(new { ok = true, erro = (string?)null, id, hora = DateTime.Now.ToString("HH:mm:ss") });
+        }
+        catch (Exception ex) when (MensagemDeErro(ex) is { } mensagem)
+        {
+            return new JsonResult(new { ok = false, erro = mensagem });
+        }
+    }
+
     public async Task<IActionResult> OnPost()
     {
-        var itens = JsonSerializer.Deserialize<List<VendaItemDTO>>(ItensJson ?? "[]", JsonOpts) ?? [];
-
-        var input = new VendaDTO
-        {
-            IdVenda = IdVenda,
-            IdCliente = IdCliente,
-            IdFuncionario = IdFuncionario,
-            IdAgendamento = IdAgendamento,
-            IdFormaPagamento = IdFormaPagamento,
-            TpStatus = TpStatus,
-            VlDesconto = VlDesconto,
-            DsObservacao = DsObservacao,
-            Itens = itens
-        };
+        var itens = ItensDaTela();
 
         try
         {
-            await _business.Salvar(input);
+            await _business.Salvar(MontarDados(itens));
             TempData["Sucesso"] = TpStatus == Venda.FINALIZADA
-                ? "Venda finalizada. Estoque atualizado."
-                : "Venda salva com sucesso.";
+                ? "Venda finalizada. Estoque atualizado e títulos gerados no Contas a Receber."
+                : "Rascunho da venda salvo com sucesso.";
             return RedirectToPage("Vendas");
         }
         catch (Exception ex) when (MensagemDeErro(ex) is { } mensagem)
@@ -88,8 +143,22 @@ public class VendaModel : PaginaBase
             Erro = mensagem;
         }
 
-        // Em caso de erro, recarrega combos e reexibe a tela com os dados digitados.
-        Vm.Combos = await _business.GetCombos();
+        // Em caso de erro, recarrega combos e reexibe a tela com os dados e os
+        // itens digitados (o salvamento automatico nao pode gravar a grade vazia).
+        var combos = await _business.GetCombos();
+        Vm.Combos = combos;
+        Vm.Itens = itens.Select(i => new VendaItem
+        {
+            TpItem = i.TpItem,
+            IdServico = i.IdServico,
+            IdProduto = i.IdProduto,
+            QtItem = i.QtItem,
+            VlUnitario = i.VlUnitario,
+            VlDesconto = i.VlDesconto,
+            VlTotal = Math.Max(i.QtItem * i.VlUnitario - i.VlDesconto, 0),
+            Servico = combos.Servicos.FirstOrDefault(s => s.IdServico == i.IdServico),
+            Produto = combos.Produtos.FirstOrDefault(p => p.IdProduto == i.IdProduto)
+        }).ToList();
         Vm.Venda = new Venda
         {
             IdVenda = IdVenda,
@@ -97,7 +166,8 @@ public class VendaModel : PaginaBase
             IdFuncionario = IdFuncionario,
             IdAgendamento = IdAgendamento,
             IdFormaPagamento = IdFormaPagamento,
-            TpStatus = TpStatus,
+            IdCondicaoPagamento = IdCondicaoPagamento,
+            TpStatus = await _business.GetSituacao(IdVenda) ?? Venda.RASCUNHO,   // a gravacao falhou: vale a situacao do banco
             VlDesconto = VlDesconto,
             DsObservacao = DsObservacao,
             DtVenda = DateTime.Now

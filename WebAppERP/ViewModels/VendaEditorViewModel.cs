@@ -4,7 +4,7 @@ namespace WebAppERP.ViewModels;
 
 public class VendaEditorViewModel
 {
-    public Venda Venda { get; set; } = new() { TpStatus = Venda.ABERTA, DtVenda = DateTime.Now };
+    public Venda Venda { get; set; } = new() { TpStatus = Venda.RASCUNHO, DtVenda = DateTime.Now };
     public List<VendaItem> Itens { get; set; } = [];
     public VendaCombosDTO Combos { get; set; } = new();
 

@@ -1,0 +1,308 @@
+﻿@page
+@model WebAppERP.Pages.Financeiro.ContasAReceberModel
+@{
+    ViewData["Title"] = "Contas a Receber";
+    var hoje = DateOnly.FromDateTime(DateTime.Today);
+}
+
+<div class="d-flex justify-content-between align-items-start mb-4">
+    <div>
+        <h1 class="page-title">Contas a Receber</h1>
+        <p class="page-subtitle">Controle contas, clientes, vencimentos, recebimentos e situação financeira</p>
+    </div>
+    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#modalConta" onclick="limparFormConta()">
+        <i class="bi bi-plus-lg me-1"></i> Nova Conta
+    </button>
+</div>
+
+<!-- Indicadores -->
+<div class="row g-3 mb-4">
+    <div class="col-md-4">
+        <div class="card kpi-card kpi-blue">
+            <div class="card-body d-flex align-items-center justify-content-between">
+                <div>
+                    <div class="kpi-label">Em Aberto (@Model.QtAberto)</div>
+                    <div class="kpi-value mt-1">R$ @Model.VlAberto.ToString("N2")</div>
+                </div>
+                <div class="kpi-icon" style="background: #dbeafe; color: #3b82f6;">
+                    <i class="bi bi-hourglass-split"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card kpi-card kpi-orange">
+            <div class="card-body d-flex align-items-center justify-content-between">
+                <div>
+                    <div class="kpi-label">Vencidas (@Model.QtVencidas)</div>
+                    <div class="kpi-value mt-1">R$ @Model.VlVencidas.ToString("N2")</div>
+                </div>
+                <div class="kpi-icon" style="background: #fee2e2; color: #ef4444;">
+                    <i class="bi bi-exclamation-triangle"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card kpi-card kpi-green">
+            <div class="card-body d-flex align-items-center justify-content-between">
+                <div>
+                    <div class="kpi-label">Recebidas (@Model.QtRecebidas)</div>
+                    <div class="kpi-value mt-1">R$ @Model.VlRecebidas.ToString("N2")</div>
+                </div>
+                <div class="kpi-icon" style="background: #dcfce7; color: #10b981;">
+                    <i class="bi bi-check2-circle"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Filtros de busca (todos opcionais e combinaveis) -->
+<div class="card mb-3">
+    <div class="card-body py-3">
+        <div class="row g-2 align-items-end">
+            <div class="col-md-1">
+                <label class="form-label small mb-1">ID</label>
+                <input type="number" class="form-control" id="buscaId" min="1" autocomplete="off" />
+            </div>
+            <div class="col-md-3">
+                <label class="form-label small mb-1">Conta</label>
+                <input type="text" class="form-control" id="buscaConta" autocomplete="off" />
+            </div>
+            <div class="col-md-2">
+                <label class="form-label small mb-1">Documento</label>
+                <input type="text" class="form-control" id="buscaDocumento" autocomplete="off" />
+            </div>
+            <div class="col-md-3">
+                <label class="form-label small mb-1">Cliente</label>
+                <select class="form-select" id="buscaCliente">
+                    <option value="">Todos</option>
+                    @foreach (var cli in Model.Clientes)
+                    {
+                        <option value="@cli.IdCliente">@cli.NmCliente</option>
+                    }
+                </select>
+            </div>
+            <!-- Situacao: comeca em Pendentes (a grade inicial tambem) -->
+            <div class="col-md-3">
+                <label class="form-label small mb-1">Situação</label>
+                <select class="form-select" id="buscaSituacao" onchange="buscarContas()">
+                    <option value="@ContaAReceber.PENDENTE" selected>Pendentes (inclui vencidas)</option>
+                    <option value="@ContaAReceber.VENCIDA">Vencidas</option>
+                    <option value="@ContaAReceber.RECEBIDO">Recebidas</option>
+                    <option value="@ContaAReceber.CANCELADO">Canceladas</option>
+                    <option value="">Todas</option>
+                </select>
+            </div>
+        </div>
+        <div class="d-flex justify-content-end align-items-center mt-3">
+            <button type="button" class="btn btn-primary" onclick="buscarContas()">
+                <i class="bi bi-search me-1"></i>Buscar
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Tabela -->
+<div class="table-container">
+    <div class="table-header">
+        <h5><i class="bi bi-wallet2 me-2"></i>Contas a receber cadastradas</h5>
+        <span class="text-muted small" id="contadorRegistros">@Model.ContasGrade.Count() registros encontrados</span>
+    </div>
+    <div class="table-responsive">
+        <table class="table" id="tblContas">
+            <thead>
+                <tr>
+                    <th>Conta</th>
+                    <th>Cliente</th>
+                    <th>Vencimento</th>
+                    <th class="text-end">Valor</th>
+                    <th class="text-end">Recebido</th>
+                    <th>Situação</th>
+                    <th>Forma</th>
+                    <th class="text-center">Ações</th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (Model.ContasGrade.Any())
+                {
+                    @foreach (var c in Model.ContasGrade)
+                    {
+                        var sit = WebAppERP.Business.Financeiro.ContaAReceberBusiness.GetSituacao(c, hoje);
+                        var badge = sit switch
+                        {
+                            ContaAReceber.RECEBIDO => "badge-concluido",
+                            ContaAReceber.VENCIDA => "badge-cancelado",
+                            ContaAReceber.CANCELADO => "badge-inativo",
+                            _ => "badge-agendado"
+                        };
+                        <tr data-cliente="@c.IdCliente" data-situacao="@sit" data-venc="@(c.DtVencimento?.ToString("yyyy-MM-dd"))">
+                            <td>
+                                <strong>@c.DsConta</strong>
+                                @if (!string.IsNullOrWhiteSpace(c.NrDocumento))
+                                {
+                                    <div class="text-muted small">Doc: @c.NrDocumento</div>
+                                }
+                            </td>
+                            <td>@(c.Cliente?.NmCliente ?? "-")</td>
+                            <td>@(c.DtVencimento?.ToString("dd/MM/yyyy") ?? "-")</td>
+                            <td class="text-end"><strong>R$ @c.VlValor.ToString("N2")</strong></td>
+                            <td class="text-end">R$ @c.VlRecebido.ToString("N2")</td>
+                            <td><span class="badge-status @badge">@sit</span></td>
+                            <td>@(c.FormaPagamento?.DsFormaPagamento ?? "-")</td>
+                            <td class="text-center" style="white-space: nowrap;">
+                                @if (sit != ContaAReceber.RECEBIDO && sit != ContaAReceber.CANCELADO)
+                                {
+                                    <form method="post" asp-page-handler="Baixa" class="d-inline" onsubmit="return confirm('Confirmar baixa (recebimento) desta conta hoje?')">
+                                        <input type="hidden" name="id" value="@c.IdContaReceber" />
+                                        <button type="submit" class="btn btn-icon btn-outline-success" title="Dar baixa / Marcar como recebido">
+                                            <i class="bi bi-cash-coin"></i>
+                                        </button>
+                                    </form>
+                                }
+                                <button class="btn btn-icon btn-outline-primary" title="Editar"
+                                        data-bs-toggle="modal" data-bs-target="#modalConta"
+                                        data-registro="@Module.RegistroJson(c)"
+                                        data-conta="@System.Text.Json.JsonSerializer.Serialize(ContasAReceberModel.Registro(c, c.IdVenda is int v && Model.VendasCanceladas.Contains(v)))"
+                                        onclick="editarConta(JSON.parse(this.dataset.conta))">
+                                    <i class="bi bi-pencil"></i>
+                                </button>
+                                <form method="post" asp-page-handler="Excluir" class="d-inline" onsubmit="return confirm('Deseja realmente excluir esta conta?')">
+                                    <input type="hidden" name="id" value="@c.IdContaReceber" />
+                                    <button type="submit" class="btn btn-icon btn-outline-danger" title="Excluir">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </form>
+                            </td>
+                        </tr>
+                    }
+                }
+                else
+                {
+                    <tr><td colspan="8" class="text-center text-muted py-4">Nenhuma conta a receber cadastrada</td></tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Modal Nova/Editar Conta -->
+<div class="modal fade" id="modalConta" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <form method="post" data-modal-ajax>
+                <div class="modal-header">
+                    <h5 class="modal-title" id="contaTitulo"><i class="bi bi-wallet2 me-2"></i>Nova Conta a Receber</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <input type="hidden" asp-for="ContaForm.IdContaReceber" id="contaIdConta" />
+                    <!-- Titulo gerado pela venda: diz por que ha campos travados (travarCamposConta) -->
+                    <div class="alert alert-info py-2 d-none" id="contaAvisoVenda"></div>
+                    <!-- Secoes no mesmo padrao do cadastro de cliente: Dados da Conta,
+                         Valor e Vencimento, Recebimento (baixa); no fim, Status e Observacoes
+                         (sempre o ultimo campo do cadastro). -->
+                    <h6 class="text-primary border-bottom pb-1 mb-3"><i class="bi bi-card-list me-1"></i>Dados da Conta</h6>
+                    <div class="row g-3">
+                        <div class="col-md-2">
+                            <label class="form-label">Código</label>
+                            <input type="text" class="form-control bg-light" id="contaCodigoDisplay" placeholder="(novo)" readonly />
+                        </div>
+                        <div class="col-md-7">
+                            <label class="form-label">Conta a Receber *</label>
+                            <input type="text" class="form-control" asp-for="ContaForm.DsConta" id="contaDsConta" maxlength="100" placeholder="Ex: Serviço a prazo, venda fiado" required />
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Documento</label>
+                            <input type="text" class="form-control" asp-for="ContaForm.NrDocumento" id="contaNrDocumento" maxlength="20" placeholder="Ex: Recibo 123" />
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label">Cliente *</label>
+                            <select class="form-select" asp-for="ContaForm.IdCliente" id="contaIdCliente" required
+                                    data-pesquisa="abrirPesquisaCliente(opcoesDoSelect('contaIdCliente'))" data-titulo-pesquisa="Pesquisar cliente">
+                                <option value="">Selecione um cliente</option>
+                                @foreach (var cli in Model.Clientes)
+                                {
+                                    <option value="@cli.IdCliente">@cli.NmCliente</option>
+                                }
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Forma de Pagamento</label>
+                            <select class="form-select" asp-for="ContaForm.IdFormaPagamento" id="contaIdFormaPagamento"
+                                    data-pesquisa="abrirPesquisaForma(opcoesDoSelect('contaIdFormaPagamento'))" data-titulo-pesquisa="Pesquisar forma de pagamento">
+                                <option value="">Selecione uma forma</option>
+                                @foreach (var fp in Model.Formas)
+                                {
+                                    <option value="@fp.IdFormaPagamento">@fp.DsFormaPagamento</option>
+                                }
+                            </select>
+                        </div>
+                    </div>
+
+                    <h6 class="text-primary border-bottom pb-1 mb-3 mt-4"><i class="bi bi-calendar-event me-1"></i>Valor e Vencimento</h6>
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <label class="form-label">Emissão</label>
+                            <input type="date" class="form-control" asp-for="ContaForm.DtEmissao" id="contaDtEmissao" />
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Vencimento</label>
+                            <input type="date" class="form-control" asp-for="ContaForm.DtVencimento" id="contaDtVencimento" />
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Valor (R$) *</label>
+                            <input type="number" step="0.01" min="0" class="form-control" asp-for="ContaForm.VlValor" id="contaVlValor" required />
+                        </div>
+                    </div>
+
+                    <h6 class="text-primary border-bottom pb-1 mb-3 mt-4"><i class="bi bi-check2-circle me-1"></i>Recebimento</h6>
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <label class="form-label">Data do Recebimento</label>
+                            <input type="date" class="form-control" asp-for="ContaForm.DtRecebimento" id="contaDtRecebimento" />
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Valor recebido (R$)</label>
+                            <input type="number" step="0.01" min="0" class="form-control" asp-for="ContaForm.VlRecebido" id="contaVlRecebido" />
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Situação</label>
+                            <select class="form-select" asp-for="ContaForm.DsStatus" id="contaDsStatus">
+                                <option value="@ContaAReceber.PENDENTE">Pendente</option>
+                                <option value="@ContaAReceber.RECEBIDO">Recebido</option>
+                                <option value="@ContaAReceber.CANCELADO">Cancelado</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Observacoes (sempre o ultimo campo). A conta nao tem Ativo/Inativo:
+                         funciona so pela Situacao, logo acima. -->
+                    <div class="row g-3 mt-1">
+                        <div class="col-12">
+                            <label class="form-label">Observações</label>
+                            <textarea class="form-control" rows="2" asp-for="ContaForm.DsObservacao" id="contaDsObservacao" placeholder="Detalhes da conta, negociação ou baixa"></textarea>
+                        </div>
+                    </div>
+                    <partial name="_Registro" />
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary" id="contaBtnSalvar"><i class="bi bi-check-lg me-1"></i>Salvar conta</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Cadastros de cliente e de forma de pagamento (componentes compartilhados),
+     abertos pela lupa dos campos. Gravam por AJAX e voltam para a pesquisa. -->
+@await Component.InvokeAsync("CadastroCliente", new { modo = "ajax" })
+@await Component.InvokeAsync("CadastroFormaPagamento", new { modo = "ajax" })
+
+@section Scripts {
+    @* Os scripts dos cadastros vem com os proprios componentes. *@
+    <script src="~/Pages/Financeiro/ContasAReceber.cshtml.js" asp-append-version="true"></script>
+}
