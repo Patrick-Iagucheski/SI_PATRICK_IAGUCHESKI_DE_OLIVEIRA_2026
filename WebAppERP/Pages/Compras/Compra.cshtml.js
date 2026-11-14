@@ -116,6 +116,12 @@ function abrirBuscaTransportador() {
     abrirPesquisaTransportador(opcoesDoSelect('IdTransportador', t => t.razaoSocial));
 }
 
+// droplist comentado
+// Configuracao do autocomplete (data-autocomplete) que o campo usava para
+// buscar no servidor enquanto se digitava; desligado junto com o droplist do
+// module.js (montarCampoSelecao). Os atributos data-autocomplete continuam na
+// tela, para religar basta descomentar os dois lados.
+/*
 // Autocomplete dos campos que comecam vazios (data-autocomplete, module.js):
 // a mesma busca e a mesma selecao da pesquisa de cada um.
 // Digitando so numeros (com ou sem mascara), busca pelo documento; senao, pela razao social.
@@ -134,6 +140,7 @@ function autocompleteItem() {
     return { url: urlProdutos('BuscarProdutos'), param: 'termo', texto: p => p.nome,
              escolher: p => aplicarItemSelecionado({ id: p.id, nome: p.nome, unidade: p.unidade, custo: p.custo }) };
 }
+*/
 
 // A compra so tem produtos: a pesquisa e sempre a de produto.
 function abrirBuscaItem() {

@@ -18,7 +18,12 @@ function num(id) { const v = document.getElementById(id).value; return parseFloa
 function brutoItem(qt, unit) { return Math.round(qt * unit * 100 + Number.EPSILON) / 100; }
 
 function onTipoChange() {
-    const t = document.getElementById('itTipo').value;
+    // Venda finalizada ou cancelada (so visualizacao) nao tem o formulario do
+    // item: sem este retorno o erro parava o script da tela antes de montar a
+    // grade de itens e os totais.
+    const tipo = document.getElementById('itTipo');
+    if (!tipo) return;
+    const t = tipo.value;
     document.getElementById('grpProduto').style.display = t === TIPO_PRODUTO ? '' : 'none';
     document.getElementById('grpServico').style.display = t === TIPO_SERVICO ? '' : 'none';
     document.getElementById('itVlUnit').value = '';
