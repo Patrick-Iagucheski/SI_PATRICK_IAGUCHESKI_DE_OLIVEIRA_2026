@@ -56,12 +56,14 @@ public class ServicoBusiness
 
         if (nome.Length == 0)
             throw new ValidacaoException("Informe o nome do serviço.");
-        if (nome.Length > 200)
-            throw new ValidacaoException("O nome do serviço deve ter no máximo 200 caracteres.");
+        if (nome.Length > 60)
+            throw new ValidacaoException("O nome do serviço deve ter no máximo 60 caracteres.");
         if (descricao?.Length > 500)
             throw new ValidacaoException("A descrição do serviço deve ter no máximo 500 caracteres.");
-        // Categoria opcional; quando informada, do cadastro e ativa.
-        if (servico.IdCategoriaServico is int idCategoria && !await _categoria.ExisteAtiva(idCategoria))
+        // Categoria opcional; quando informada, do cadastro e ativa, ou a que o
+        // servico ja tinha (inativada depois nao trava o cadastro).
+        if (servico.IdCategoriaServico is int idCategoria && !await _categoria.ExisteAtiva(idCategoria)
+            && !await _db.Servicos.AnyAsync(s => s.IdServico == servico.IdServico && s.IdCategoriaServico == idCategoria))
             throw new ValidacaoException("Categoria de serviço inválida.");
         if (servico.VlServico <= 0)
             throw new ValidacaoException("Informe o valor do serviço.", "O valor deve ser maior que zero.");

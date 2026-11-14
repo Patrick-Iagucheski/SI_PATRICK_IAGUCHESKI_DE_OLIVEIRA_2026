@@ -12,3 +12,19 @@ public sealed class CaixaAltaAttribute : Attribute { }
 // caminho de arquivo e chave PIX (chave aleatoria diferencia maiusculas).
 [AttributeUsage(AttributeTargets.Property)]
 public sealed class ManterCaixaAttribute : Attribute { }
+
+// Todo texto gravado passa por AppDbContext.TratarTextos: tab e quebra de
+// linha viram espaco, espacos sobrando saem e caractere que o banco nao guarda
+// (emoji, outros alfabetos) e recusado. Os atributos abaixo ajustam a regra.
+
+// Nome (de pessoa, empresa, produto, cidade...): precisa ter ao menos uma letra.
+[AttributeUsage(AttributeTargets.Property)]
+public sealed class NomeAttribute : Attribute { }
+
+// Texto de varias linhas (observacao, descricao): a quebra de linha fica.
+[AttributeUsage(AttributeTargets.Property)]
+public sealed class MultiLinhaAttribute : Attribute { }
+
+// Texto gravado exatamente como veio (senha).
+[AttributeUsage(AttributeTargets.Property)]
+public sealed class TextoBrutoAttribute : Attribute { }

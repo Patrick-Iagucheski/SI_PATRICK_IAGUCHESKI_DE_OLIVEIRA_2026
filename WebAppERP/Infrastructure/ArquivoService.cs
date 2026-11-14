@@ -1,15 +1,39 @@
 ﻿namespace WebAppERP.Infrastructure;
 
-// Arquivos enviados pelas telas (imagem do produto, logo da empresa...),
-// gravados em wwwroot/uploads. Pasta fora do git: o conteudo e dado do
-// cliente, nao codigo. Cada Business informa a sua subpasta e o seu limite.
+// Arquivos enviados pelas telas (imagem do produto, logo da empresa...).
+// Ficam numa pasta unica, fora do site (appsettings "Arquivos:PastaUploads",
+// ex.: C:\WebERP\uploads): o sistema publicado no IIS e o rodado pelo Visual
+// Studio enxergam as mesmas imagens, e publicar o site nao apaga nenhuma. Sem
+// a configuracao, usa wwwroot/uploads. O endereco gravado no banco e sempre
+// "/uploads/...": o Program.cs serve essa pasta nesse endereco. Pasta fora do
+// git: o conteudo e dado do cliente, nao codigo. Cada Business informa a sua
+// subpasta ("uploads", "uploads/empresa") e o seu limite.
 public class ArquivoService
 {
+    // Inicio do endereco dos arquivos ("/uploads/...").
+    public const string Raiz = "uploads";
+
     private static readonly string[] ExtensoesImagem = [".jpg", ".jpeg", ".png", ".webp", ".gif"];
 
-    private readonly IWebHostEnvironment _env;
+    // Pasta fisica que corresponde ao endereco "/uploads".
+    public string PastaFisica { get; }
 
-    public ArquivoService(IWebHostEnvironment env) => _env = env;
+    public ArquivoService(IWebHostEnvironment env, IConfiguration config)
+    {
+        var configurada = config["Arquivos:PastaUploads"];
+        PastaFisica = string.IsNullOrWhiteSpace(configurada) ? Path.Combine(env.WebRootPath, Raiz) : configurada;
+        Directory.CreateDirectory(PastaFisica);
+    }
+
+    // "uploads/empresa" ou "/uploads/empresa/abc.png" -> caminho dentro da PastaFisica.
+    private string Fisico(string endereco)
+    {
+        var resto = endereco.TrimStart('/');
+        if (!resto.StartsWith(Raiz))
+            throw new InvalidOperationException($"Endereço de arquivo fora de /{Raiz}: {endereco}");
+        resto = resto[Raiz.Length..].TrimStart('/');
+        return Path.Combine(PastaFisica, resto.Replace('/', Path.DirectorySeparatorChar));
+    }
 
     // Confere formato e tamanho da imagem enviada (sem arquivo: nada a validar).
     // rotulo: como a tela chama o arquivo na mensagem ("A imagem", "A logo").
@@ -24,13 +48,13 @@ public class ArquivoService
             throw new ValidacaoException($"{rotulo} deve ter no máximo {tamanhoMax / (1024 * 1024)} MB.");
     }
 
-    // Grava o arquivo em wwwroot/{pasta} e devolve o caminho para o banco
+    // Grava o arquivo na {pasta} (dentro da PastaFisica) e devolve o caminho para o banco
     // ("/uploads/abc.png"). Nome novo a cada envio: o navegador nao mostra a
     // versao antiga do cache.
     public async Task<string> Gravar(IFormFile arquivo, string pasta)
     {
         var ext = Path.GetExtension(arquivo.FileName).ToLowerInvariant();
-        var destino = Path.Combine(_env.WebRootPath, pasta.Replace('/', Path.DirectorySeparatorChar));
+        var destino = Fisico(pasta);
         Directory.CreateDirectory(destino);
         var nomeArquivo = $"{Guid.NewGuid():N}{ext}";
         using (var stream = File.Create(Path.Combine(destino, nomeArquivo)))
@@ -44,7 +68,7 @@ public class ArquivoService
     public void Remover(string? caminho, string pasta)
     {
         if (string.IsNullOrEmpty(caminho) || !caminho.StartsWith($"/{pasta}/") || caminho.Contains("..")) return;
-        var fisico = Path.Combine(_env.WebRootPath, caminho.TrimStart('/').Replace('/', Path.DirectorySeparatorChar));
+        var fisico = Fisico(caminho);
         if (File.Exists(fisico))
         {
             try { File.Delete(fisico); } catch { /* ignora falha de exclusao */ }

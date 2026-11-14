@@ -24,6 +24,17 @@ function mascaraCNPJ(v) {
         .replace(/(\d{4})(\d)/, '$1-$2');
 }
 
+// Documento de cliente/fornecedor (registro da pesquisa: tipoPessoa, cpf, cnpj,
+// documento), mostrado abaixo do nome na lista do campo de selecao.
+// Mesma regra do Module.DocumentoPessoa. null sem documento ou se nao e pessoa.
+function documentoPessoa(r) {
+    if (!r || r.tipoPessoa === undefined) return null;
+    if (r.tipoPessoa === 'F' && r.cpf) return 'CPF ' + mascaraCPF(r.cpf);
+    if (r.tipoPessoa === 'J' && r.cnpj) return 'CNPJ ' + mascaraCNPJ(r.cnpj);
+    if (r.documento && String(r.documento).trim()) return 'Doc. ' + String(r.documento).trim();
+    return null;
+}
+
 // Campo que aceita CPF ou CNPJ: ate 11 digitos formata como CPF, depois como CNPJ.
 function mascaraCpfCnpj(v) {
     return v.replace(/\D/g, '').length <= 11 ? mascaraCPF(v) : mascaraCNPJ(v);
@@ -136,9 +147,29 @@ async function postJson(url, dados) {
         headers: { 'Content-Type': 'application/json', 'RequestVerificationToken': tokenAntiforgery() },
         body: JSON.stringify(dados)
     });
+    // Resposta que nao e o JSON da tela (ex.: 400 da pagina desatualizada):
+    // devolve a mensagem certa no mesmo formato, para quem chamou mostrar.
+    if (!resp.ok) return { sucesso: false, mensagem: mensagemFalha(resp, 'salvar') };
     const r = await resp.json();
     if (r?.sucesso) avisarGravacao();
     return r;
+}
+
+// Endereco gravado no banco ("/uploads/abc.png") com a pasta do site na frente:
+// no IIS o sistema roda em /WebERP, e "/uploads/..." sozinho apontaria para a
+// raiz do servidor. Vazio continua vazio.
+function enderecoNoSite(caminho) {
+    if (!caminho || !caminho.startsWith('/')) return caminho || '';
+    const raiz = document.documentElement.dataset.raiz || '/';
+    return raiz.replace(/\/$/, '') + caminho;
+}
+
+// Resposta que nao e o JSON da tela: 400 e o token de seguranca recusado
+// (a pagina foi aberta antes de o sistema reiniciar); o resto, erro do servidor.
+function mensagemFalha(resp, acao) {
+    return resp.status === 400
+        ? 'A página ficou desatualizada (o sistema foi reiniciado). Recarregue a página (F5) e tente de novo.'
+        : 'Não foi possível ' + acao + '. Tente novamente.';
 }
 
 // Caixa de erro dos modais (cadastro e cadastro rapido): mesma aparencia em todos.
@@ -170,6 +201,7 @@ document.addEventListener('submit', async e => {
             headers: evento ? { 'X-Requested-With': 'XMLHttpRequest' }
                             : { 'X-Requested-With': 'XMLHttpRequest', 'X-Recarregar': '1' }
         });
+        if (!resp.ok) { exibirErro(form, mensagemFalha(resp, 'salvar')); return; }
         const data = await resp.json();
         if (data.sucesso && evento) {
             // Sem recarregar: avisa aqui. Com recarga, avisa a pagina ao voltar
@@ -224,6 +256,43 @@ function mostrarAviso(alvo, html) {
 function secaoDoCampo(id) {
     const campo = document.getElementById(id);
     return campo.closest('.card-body') || campo.form || document.body;
+}
+
+// ===== Documento ja cadastrado (cliente, fornecedor, funcionario) =====
+// Num cadastro novo, ao sair do campo de documento (CPF, CNPJ ou documento
+// internacional) ja completo, procura quem tem o mesmo documento, ativo ou
+// inativo. Achando, o formulario passa a ser a edicao desse cadastro, com um
+// aviso, em vez de deixar digitar tudo de novo para o servidor recusar.
+//   cfg.idCampo: campo escondido do id (0 = novo)
+//   cfg.campos: [{ id, completo(valor), doc(reg) }] campos de documento; doc
+//     e o documento do mesmo tipo no registro (CPF com CPF, CNPJ com CNPJ)
+//   cfg.url(documento, inativos): url da busca da propria tela
+//   cfg.preencher(reg), cfg.modal, cfg.nome(reg)
+function carregarPorDocumento(cfg) {
+    const normalizar = v => (v || '').replace(/[^0-9a-z]/gi, '').toUpperCase();
+    cfg.campos.forEach(({ id, completo, doc: docDoRegistro }) => {
+        const campo = document.getElementById(id);
+        campo?.addEventListener('change', async () => {
+            if ((document.getElementById(cfg.idCampo).value || '0') !== '0') return;
+            const valor = campo.value.trim();
+            if (!valor || !completo(valor)) return;
+            const doc = normalizar(valor);
+            try {
+                // A busca das telas traz ou so os ativos ou so os inativos.
+                const listas = await Promise.all([false, true].map(async inativos =>
+                    (await fetch(cfg.url(doc, inativos))).json()));
+                const reg = listas.flat().find(r => normalizar(docDoRegistro(r)) === doc);
+                // Usuario pode ter mudado o campo ou aberto outro cadastro enquanto buscava.
+                if (!reg || normalizar(campo.value) !== doc
+                    || (document.getElementById(cfg.idCampo).value || '0') !== '0') return;
+                cfg.preencher(reg);
+                mostrarRegistro(cfg.modal, reg.registro);
+                mostrarAviso(campo.form, '<div class="alert alert-info py-2 mb-3"><i class="bi bi-info-circle me-1"></i>'
+                    + 'Este documento já está cadastrado' + (reg.ativo === false || reg.ativo === 'False' ? ' (inativo)' : '')
+                    + ': <strong>' + escaparHtml(cfg.nome(reg)) + '</strong>. O cadastro foi carregado para edição.</div>');
+            } catch { /* sem a busca, segue como cadastro novo; o servidor ainda barra o duplicado */ }
+        });
+    });
 }
 
 // ============================================================
@@ -345,6 +414,7 @@ async function excluirDaPesquisa(chave, reg) {
             body: new URLSearchParams({ id: reg.id, __RequestVerificationToken: tokenAntiforgery() }),
             headers: { 'X-Requested-With': 'XMLHttpRequest' }
         });
+        if (!resp.ok) { exibirErro(modal, mensagemFalha(resp, 'excluir')); return; }
         const r = await resp.json();
         if (!r.sucesso) { exibirErro(modal, r.mensagem); return; }
         avisarGravacao();
@@ -358,7 +428,8 @@ async function excluirDaPesquisa(chave, reg) {
 
 // Campo <select> que recebe o registro escolhido ou cadastrado na pesquisa:
 // cria a opcao se ainda nao existe, atualiza o texto e seleciona.
-function selecionarNoSelect(id, valor, texto) {
+// detalhe: segunda linha da lista do campo (ex.: documento do cliente).
+function selecionarNoSelect(id, valor, texto, detalhe) {
     const sel = document.getElementById(id);
     if (!sel) return;
     let opt = sel.querySelector('option[value="' + valor + '"]');
@@ -368,18 +439,26 @@ function selecionarNoSelect(id, valor, texto) {
         sel.appendChild(opt);
     }
     opt.textContent = texto;
+    definirDetalheOpcao(opt, detalhe);
     sel.value = valor;
     sel.dispatchEvent(new Event('change', { bubbles: true }));
 }
 
 // Registro editado: so atualiza o texto da opcao (sem trocar a escolha).
-function renomearNoSelect(id, valor, texto) {
+function renomearNoSelect(id, valor, texto, detalhe) {
     const sel = document.getElementById(id);
     const opt = sel?.querySelector('option[value="' + valor + '"]');
     if (!opt) return;
     opt.textContent = texto;
+    definirDetalheOpcao(opt, detalhe);
     // Campo de selecao com lupa: atualiza o texto exibido.
     if (sel.value == valor) sel.value = sel.value;
+}
+
+// Segunda linha da opcao na lista do campo (data-detalhe). undefined: nao mexe.
+function definirDetalheOpcao(opt, detalhe) {
+    if (detalhe === undefined) return;
+    if (detalhe) opt.dataset.detalhe = detalhe; else delete opt.dataset.detalhe;
 }
 
 // Registro excluido: sai do <select> (e o campo fica vazio se era o escolhido).
@@ -461,12 +540,20 @@ function abrirPesquisaComCadastro(cfg, opcoes) {
 
 // ===== Campo de selecao (padrao dos campos ligados a um cadastro) =====
 // Na tela fica um <select> normal (asp-for, opcoes, required) com
-//   data-pesquisa="js que abre a pesquisa" (o botao + e o clique no campo).
+//   data-pesquisa="js que abre a pesquisa" (o botao +).
 // Ao carregar, o <select> fica escondido (continua sendo o valor do form e a
-// lista de textos) e no lugar aparece um campo so de selecao com os botoes
+// lista de textos) e no lugar aparece um campo de texto com os botoes
 // X (limpa a escolha; so aparece com valor) e + (abre a pesquisa, onde se
-// seleciona ou cadastra pelo Novo).
-// Nada e digitado: Enter/espaco abre a pesquisa, Delete/Backspace limpa.
+// seleciona, edita ou cadastra pelo Novo).
+// Autocomplete: digitando, abre uma lista com as opcoes do <select> que
+// contem o texto (sem diferenciar maiusculas nem acentos); clicar no campo
+// mostra todas. Setas andam na lista, Enter/Tab escolhem, Esc cancela. Ao
+// sair sem escolher, o campo volta ao valor que estava; apagado, fica vazio.
+// Campo que comeca sem opcoes (cidade, fornecedor da compra...) busca no
+// servidor: data-autocomplete="js que devolve { url, param, texto(r), escolher(r) }"
+// (opcionais: detalhe(r), a segunda linha do item; param como funcao do texto digitado).
+// Opcao com data-detalhe (ex.: documento do cliente) mostra a segunda linha na lista.
+// (a mesma busca e a mesma selecao da pesquisa do +).
 // Quem mexe no valor pelo JS (sel.value = x, selecionarNoSelect...) continua
 // funcionando: o texto exibido acompanha o <select>.
 const valorDoSelect = Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, 'value');
@@ -483,8 +570,8 @@ function montarCampoSelecao(sel) {
     texto.id = sel.id + 'Nome';
     texto.className = 'form-control campo-selecao';
     texto.autocomplete = 'off';
-    texto.placeholder = vazio ? vazio.textContent.trim() : 'Clique no + para pesquisar';
-    texto.title = 'Adicionar / Editar / Pesquisar';
+    texto.placeholder = vazio ? vazio.textContent.trim() : 'Digite para buscar';
+    texto.title = 'Digite para buscar ou clique no + para pesquisar';
     // required fica no campo visivel: o navegador mostra o aviso nele.
     if (sel.required) { texto.required = true; sel.required = false; }
 
@@ -511,15 +598,168 @@ function montarCampoSelecao(sel) {
         sel.value = '';
         sel.dispatchEvent(new Event('change', { bubbles: true }));
     };
-    texto.addEventListener('click', pesquisar);
+    // ----- Autocomplete -----
+    // A lista fica no <body> com posicao fixa: assim nao e cortada por modal,
+    // tabela com rolagem (grade de parcelas) nem card.
+    const MAX_ITENS = 50;
+    let lista = null;
+    let itens = [];      // { texto, escolher() }
+    let ativo = -1;
+    let buscaRemota = null;   // atraso da digitacao na busca do servidor
+    let ultimaBusca = 0;      // so a resposta da busca mais recente vale
+
+    const escolherOpcao = opt => {
+        if (opt.value !== valorDoSelect.get.call(sel)) {
+            sel.value = opt.value;
+            sel.dispatchEvent(new Event('change', { bubbles: true }));
+        } else {
+            atualizarTexto();
+        }
+    };
+    const escolher = item => { fecharLista(); item.escolher(); };
+    const remoto = () => sel.dataset.autocomplete ? new Function('return ' + sel.dataset.autocomplete)() : null;
+
+    const marcar = i => {
+        ativo = i;
+        lista?.querySelectorAll('.autocomplete-item').forEach((el, n) => el.classList.toggle('active', n === i));
+        lista?.querySelectorAll('.autocomplete-item')[i]?.scrollIntoView({ block: 'nearest' });
+    };
+
+    const posicionar = () => {
+        if (!lista) return;
+        const r = grupo.getBoundingClientRect();
+        lista.style.left = r.left + 'px';
+        lista.style.width = r.width + 'px';
+        // Sem espaco abaixo, abre para cima.
+        const altura = Math.min(lista.scrollHeight, 260);
+        const abaixo = window.innerHeight - r.bottom;
+        const paraCima = window.innerHeight > 0 && abaixo < altura + 8 && r.top > abaixo;
+        lista.style.top = (paraCima ? r.top - altura - 2 : r.bottom + 2) + 'px';
+    };
+
+    function fecharLista() {
+        clearTimeout(buscaRemota);
+        ultimaBusca++;
+        lista?.remove();
+        lista = null;
+        itens = [];
+        ativo = -1;
+        window.removeEventListener('scroll', aoRolar, true);
+        window.removeEventListener('resize', fecharLista);
+    }
+
+    // Rolar a tela fecha a lista (rolar dentro dela, nao).
+    function aoRolar(e) { if (lista && !lista.contains(e.target)) fecharLista(); }
+
+    const garantirLista = () => {
+        if (lista) return;
+        lista = document.createElement('div');
+        lista.className = 'autocomplete-lista list-group shadow';
+        // mousedown nao tira o foco do campo antes de escolher.
+        lista.addEventListener('mousedown', e => e.preventDefault());
+        document.body.appendChild(lista);
+        window.addEventListener('scroll', aoRolar, true);
+        window.addEventListener('resize', fecharLista);
+    };
+
+    const aviso = msg => '<div class="list-group-item text-muted small">' + escaparHtml(msg) + '</div>';
+
+    // Monta a lista com os itens ja filtrados. total: quantos combinam (aviso de "mais").
+    const mostrarItens = (comTexto, total) => {
+        garantirLista();
+        lista.innerHTML = itens.length ? '' : aviso('Nenhum resultado. Clique no + para pesquisar ou cadastrar.');
+        itens.slice(0, MAX_ITENS).forEach((it, i) => {
+            const item = document.createElement('button');
+            item.type = 'button';
+            item.className = 'list-group-item list-group-item-action autocomplete-item';
+            item.textContent = it.texto;
+            // Segunda linha (ex.: documento): separa nomes parecidos ou iguais.
+            if (it.detalhe) {
+                const det = document.createElement('small');
+                det.className = 'autocomplete-detalhe d-block';
+                det.textContent = it.detalhe;
+                item.appendChild(det);
+            }
+            item.addEventListener('mouseenter', () => marcar(i));
+            item.addEventListener('click', () => escolher(it));
+            lista.appendChild(item);
+        });
+        if (total > MAX_ITENS) lista.insertAdjacentHTML('beforeend', aviso('Mais ' + (total - MAX_ITENS) + ' resultados: continue digitando.'));
+        // Com texto digitado, ja deixa o primeiro marcado para o Enter.
+        marcar(comTexto && itens.length ? 0 : -1);
+        posicionar();
+    };
+
+    const abrirLista = filtro => {
+        if (travado()) return;
+        const cfg = remoto();
+        if (cfg) { buscarNoServidor(cfg, filtro || ''); return; }
+
+        // Cada termo precisa estar no texto ou na segunda linha (documento: tambem
+        // so pelos digitos, com ou sem mascara).
+        const termos = semAcento(filtro || '').split(/\s+/).filter(Boolean);
+        const digitos = s => String(s || '').replace(/\D/g, '');
+        const combina = (o, t) => semAcento(o.textContent).includes(t)
+            || semAcento(o.dataset.detalhe || '').includes(t)
+            || (digitos(t) !== '' && digitos(t) === t.replace(/[.\-\/]/g, '') && digitos(o.dataset.detalhe).includes(digitos(t)));
+        const opcoes = [...sel.options].filter(o => o.value !== '' && termos.every(t => combina(o, t)));
+        itens = opcoes.map(o => ({ texto: o.textContent.trim(), detalhe: o.dataset.detalhe, escolher: () => escolherOpcao(o) }));
+        mostrarItens(termos.length > 0, opcoes.length);
+    };
+
+    // Busca no servidor com um pequeno atraso (junta a digitacao).
+    const buscarNoServidor = (cfg, filtro) => {
+        clearTimeout(buscaRemota);
+        garantirLista();
+        lista.innerHTML = aviso('Buscando...');
+        itens = [];
+        ativo = -1;
+        posicionar();
+        const busca = ++ultimaBusca;
+        buscaRemota = setTimeout(async () => {
+            let dados;
+            try {
+                const sep = cfg.url.includes('?') ? '&' : '?';
+                const param = typeof cfg.param === 'function' ? cfg.param(filtro.trim()) : cfg.param;
+                const resp = await fetch(cfg.url + sep + encodeURIComponent(param) + '=' + encodeURIComponent(filtro.trim()));
+                dados = resp.ok ? await resp.json() : null;
+            } catch { dados = null; }
+            if (busca !== ultimaBusca || !lista) return;   // digitou de novo ou saiu do campo
+            if (!Array.isArray(dados)) { lista.innerHTML = aviso('Não foi possível buscar. Clique no + para pesquisar.'); return; }
+            itens = dados.map(r => ({ texto: cfg.texto(r), detalhe: cfg.detalhe?.(r), escolher: () => cfg.escolher(r) }));
+            mostrarItens(filtro.trim() !== '', dados.length);
+        }, 250);
+    };
+
+    // Saiu sem escolher: volta ao valor atual; apagou tudo: limpa.
+    const aoSair = () => {
+        fecharLista();
+        if (texto.value.trim() === '') limpar();
+        atualizarTexto();
+    };
+
+    texto.addEventListener('input', () => abrirLista(texto.value));
+    texto.addEventListener('click', () => { if (!lista) { texto.select(); abrirLista(''); } });
+    texto.addEventListener('blur', aoSair);
     texto.addEventListener('keydown', e => {
-        if (e.key === 'Tab') return;
-        if (!e.ctrlKey && !e.metaKey) e.preventDefault();
-        if (e.key === 'Enter' || e.key === ' ') pesquisar();
-        else if (e.key === 'Delete' || e.key === 'Backspace') limpar();
+        const visiveis = Math.min(itens.length, MAX_ITENS);
+        if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+            e.preventDefault();
+            if (!lista) { abrirLista(''); return; }
+            if (!visiveis) return;
+            const passo = e.key === 'ArrowDown' ? 1 : -1;
+            marcar((ativo + passo + visiveis) % visiveis);
+        } else if (e.key === 'Enter') {
+            // Enter nunca envia o formulario por este campo.
+            e.preventDefault();
+            if (lista && ativo >= 0) escolher(itens[ativo]);
+            else if (!lista) abrirLista('');
+        } else if (e.key === 'Tab') {
+            if (lista && ativo >= 0 && texto.value.trim() !== '') escolher(itens[ativo]);
+        } else if (e.key === 'Escape') {
+            if (lista) { e.preventDefault(); e.stopPropagation(); fecharLista(); atualizarTexto(); }
+        }
     });
-    texto.addEventListener('paste', e => e.preventDefault());
-    texto.addEventListener('drop', e => e.preventDefault());
 
     const grupo = document.createElement('div');
     grupo.className = 'input-group';
@@ -545,7 +785,6 @@ function montarCampoSelecao(sel) {
     botaoPesquisar.className = 'btn btn-outline-primary';
     botaoPesquisar.title = somentePesquisa ? 'Pesquisar' : 'Adicionar / Editar / Pesquisar';
     botaoPesquisar.innerHTML = somentePesquisa ? '<i class="bi bi-search"></i>' : '<i class="bi bi-plus-lg"></i>';
-    if (somentePesquisa) texto.title = 'Pesquisar';
     botaoPesquisar.addEventListener('click', pesquisar);
     grupo.append(botaoLimpar, botaoPesquisar);
 
@@ -569,11 +808,13 @@ function montarCamposSelecao(raiz = document) {
 document.addEventListener('DOMContentLoaded', () => montarCamposSelecao());
 
 // Opcoes prontas para quando o campo da tela e um <select>.
-// texto(reg): o que aparece na opcao (padrao: reg.nome).
+// texto(reg): o que aparece na opcao (padrao: reg.nome). Cliente e fornecedor
+// levam o documento como segunda linha da lista (documentoPessoa).
 function opcoesDoSelect(idSelect, texto = r => r.nome, depoisDeSelecionar = null) {
+    const detalhe = r => r?.tipoPessoa === undefined ? undefined : documentoPessoa(r);
     return {
-        selecionar: r => { selecionarNoSelect(idSelect, r.id, texto(r)); depoisDeSelecionar?.(r); },
-        atualizado: r => renomearNoSelect(idSelect, r.id, texto(r)),
+        selecionar: r => { selecionarNoSelect(idSelect, r.id, texto(r), detalhe(r)); depoisDeSelecionar?.(r); },
+        atualizado: r => renomearNoSelect(idSelect, r.id, texto(r), detalhe(r)),
         excluido: r => removerDoSelect(idSelect, r.id)
     };
 }

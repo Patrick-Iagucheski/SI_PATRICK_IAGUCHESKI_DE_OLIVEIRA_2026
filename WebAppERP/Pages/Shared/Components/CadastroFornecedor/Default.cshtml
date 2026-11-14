@@ -51,7 +51,7 @@
                         <div class="w-100 m-0" id="formQuebraRazao"></div>
                         <div class="col-md-6">
                             <label class="form-label" id="lblRazao">Razão Social *</label>
-                            <input type="text" class="form-control" asp-for="FornecedorForm.DsRazaoSocial" id="formDsRazaoSocial" maxlength="200" required />
+                            <input type="text" class="form-control" asp-for="FornecedorForm.DsRazaoSocial" id="formDsRazaoSocial" maxlength="100" required />
                         </div>
                         <div class="col-md-6" id="wrapFantasia">
                             <label class="form-label">Nome Fantasia</label>
@@ -87,7 +87,7 @@
                         </div>
                         <div class="col-md-4 doc-wrap d-none" id="wrapDataNasc">
                             <label class="form-label">Data de Nascimento</label>
-                            <input type="date" class="form-control" asp-for="FornecedorForm.DtNascimento" id="formDtNascimento" />
+                            <input type="date" class="form-control" asp-for="FornecedorForm.DtNascimento" id="formDtNascimento" min="1900-01-01" max="@DateTime.Today.ToString("yyyy-MM-dd")" />
                         </div>
                     </div>
 
@@ -100,7 +100,7 @@
                         </div>
                         <div class="col-md-7">
                             <label class="form-label">Logradouro</label>
-                            <input type="text" class="form-control" asp-for="FornecedorForm.DsEndereco" id="formDsEndereco" maxlength="200" />
+                            <input type="text" class="form-control" asp-for="FornecedorForm.DsEndereco" id="formDsEndereco" maxlength="100" />
                         </div>
                         <div class="col-md-2">
                             <label class="form-label">Número</label>
@@ -112,7 +112,7 @@
                         </div>
                         <div class="col-md-3">
                             <label class="form-label">Bairro</label>
-                            <input type="text" class="form-control" asp-for="FornecedorForm.DsBairro" id="formDsBairro" maxlength="100" />
+                            <input type="text" class="form-control" asp-for="FornecedorForm.DsBairro" id="formDsBairro" maxlength="60" />
                         </div>
                         <div class="col-md-5">
                             <label class="form-label">Cidade</label>
@@ -133,7 +133,7 @@
                         </div>
                         <div class="col-md-3">
                             <label class="form-label">E-mail</label>
-                            <input type="email" class="form-control" asp-for="FornecedorForm.DsEmail" id="formDsEmail" maxlength="150" />
+                            <input type="email" class="form-control" asp-for="FornecedorForm.DsEmail" id="formDsEmail" maxlength="100" />
                         </div>
                         <div class="col-md-3">
                             <label class="form-label">Site</label>

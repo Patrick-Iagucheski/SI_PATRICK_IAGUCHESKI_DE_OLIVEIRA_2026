@@ -107,7 +107,8 @@
                                         </button>
                                     </form>
                                 }
-                                @if (c.TpStatus != Compra.FINALIZADA)
+                                @* So rascunho sai pelo Excluir: finalizada e cancelada ficam no historico *@
+                                @if (c.TpStatus == Compra.RASCUNHO)
                                 {
                                     <form method="post" asp-page-handler="Excluir" class="d-inline"
                                           onsubmit="return confirm('Deseja realmente excluir esta compra?')">

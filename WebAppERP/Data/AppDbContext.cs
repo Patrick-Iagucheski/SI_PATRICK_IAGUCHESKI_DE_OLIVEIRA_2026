@@ -32,6 +32,7 @@ public class AppDbContext : DbContext
     public DbSet<Marca> Marcas => Set<Marca>();
     public DbSet<Categoria> Categorias => Set<Categoria>();
     public DbSet<UnidadeMedida> UnidadesMedida => Set<UnidadeMedida>();
+    public DbSet<MovimentacaoEstoque> Movimentacoes => Set<MovimentacaoEstoque>();
     public DbSet<CategoriaServico> CategoriasServico => Set<CategoriaServico>();
     public DbSet<ContaAPagar> ContasAPagar => Set<ContaAPagar>();
     public DbSet<ContaAReceber> ContasAReceber => Set<ContaAReceber>();
@@ -78,6 +79,14 @@ public class AppDbContext : DbContext
             .WithOne(p => p.Compra!)
             .HasForeignKey(p => new { p.NrNota, p.NrSerie, p.NrModelo, p.IdFornecedor })
             .OnDelete(DeleteBehavior.Cascade);
+
+        // Movimentacao de estoque gerada pela compra: chave completa. A compra
+        // que movimentou estoque nao e excluida (fica o historico).
+        modelBuilder.Entity<MovimentacaoEstoque>()
+            .HasOne(m => m.Compra)
+            .WithMany()
+            .HasForeignKey(m => new { m.NrNota, m.NrSerie, m.NrModelo, m.IdFornecedor })
+            .OnDelete(DeleteBehavior.Restrict);
     }
 
     // ============================================================
@@ -90,6 +99,7 @@ public class AppDbContext : DbContext
 
     public override int SaveChanges(bool acceptAllChangesOnSuccess)
     {
+        TratarTextos();
         ConverterCaixaAlta();
         PreencherRegistro(IdUsuarioAtual());
         return base.SaveChanges(acceptAllChangesOnSuccess);
@@ -97,6 +107,7 @@ public class AppDbContext : DbContext
 
     public override async Task<int> SaveChangesAsync(bool acceptAllChangesOnSuccess, CancellationToken cancellationToken = default)
     {
+        TratarTextos();
         ConverterCaixaAlta();
         PreencherRegistro(IdUsuarioAtual());
         return await base.SaveChangesAsync(acceptAllChangesOnSuccess, cancellationToken);
@@ -135,6 +146,51 @@ public class AppDbContext : DbContext
             }
         }
     }
+
+    // ============================================================
+    // Texto digitado (vale para toda tabela)
+    // ============================================================
+    // Num lugar so, para valer em toda tela e toda forma de gravar:
+    // - tab, quebra de linha e espacos sobrando saem (Module.LimparTexto); em
+    //   [MultiLinha] a quebra de linha fica;
+    // - texto so com espacos fica vazio (null quando a coluna aceita);
+    // - emoji e letras de outros alfabetos sao recusados: o banco (varchar)
+    //   gravaria "??" sem avisar, e o nome com "??" ainda escapava da regra
+    //   de cadastro repetido;
+    // - [Nome] precisa ter ao menos uma letra ("@#$%" ou "12345" nao e nome).
+    // Na alteracao so os campos alterados sao conferidos, para um dado antigo
+    // nao travar a gravacao de outro campo.
+    private void TratarTextos()
+    {
+        foreach (var e in ChangeTracker.Entries())
+        {
+            if (e.State is not (EntityState.Added or EntityState.Modified)) continue;
+
+            foreach (var p in e.Properties)
+            {
+                if (p.CurrentValue is not string texto) continue;
+                if (e.State == EntityState.Modified && !p.IsModified) continue;
+                var info = p.Metadata.PropertyInfo;
+                if (info != null && Attribute.IsDefined(info, typeof(TextoBrutoAttribute))) continue;
+
+                var limpo = Module.LimparTexto(texto, info != null && Attribute.IsDefined(info, typeof(MultiLinhaAttribute)));
+                if (limpo.Length == 0 && p.Metadata.IsNullable) { p.CurrentValue = null; continue; }
+
+                var invalido = Module.CaractereNaoAceito(limpo);
+                if (invalido != null)
+                    throw new ValidacaoException($"O texto \"{Resumo(limpo)}\" tem um caractere que não pode ser gravado: {invalido}",
+                                                 "Emoji e letras de outros alfabetos não são aceitos. Use letras, números e símbolos comuns.");
+
+                if (info != null && Attribute.IsDefined(info, typeof(NomeAttribute)) && limpo.Length > 0 && !limpo.Any(char.IsLetter))
+                    throw new ValidacaoException($"O nome \"{limpo}\" precisa ter ao menos uma letra.");
+
+                if (limpo != texto) p.CurrentValue = limpo;
+            }
+        }
+    }
+
+    // Trecho do texto para a mensagem (observacao pode ter 500 caracteres).
+    private static string Resumo(string texto) => texto.Length > 60 ? texto[..60] + "..." : texto;
 
     // ============================================================
     // Cadastros em maiusculo

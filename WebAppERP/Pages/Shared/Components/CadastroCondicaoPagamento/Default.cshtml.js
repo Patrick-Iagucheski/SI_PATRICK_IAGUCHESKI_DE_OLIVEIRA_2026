@@ -15,28 +15,39 @@ function formasCondicao() {
     return FORMAS_CONDICAO ??= JSON.parse(document.getElementById('modalCondicao').dataset.formas || '[]');
 }
 
-function opcoesFormaCondicao(selecionado) {
+// Forma inativada depois de a condicao ser criada: nao esta na lista (so
+// ativas), entao entra so na parcela que ja a usa, marcada "(inativo)", para
+// nao sumir. Parcela nova so oferece as ativas; o servidor faz a mesma regra.
+function opcoesFormaCondicao(selecionado, nomeSelecionado) {
     let html = '<option value="">Selecione</option>';
+    let achou = false;
     formasCondicao().forEach(f => {
         const sel = (String(f.id) === String(selecionado)) ? ' selected' : '';
+        if (sel) achou = true;
         html += `<option value="${f.id}"${sel}>${escaparHtml(f.nome)}</option>`;
     });
+    if (selecionado && !achou)
+        html += `<option value="${escaparHtml(String(selecionado))}" selected>${escaparHtml((nomeSelecionado || 'Forma') + ' (inativo)')}</option>`;
     return html;
 }
+
+// Prazo maximo de cada parcela (10 anos), o mesmo do servidor
+// (CondicaoPagamentoBusiness.DiasMaximos).
+const DIAS_MAXIMOS_CONDICAO = 3650;
 
 // Cada parcela tem um id proprio no select da forma (o + seleciona nele).
 let seqFormaCondicao = 0;
 
-function addParcelaCondicao(dias, idForma, perc) {
+function addParcelaCondicao(dias, idForma, perc, formaNome) {
     const tbody = document.querySelector('#condTblParcelas tbody');
     const tr = document.createElement('tr');
     const idSelect = 'condForma' + (++seqFormaCondicao);
     tr.innerHTML =
         '<td><input type="text" class="form-control form-control-sm p-num bg-light" readonly></td>' +
-        '<td><input type="number" min="0" class="form-control form-control-sm p-dias" value="' + (dias ?? 0) + '"></td>' +
+        '<td><input type="number" min="0" max="' + DIAS_MAXIMOS_CONDICAO + '" class="form-control form-control-sm p-dias" value="' + (dias ?? 0) + '"></td>' +
         '<td><select class="form-select form-select-sm p-forma" id="' + idSelect + '"' +
             ' data-pesquisa="abrirPesquisaFormaCondicao(\'' + idSelect + '\')">' +
-            opcoesFormaCondicao(idForma ?? '') + '</select></td>' +
+            opcoesFormaCondicao(idForma ?? '', formaNome) + '</select></td>' +
         '<td><input type="number" step="0.01" min="0" max="100" class="form-control form-control-sm p-perc" value="' + (perc ?? '') + '"></td>' +
         '<td class="text-center"><button type="button" class="btn btn-icon btn-outline-danger" title="Remover" onclick="removeParcelaCondicao(this)"><i class="bi bi-trash"></i></button></td>';
     tbody.appendChild(tr);
@@ -108,7 +119,7 @@ function limparFormCondicao() {
     addParcelaCondicao(0, '', 100);
 }
 
-// parcelas: [{ nrDiasVencimento, idFormaPagamento, vlPercentual }]
+// parcelas: [{ nrDiasVencimento, idFormaPagamento, formaNome, vlPercentual }]
 function editarCondicao(id, nome, juro, multa, desc, ativo, parcelas) {
     document.getElementById('condModalTitle').innerHTML = '<i class="bi bi-pencil me-2"></i>Editar Condição de Pagamento';
     document.getElementById('condIdCondicao').value = id;
@@ -120,7 +131,7 @@ function editarCondicao(id, nome, juro, multa, desc, ativo, parcelas) {
     document.getElementById('condVlDesconto').value = desc;
     document.querySelector('#condTblParcelas tbody').innerHTML = '';
     if (!parcelas || parcelas.length === 0) { addParcelaCondicao(0, '', 100); }
-    else { parcelas.forEach(p => addParcelaCondicao(p.nrDiasVencimento, p.idFormaPagamento, p.vlPercentual)); }
+    else { parcelas.forEach(p => addParcelaCondicao(p.nrDiasVencimento, p.idFormaPagamento, p.vlPercentual, p.formaNome)); }
 }
 
 // ===== Submit: serializa parcelas e valida =====
@@ -131,6 +142,9 @@ document.getElementById('condForm')?.addEventListener('submit', function (e) {
     }
     if (parcelas.some(p => !p.idFormaPagamento)) {
         e.preventDefault(); exibirErro(this, 'Selecione a forma de pagamento em todas as parcelas.'); return;
+    }
+    if (parcelas.some(p => p.nrDiasVencimento > DIAS_MAXIMOS_CONDICAO)) {
+        e.preventDefault(); exibirErro(this, 'Os dias para vencimento devem ser no máximo ' + DIAS_MAXIMOS_CONDICAO + ' (10 anos).'); return;
     }
     if (parcelas.some(p => p.vlPercentual <= 0 || p.vlPercentual > 100)) {
         e.preventDefault(); exibirErro(this, 'O percentual de cada parcela deve estar entre 0 e 100.'); return;

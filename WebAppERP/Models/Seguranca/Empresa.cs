@@ -13,6 +13,7 @@ public class Empresa : EntidadeComRegistro
     [Column("idEmpresa")]
     public int IdEmpresa { get; set; }
 
+    [Nome]
     [Column("nmEmpresa")]
     [Required(ErrorMessage = "O nome da empresa é obrigatório.")]
     [MaxLength(100)]

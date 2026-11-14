@@ -12,8 +12,9 @@ public class Cliente : EntidadeComRegistro
     [Column("idCliente")]
     public int IdCliente { get; set; }
 
+    [Nome]
     [Column("nmCliente")]
-    [Required, MaxLength(200)]
+    [Required, MaxLength(100)]
     public string NmCliente { get; set; } = string.Empty;
 
     // Tipo de pessoa: F = Fisica (CPF), J = Juridica (CNPJ), E = Estrangeiro/Outro
@@ -39,6 +40,7 @@ public class Cliente : EntidadeComRegistro
     public string? NrRG { get; set; }
 
     // Pessoa juridica: nome fantasia e inscricoes (mesmos tamanhos do fornecedor).
+    [Nome]
     [Column("dsNomeFantasia")]
     [MaxLength(150)]
     public string? DsNomeFantasia { get; set; }
@@ -66,12 +68,12 @@ public class Cliente : EntidadeComRegistro
     public string? DsSite { get; set; }
 
     [Column("dsEmail")]
-    [MaxLength(150)]
+    [MaxLength(100)]
     [ManterCaixa]
     public string? DsEmail { get; set; }
 
     [Column("dsEndereco")]
-    [MaxLength(200)]
+    [MaxLength(100)]
     public string? DsEndereco { get; set; }
 
     [Column("nrNumero")]
@@ -83,7 +85,7 @@ public class Cliente : EntidadeComRegistro
     public string? DsComplemento { get; set; }
 
     [Column("dsBairro")]
-    [MaxLength(100)]
+    [MaxLength(60)]
     public string? DsBairro { get; set; }
 
     [Column("idCidade")]
@@ -111,6 +113,7 @@ public class Cliente : EntidadeComRegistro
     [ForeignKey("IdCondicaoPagamento")]
     public CondicaoPagamento? CondicaoPagamento { get; set; }
 
+    [MultiLinha]
     [Column("dsObservacao")]
     [MaxLength(500)]
     public string? DsObservacao { get; set; }

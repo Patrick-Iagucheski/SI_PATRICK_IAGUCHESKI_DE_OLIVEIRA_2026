@@ -13,6 +13,7 @@ public class Marca : EntidadeComRegistro
     [Column("idMarca")]
     public int IdMarca { get; set; }
 
+    [Nome]
     [Column("nmMarca")]
     [Required(ErrorMessage = "O nome da marca é obrigatório.")]
     [MaxLength(100)]

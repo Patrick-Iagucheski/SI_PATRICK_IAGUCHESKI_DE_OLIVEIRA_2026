@@ -18,6 +18,7 @@ public class UnidadeMedida : EntidadeComRegistro
     [Required, MaxLength(10)]
     public string SgUnidade { get; set; } = string.Empty;
 
+    [Nome]
     [Column("dsUnidade")]
     [Required, MaxLength(60)]
     public string DsUnidade { get; set; } = string.Empty;

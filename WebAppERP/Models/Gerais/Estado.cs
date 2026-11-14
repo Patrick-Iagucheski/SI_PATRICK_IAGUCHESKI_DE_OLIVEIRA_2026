@@ -16,8 +16,9 @@ public class Estado : EntidadeComRegistro
     [Required, MaxLength(2)]
     public string SgUF { get; set; } = string.Empty;
 
+    [Nome]
     [Column("nmEstado")]
-    [Required, MaxLength(100)]
+    [Required, MaxLength(60)]
     public string NmEstado { get; set; } = string.Empty;
 
     [Column("idPais")]

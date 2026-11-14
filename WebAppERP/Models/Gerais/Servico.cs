@@ -12,10 +12,12 @@ public class Servico : EntidadeComRegistro
     [Column("idServico")]
     public int IdServico { get; set; }
 
+    [Nome]
     [Column("dsServico")]
-    [Required, MaxLength(200)]
+    [Required, MaxLength(60)]
     public string DsServico { get; set; } = string.Empty;
 
+    [MultiLinha]
     [Column("dsDescricao")]
     [MaxLength(500)]
     public string? DsDescricao { get; set; }

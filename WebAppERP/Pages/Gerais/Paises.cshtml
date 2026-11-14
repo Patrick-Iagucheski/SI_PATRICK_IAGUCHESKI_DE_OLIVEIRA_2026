@@ -109,19 +109,19 @@
                         </div>
                         <div class="col-md-6">
                             <label class="form-label">Nome do País *</label>
-                            <input type="text" class="form-control" asp-for="PaisForm.NmPais" id="formNmPais" required />
+                            <input maxlength="60" type="text" class="form-control" asp-for="PaisForm.NmPais" id="formNmPais" required />
                         </div>
                         <div class="col-md-4">
                             <label class="form-label">Sigla *</label>
-                            <input type="text" class="form-control" asp-for="PaisForm.SgPais" id="formSgPais" maxlength="5" placeholder="BR" required />
+                            <input type="text" class="form-control" asp-for="PaisForm.SgPais" id="formSgPais" maxlength="2" placeholder="BR" required pattern="[A-Za-z]{2}" title="2 letras, sem acento. Exemplo: BR" />
                         </div>
                         <div class="col-md-6">
                             <label class="form-label">DDI</label>
-                            <input type="text" class="form-control" asp-for="PaisForm.NrDDI" id="formNrDDI" maxlength="5" placeholder="+55" />
+                            <input type="text" class="form-control" asp-for="PaisForm.NrDDI" id="formNrDDI" maxlength="4" placeholder="+55" />
                         </div>
                         <div class="col-md-6">
                             <label class="form-label">Moeda</label>
-                            <input type="text" class="form-control" asp-for="PaisForm.DsMoeda" id="formDsMoeda" placeholder="Real" />
+                            <input maxlength="30" type="text" class="form-control" asp-for="PaisForm.DsMoeda" id="formDsMoeda" placeholder="Real" />
                         </div>
                     </div>
                     <partial name="_Registro" />

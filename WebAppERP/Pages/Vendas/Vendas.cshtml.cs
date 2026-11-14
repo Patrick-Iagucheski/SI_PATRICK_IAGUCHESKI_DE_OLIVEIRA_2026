@@ -19,8 +19,5 @@ public class VendasModel : PaginaBase
     }
 
     public Task<IActionResult> OnPostCancelar(int id) =>
-        Executar(() => _business.Cancelar(id), "Venda cancelada. Estoque devolvido e títulos do Contas a Receber cancelados.");
-
-    public Task<IActionResult> OnPostExcluir(int id) =>
-        Executar(() => _business.Excluir(id), "Venda excluída com sucesso.");
+        ExecutarComMensagem(() => _business.Cancelar(id));
 }

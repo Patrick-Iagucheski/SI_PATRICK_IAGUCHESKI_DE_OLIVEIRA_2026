@@ -90,7 +90,7 @@
                                 <button class="btn btn-icon btn-outline-primary" title="Editar"
                                         data-bs-toggle="modal" data-bs-target="#modalProduto"
                                         data-registro="@Module.RegistroJson(p)"
-                                        data-produto="@System.Text.Json.JsonSerializer.Serialize(ProdutosModel.Registro(p, Model.ComEntrada.Contains(p.IdProduto)))"
+                                        data-produto="@System.Text.Json.JsonSerializer.Serialize(ProdutosModel.Registro(p))"
                                         onclick="editarProduto(JSON.parse(this.dataset.produto))">
                                     <i class="bi bi-pencil"></i>
                                 </button>

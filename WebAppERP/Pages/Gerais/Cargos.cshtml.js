@@ -12,7 +12,7 @@ let resultadosBusca = [];
 function montarLinha(c, i) {
     const comissao = (c.comissao !== null && c.comissao !== undefined)
         ? (parseFloat(c.comissao).toString().replace('.', ',') + '%') : '-';
-    const desc = (c.desc && c.desc.trim()) ? c.desc : '-';
+    const desc = (c.desc && c.desc.trim()) ? escaparHtml(c.desc) : '-';
     return '<tr>' +
         '<td>' + c.id + '</td>' +
         '<td><strong>' + escaparHtml(c.nome || '') + '</strong></td>' +

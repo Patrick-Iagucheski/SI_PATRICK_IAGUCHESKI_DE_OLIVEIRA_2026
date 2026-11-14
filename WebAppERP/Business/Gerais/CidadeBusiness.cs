@@ -58,8 +58,8 @@ public class CidadeBusiness
 
         if (nome.Length == 0)
             throw new ValidacaoException("Informe o nome da cidade.");
-        if (nome.Length > 150)
-            throw new ValidacaoException("O nome da cidade deve ter no máximo 150 caracteres.");
+        if (nome.Length > 60)
+            throw new ValidacaoException("O nome da cidade deve ter no máximo 60 caracteres.");
 
         var estado = cidade.IdEstado > 0 ? await _db.Estados.FindAsync(cidade.IdEstado) : null;
         if (estado == null)

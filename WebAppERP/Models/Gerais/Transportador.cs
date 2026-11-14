@@ -21,10 +21,12 @@ public class Transportador : EntidadeComRegistro
     [Required, MaxLength(1)]
     public string TpPessoa { get; set; } = "J";
 
+    [Nome]
     [Column("dsRazaoSocial")]
     [Required, MaxLength(100)]
     public string DsRazaoSocial { get; set; } = string.Empty;
 
+    [Nome]
     [Column("dsNomeFantasia")]
     [MaxLength(150)]
     public string? DsNomeFantasia { get; set; }
@@ -110,6 +112,7 @@ public class Transportador : EntidadeComRegistro
     [Column("flAtivo")]
     public bool FlAtivo { get; set; } = true;
 
+    [MultiLinha]
     [Column("dsObservacao")]
     [MaxLength(500)]
     public string? DsObservacao { get; set; }

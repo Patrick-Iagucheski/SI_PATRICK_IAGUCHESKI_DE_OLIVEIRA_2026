@@ -54,7 +54,10 @@ function limparFormAgendamento() {
         document.getElementById(id).value = '';
     });
     document.getElementById('agData').value = document.getElementById('agData').defaultValue || hojeIso();
-    document.getElementById('agStatus').value = 'AGENDADO';
+    // Situacao de outro agendamento (ex.: Em atendimento) nao fica na lista.
+    const status = document.getElementById('agStatus');
+    [...status.options].filter(o => !['AGENDADO', 'CONFIRMADO'].includes(o.value)).forEach(o => o.remove());
+    status.value = 'AGENDADO';
 }
 
 // a: agendamento da pesquisa (AgendamentosModel.Registro). Cliente, profissional

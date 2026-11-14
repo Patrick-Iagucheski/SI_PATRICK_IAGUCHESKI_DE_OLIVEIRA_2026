@@ -12,8 +12,9 @@ public class Cidade : EntidadeComRegistro
     [Column("idCidade")]
     public int IdCidade { get; set; }
 
+    [Nome]
     [Column("nmCidade")]
-    [Required, MaxLength(150)]
+    [Required, MaxLength(60)]
     public string NmCidade { get; set; } = string.Empty;
 
     [Column("idEstado")]

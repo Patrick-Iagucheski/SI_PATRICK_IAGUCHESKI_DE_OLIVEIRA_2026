@@ -32,7 +32,7 @@
                         </div>
                         <div class="col-md-6">
                             <label class="form-label">Funcionário *</label>
-                            <input type="text" class="form-control" asp-for="FuncionarioForm.NmFuncionario" id="fNome" maxlength="200" required />
+                            <input type="text" class="form-control" asp-for="FuncionarioForm.NmFuncionario" id="fNome" maxlength="100" required />
                         </div>
                         <div class="col-md-4">
                             <label class="form-label">Apelido</label>
@@ -50,15 +50,14 @@
                             <label class="form-label">Sexo</label>
                             <select class="form-select" asp-for="FuncionarioForm.DsSexo" id="fSexo">
                                 <option value="">Selecione</option>
-                                <option value="Masculino">Masculino</option>
-                                <option value="Feminino">Feminino</option>
-                                <option value="Outro">Outro</option>
-                                <option value="Prefiro nao informar">Prefiro não informar</option>
+                                <option value="M">Masculino</option>
+                                <option value="F">Feminino</option>
+                                <option value="O">Outro</option>
                             </select>
                         </div>
                         <div class="col-md-3">
                             <label class="form-label">Data de Nascimento</label>
-                            <input type="date" class="form-control" asp-for="FuncionarioForm.DtNascimento" id="fNasc" />
+                            <input type="date" class="form-control" asp-for="FuncionarioForm.DtNascimento" id="fNasc" min="1900-01-01" max="@DateTime.Today.ToString("yyyy-MM-dd")" />
                         </div>
                     </div>
 
@@ -71,7 +70,7 @@
                         </div>
                         <div class="col-md-7">
                             <label class="form-label">Logradouro</label>
-                            <input type="text" class="form-control" asp-for="FuncionarioForm.DsEndereco" id="fEnd" maxlength="200" />
+                            <input type="text" class="form-control" asp-for="FuncionarioForm.DsEndereco" id="fEnd" maxlength="100" />
                         </div>
                         <div class="col-md-2">
                             <label class="form-label">Número</label>
@@ -83,7 +82,7 @@
                         </div>
                         <div class="col-md-3">
                             <label class="form-label">Bairro</label>
-                            <input type="text" class="form-control" asp-for="FuncionarioForm.DsBairro" id="fBairro" maxlength="100" />
+                            <input type="text" class="form-control" asp-for="FuncionarioForm.DsBairro" id="fBairro" maxlength="60" />
                         </div>
                         <div class="col-md-5">
                             <label class="form-label">Cidade</label>
@@ -100,7 +99,7 @@
                         </div>
                         <div class="col-md-8">
                             <label class="form-label">E-mail</label>
-                            <input type="email" class="form-control" asp-for="FuncionarioForm.DsEmail" id="fEmail" maxlength="150" />
+                            <input type="email" class="form-control" asp-for="FuncionarioForm.DsEmail" id="fEmail" maxlength="100" />
                         </div>
                     </div>
 
@@ -120,11 +119,11 @@
                         </div>
                         <div class="col-md-4">
                             <label class="form-label">Data de Admissão *</label>
-                            <input type="date" class="form-control" asp-for="FuncionarioForm.DtAdmissao" id="fAdm" required />
+                            <input type="date" class="form-control" asp-for="FuncionarioForm.DtAdmissao" id="fAdm" min="1900-01-01" max="@DateTime.Today.ToString("yyyy-MM-dd")" required />
                         </div>
                         <div class="col-md-4">
                             <label class="form-label">Data de Demissão</label>
-                            <input type="date" class="form-control" asp-for="FuncionarioForm.DtDemissao" id="fDem" />
+                            <input type="date" class="form-control" asp-for="FuncionarioForm.DtDemissao" id="fDem" min="1900-01-01" max="@DateTime.Today.ToString("yyyy-MM-dd")" />
                         </div>
                         <div class="col-md-4">
                             <label class="form-label">Salário (R$)</label>
@@ -132,7 +131,7 @@
                         </div>
                         <div class="col-md-4">
                             <label class="form-label">Comissão (%)</label>
-                            <input type="number" class="form-control" asp-for="FuncionarioForm.VlComissao" id="fCom" step="0.01" min="0" />
+                            <input type="number" class="form-control" asp-for="FuncionarioForm.VlComissao" max="100" id="fCom" step="0.01" min="0" />
                         </div>
                         <div class="col-md-4">
                             <label class="form-label">Status</label>

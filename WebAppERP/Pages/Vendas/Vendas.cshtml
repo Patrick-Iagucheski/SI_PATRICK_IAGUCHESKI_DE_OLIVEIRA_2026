@@ -30,7 +30,7 @@
                 <label class="form-label small mb-1">Situação</label>
                 <select class="form-select" id="buscaSituacao">
                     <option value="">Todas</option>
-                    <option value="@Venda.RASCUNHO">Rascunho</option>
+                    <option value="@Venda.ABERTA">Aberta</option>
                     <option value="@Venda.FINALIZADA">Finalizada</option>
                     <option value="@Venda.CANCELADA">Cancelada</option>
                 </select>
@@ -83,8 +83,9 @@
                             <td class="text-end"><strong>R$ @v.VlTotal.ToString("N2")</strong></td>
                             <td><span class="badge-status @badge">@v.TpStatus</span></td>
                             <td class="text-center" style="white-space: nowrap;">
-                                <a class="btn btn-icon btn-outline-primary" title="Abrir / Editar" asp-page="/Vendas/Venda" asp-route-id="@v.IdVenda">
-                                    <i class="bi bi-pencil"></i>
+                                @* So a venda aberta e editada; finalizada e cancelada abrem para ver *@
+                                <a class="btn btn-icon btn-outline-primary" title="@(v.TpStatus == Venda.ABERTA ? "Editar" : "Visualizar")" asp-page="/Vendas/Venda" asp-route-id="@v.IdVenda">
+                                    <i class="bi @(v.TpStatus == Venda.ABERTA ? "bi-pencil" : "bi-eye")"></i>
                                 </a>
                                 @if (v.TpStatus != Venda.CANCELADA)
                                 {
@@ -92,16 +93,6 @@
                                         <input type="hidden" name="id" value="@v.IdVenda" />
                                         <button type="submit" class="btn btn-icon btn-outline-warning" title="Cancelar venda">
                                             <i class="bi bi-x-circle"></i>
-                                        </button>
-                                    </form>
-                                }
-                                @* Venda finalizada movimentou estoque: sai so pelo cancelamento. *@
-                                @if (v.TpStatus != Venda.FINALIZADA)
-                                {
-                                    <form method="post" asp-page-handler="Excluir" class="d-inline" onsubmit="return confirm('Deseja realmente excluir esta venda?')">
-                                        <input type="hidden" name="id" value="@v.IdVenda" />
-                                        <button type="submit" class="btn btn-icon btn-outline-danger" title="Excluir">
-                                            <i class="bi bi-trash"></i>
                                         </button>
                                     </form>
                                 }

@@ -109,11 +109,11 @@
                         </div>
                         <div class="col-md-2">
                             <label class="form-label">UF *</label>
-                            <input type="text" class="form-control text-uppercase" asp-for="EstadoForm.SgUF" id="formSgUF" maxlength="2" placeholder="SP" required />
+                            <input type="text" class="form-control text-uppercase" asp-for="EstadoForm.SgUF" id="formSgUF" maxlength="2" placeholder="SP" required pattern="[A-Za-z]{2}" title="2 letras, sem acento. Exemplo: PR" />
                         </div>
                         <div class="col-md-8">
                             <label class="form-label">Nome do Estado *</label>
-                            <input type="text" class="form-control" asp-for="EstadoForm.NmEstado" id="formNmEstado" required />
+                            <input maxlength="60" type="text" class="form-control" asp-for="EstadoForm.NmEstado" id="formNmEstado" required />
                         </div>
                         <div class="col-12">
                             <label class="form-label">País *</label>

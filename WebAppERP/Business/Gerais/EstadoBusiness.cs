@@ -47,10 +47,10 @@ public class EstadoBusiness
 
         if (nome.Length == 0)
             throw new ValidacaoException("Informe o nome do estado.");
-        if (nome.Length > 100)
-            throw new ValidacaoException("O nome do estado deve ter no máximo 100 caracteres.");
-        if (uf.Length != 2)
-            throw new ValidacaoException("Informe a UF com 2 letras.", "Exemplo: PR.");
+        if (nome.Length > 60)
+            throw new ValidacaoException("O nome do estado deve ter no máximo 60 caracteres.");
+        if (uf.Length != 2 || !uf.All(ch => ch is >= 'A' and <= 'Z'))
+            throw new ValidacaoException("Informe a UF com 2 letras, sem acento.", "Exemplo: PR.");
         if (estado.IdPais <= 0 || !await _db.Paises.AnyAsync(p => p.IdPais == estado.IdPais))
             throw new ValidacaoException("Selecione o país do estado.");
 

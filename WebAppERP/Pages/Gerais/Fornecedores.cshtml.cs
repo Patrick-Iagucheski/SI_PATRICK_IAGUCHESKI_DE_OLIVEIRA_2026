@@ -77,6 +77,7 @@ public class FornecedoresModel : PaginaBase
             bairro = f.DsBairro,
             idCidade = f.IdCidade,
             idCondicaoPagamento = f.IdCondicaoPagamento,
+            condicaoNome = f.CondicaoPagamento?.DsCondicao,
             cidadeNome = Module.CidadeUf(f.Cidade),
             telefoneFixo = f.NrTelefoneFixo,
             celular = f.NrCelular,

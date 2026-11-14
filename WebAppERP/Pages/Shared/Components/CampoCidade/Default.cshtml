@@ -13,8 +13,8 @@
     <!-- Campo de selecao com lupa (montado pelo module.js): a lupa abre a pesquisa
          de cidade; cadastrar uma nova e pelo Novo da pesquisa. -->
     <select class="form-select" name="@Model.Nome" id="@Model.Id"
-            data-pesquisa="abrirPesquisaCidade('@Model.Id')" data-titulo-pesquisa="Pesquisar cidade">
-        <option value="">Clique no + para pesquisar a cidade</option>
+            data-pesquisa="abrirPesquisaCidade('@Model.Id')" data-autocomplete="autocompleteCidade('@Model.Id')" data-titulo-pesquisa="Pesquisar cidade">
+        <option value="">Digite para buscar a cidade</option>
         @if (Model.IdCidade is int idc)
         {
             <option value="@idc" selected>@Model.NomeCidade</option>
@@ -45,13 +45,13 @@
                         <div class="row g-3">
                             <div class="col-12">
                                 <label class="form-label">Nome da Cidade *</label>
-                                <input type="text" class="form-control" id="cidNome" maxlength="150" />
+                                <input type="text" class="form-control" id="cidNome" maxlength="60" />
                             </div>
                             <div class="col-12">
                                 <label class="form-label">Estado *</label>
                                 <select class="form-select" id="cidEstado"
-                                        data-pesquisa="abrirPesquisaEstado('cidEstado')" data-titulo-pesquisa="Pesquisar estado">
-                                    <option value="">Clique no + para pesquisar o estado</option>
+                                        data-pesquisa="abrirPesquisaEstado('cidEstado')" data-autocomplete="autocompleteEstado('cidEstado')" data-titulo-pesquisa="Pesquisar estado">
+                                    <option value="">Digite para buscar o estado</option>
                                 </select>
                             </div>
                         </div>
@@ -81,7 +81,7 @@
                         <div class="row g-3">
                             <div class="col-md-8">
                                 <label class="form-label">Nome do Estado *</label>
-                                <input type="text" class="form-control" id="estNome" maxlength="100" />
+                                <input type="text" class="form-control" id="estNome" maxlength="60" />
                             </div>
                             <div class="col-md-4">
                                 <label class="form-label">UF *</label>
@@ -90,8 +90,8 @@
                             <div class="col-12">
                                 <label class="form-label">País *</label>
                                 <select class="form-select" id="estPais"
-                                        data-pesquisa="abrirPesquisaPais('estPais')" data-titulo-pesquisa="Pesquisar país">
-                                    <option value="">Clique no + para pesquisar o país</option>
+                                        data-pesquisa="abrirPesquisaPais('estPais')" data-autocomplete="autocompletePais('estPais')" data-titulo-pesquisa="Pesquisar país">
+                                    <option value="">Digite para buscar o país</option>
                                 </select>
                             </div>
                         </div>
@@ -121,19 +121,19 @@
                         <div class="row g-3">
                             <div class="col-md-8">
                                 <label class="form-label">Nome do País *</label>
-                                <input type="text" class="form-control" id="paisNome" maxlength="100" />
+                                <input type="text" class="form-control" id="paisNome" maxlength="60" />
                             </div>
                             <div class="col-md-4">
                                 <label class="form-label">Sigla *</label>
-                                <input type="text" class="form-control text-uppercase" id="paisSigla" maxlength="5" placeholder="Ex: BR" />
+                                <input type="text" class="form-control text-uppercase" id="paisSigla" maxlength="2" placeholder="Ex: BR" />
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label">DDI</label>
-                                <input type="text" class="form-control" id="paisDDI" maxlength="5" placeholder="Ex: 55" />
+                                <input type="text" class="form-control" id="paisDDI" maxlength="4" placeholder="Ex: 55" />
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label">Moeda</label>
-                                <input type="text" class="form-control" id="paisMoeda" maxlength="50" placeholder="Ex: Real" />
+                                <input type="text" class="form-control" id="paisMoeda" maxlength="30" placeholder="Ex: Real" />
                             </div>
                         </div>
                         <partial name="_Registro" />

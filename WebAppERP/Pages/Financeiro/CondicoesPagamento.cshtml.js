@@ -17,7 +17,7 @@ let resultadosBusca = [];
 function num2(v) { return Number(v || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
 function aggForma(parcelas) {
     const nomes = [...new Set((parcelas || []).map(p => p.formaNome || '-'))];
-    return nomes.length === 0 ? '-' : (nomes.length === 1 ? nomes[0] : 'Varias');
+    return nomes.length === 0 ? '-' : (nomes.length === 1 ? escaparHtml(nomes[0]) : 'Varias');
 }
 function maxPrazo(parcelas) {
     return (parcelas && parcelas.length) ? Math.max(...parcelas.map(p => p.nrDiasVencimento)) : 0;

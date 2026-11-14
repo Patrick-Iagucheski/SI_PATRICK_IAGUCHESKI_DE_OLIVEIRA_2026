@@ -1,4 +1,5 @@
 ﻿using System.Globalization;
+using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Localization;
 using Microsoft.EntityFrameworkCore;
 using WebAppERP.Data;
@@ -16,6 +17,21 @@ var builder = WebApplication.CreateBuilder(args);
 
 // Servicos do sistema (injecao de dependencia).
 builder.Services.AddRazorPages();
+
+// Chaves da protecao de dados (token de seguranca dos formularios, mensagens
+// entre telas): gravadas numa pasta (appsettings "ProtecaoDados:PastaChaves").
+// Sem isso o IIS cria chaves novas a cada reinicio (publicacao, reciclagem do
+// pool) e toda tela que estava aberta passa a falhar ao salvar.
+var pastaChaves = builder.Configuration["ProtecaoDados:PastaChaves"];
+if (!string.IsNullOrWhiteSpace(pastaChaves))
+{
+    var protecao = builder.Services.AddDataProtection()
+        .SetApplicationName("WebAppERP")
+        .PersistKeysToFileSystem(new DirectoryInfo(pastaChaves));
+    // No Windows as chaves ficam cifradas para a maquina (IIS e Visual Studio leem).
+    if (OperatingSystem.IsWindows())
+        protecao.ProtectKeysWithDpapi(protectToLocalMachine: true);
+}
 
 // Limite de upload (ex.: imagem do produto): ate 500 MB.
 // Sem isso valem os padroes (Kestrel ~30 MB e multipart 128 MB), que barram
@@ -60,6 +76,7 @@ builder.Services.AddScoped<MarcaBusiness>();
 builder.Services.AddScoped<CategoriaBusiness>();
 builder.Services.AddScoped<UnidadeMedidaBusiness>();
 builder.Services.AddScoped<ProdutoBusiness>();
+builder.Services.AddScoped<MovimentacaoEstoqueBusiness>();
 builder.Services.AddScoped<FormaPagamentoBusiness>();
 builder.Services.AddScoped<CondicaoPagamentoBusiness>();
 builder.Services.AddScoped<ContaAPagarBusiness>();
@@ -100,7 +117,13 @@ if (!app.Environment.IsDevelopment())
 
 app.UseRouting();
 
-// Serve arquivos enviados em tempo de execucao (ex: imagens de produtos em wwwroot/uploads)
+// Arquivos enviados pelas telas (imagens de produtos, logo): pasta unica fora
+// do site (ArquivoService.PastaFisica), servida no endereco /uploads.
+app.UseStaticFiles(new StaticFileOptions
+{
+    FileProvider = new Microsoft.Extensions.FileProviders.PhysicalFileProvider(app.Services.GetRequiredService<ArquivoService>().PastaFisica),
+    RequestPath = "/" + ArquivoService.Raiz
+});
 app.UseStaticFiles();
 
 app.UseAuthorization();

@@ -1,0 +1,206 @@
+﻿@page
+@model WebAppERP.Pages.Estoque.BalanceteEstoqueModel
+@using WebAppERP.DTOs.Estoque
+@{
+    ViewData["Title"] = "Balancete de Estoque";
+    string Qt(decimal v) => v.ToString("N2");
+}
+
+<div class="d-flex justify-content-between align-items-start mb-4">
+    <div>
+        <h1 class="page-title">Balancete de Estoque</h1>
+        <p class="page-subtitle">Saldo inicial, compras, vendas, ajustes, perdas e saldo final de cada produto no período</p>
+    </div>
+</div>
+
+@if (Model.Erro != null)
+{
+    <div class="alert alert-danger"><i class="bi bi-exclamation-triangle me-2"></i>@Model.Erro</div>
+}
+
+<!-- Indicadores (sobre os produtos listados) -->
+<div class="row row-cols-1 row-cols-sm-2 row-cols-lg-3 row-cols-xl-5 g-3 mb-4">
+    <div class="col">
+        <div class="card kpi-card kpi-blue">
+            <div class="card-body d-flex align-items-center justify-content-between">
+                <div>
+                    <div class="kpi-label">Compras</div>
+                    <div class="kpi-value mt-1">@Qt(Model.TotCompras)</div>
+                </div>
+                <div class="kpi-icon" style="background: #dbeafe; color: #3b82f6;">
+                    <i class="bi bi-box-arrow-in-down"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col">
+        <div class="card kpi-card kpi-green">
+            <div class="card-body d-flex align-items-center justify-content-between">
+                <div>
+                    <div class="kpi-label">Vendas</div>
+                    <div class="kpi-value mt-1">@Qt(Model.TotVendas)</div>
+                </div>
+                <div class="kpi-icon" style="background: #dcfce7; color: #10b981;">
+                    <i class="bi bi-box-arrow-up"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col">
+        <div class="card kpi-card kpi-orange">
+            <div class="card-body d-flex align-items-center justify-content-between">
+                <div>
+                    <div class="kpi-label">Perdas</div>
+                    <div class="kpi-value mt-1">@Qt(Model.TotPerdas)</div>
+                </div>
+                <div class="kpi-icon" style="background: #ffedd5; color: #f97316;">
+                    <i class="bi bi-trash3"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col">
+        <div class="card kpi-card kpi-orange">
+            <div class="card-body d-flex align-items-center justify-content-between">
+                <div>
+                    <div class="kpi-label">Produtos negativos</div>
+                    <div class="kpi-value mt-1 @(Model.QtNegativos > 0 ? "text-danger" : "")">@Model.QtNegativos</div>
+                </div>
+                <div class="kpi-icon" style="background: #fee2e2; color: #ef4444;">
+                    <i class="bi bi-exclamation-triangle"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col">
+        <div class="card kpi-card kpi-blue">
+            <div class="card-body d-flex align-items-center justify-content-between">
+                <div>
+                    <div class="kpi-label">Valor em estoque</div>
+                    <div class="kpi-value mt-1">R$ @Model.VlEstoque.ToString("N2")</div>
+                </div>
+                <div class="kpi-icon" style="background: #e0e7ff; color: #6366f1;">
+                    <i class="bi bi-cash-coin"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Filtros: vao pela URL (GET), o balancete reabre com o mesmo periodo -->
+<form method="get" class="card mb-3">
+    <div class="card-body py-3">
+        <div class="row g-2 align-items-end">
+            <div class="col-md-2">
+                <label class="form-label small mb-1">De</label>
+                <input type="date" class="form-control" name="inicio" value="@Model.Inicio?.ToString("yyyy-MM-dd")" min="2000-01-01" max="2100-12-31" required />
+            </div>
+            <div class="col-md-2">
+                <label class="form-label small mb-1">Até</label>
+                <input type="date" class="form-control" name="fim" value="@Model.Fim?.ToString("yyyy-MM-dd")" min="2000-01-01" max="2100-12-31" required />
+            </div>
+            <div class="col-md-4">
+                <label class="form-label small mb-1">Produto</label>
+                <select class="form-select" name="produto">
+                    <option value="">Todos</option>
+                    @foreach (var p in Model.Produtos)
+                    {
+                        <option value="@p.IdProduto" selected="@(Model.Produto == p.IdProduto)">@p.DsProduto</option>
+                    }
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label small mb-1">Saldo final</label>
+                <select class="form-select" name="saldo">
+                    <option value="">Todos</option>
+                    <option value="@BalanceteEstoqueDTO.SALDO_NEGATIVO" selected="@(Model.Saldo == BalanceteEstoqueDTO.SALDO_NEGATIVO)">Negativo</option>
+                    <option value="@BalanceteEstoqueDTO.SALDO_ZERADO" selected="@(Model.Saldo == BalanceteEstoqueDTO.SALDO_ZERADO)">Zerado</option>
+                    <option value="@BalanceteEstoqueDTO.SALDO_POSITIVO" selected="@(Model.Saldo == BalanceteEstoqueDTO.SALDO_POSITIVO)">Positivo</option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <div class="form-check mb-2">
+                    <input class="form-check-input" type="checkbox" name="movimento" value="true" id="filtroMovimento" checked="@Model.Movimento" />
+                    <label class="form-check-label small" for="filtroMovimento">Só com movimento no período</label>
+                </div>
+            </div>
+        </div>
+        <div class="d-flex justify-content-end align-items-center mt-3">
+            <button type="submit" class="btn btn-primary">
+                <i class="bi bi-search me-1"></i>Buscar
+            </button>
+        </div>
+    </div>
+</form>
+
+<!-- Balancete -->
+<div class="table-container">
+    <div class="table-header">
+        <h5><i class="bi bi-clipboard-data me-2"></i>Balancete de @Model.Inicio?.ToString("dd/MM/yyyy") a @Model.Fim?.ToString("dd/MM/yyyy")</h5>
+        <span class="text-muted small">@Model.Linhas.Count produtos encontrados</span>
+    </div>
+    <div class="table-responsive">
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Código</th>
+                    <th>Produto</th>
+                    <th>Un.</th>
+                    <th class="text-end">Saldo Inicial</th>
+                    <th class="text-end">Compras</th>
+                    <th class="text-end">Vendas</th>
+                    <th class="text-end">Ajustes</th>
+                    <th class="text-end">Perdas</th>
+                    <th class="text-end">Saldo Final</th>
+                    <th class="text-end">Custo Médio</th>
+                    <th class="text-end">Valor em Estoque</th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (Model.Linhas.Count == 0)
+                {
+                    <tr><td colspan="11" class="text-center text-muted py-3">Nenhum produto encontrado para os filtros informados</td></tr>
+                }
+                @foreach (var l in Model.Linhas)
+                {
+                    var negativo = l.QtSaldoFinal < 0;
+                    <tr class="@(negativo ? "table-danger" : "")">
+                        <td>@l.IdProduto</td>
+                        <td>
+                            <a href="@Url.Page("MovimentacaoEstoque", new { inicio = Model.Inicio?.ToString("yyyy-MM-dd"), fim = Model.Fim?.ToString("yyyy-MM-dd"), produto = l.IdProduto })"
+                               title="Ver a movimentação do produto no período"><strong>@l.DsProduto</strong></a>
+                            @if (!l.FlAtivo)
+                            {
+                                <span class="badge-status badge-inativo ms-1">INATIVO</span>
+                            }
+                        </td>
+                        <td>@l.SgUnidade</td>
+                        <td class="text-end @(l.QtSaldoInicial < 0 ? "text-danger" : "")">@Qt(l.QtSaldoInicial)</td>
+                        <td class="text-end">@Qt(l.QtCompras)</td>
+                        <td class="text-end">@Qt(l.QtVendas)</td>
+                        <td class="text-end">@(l.QtAjustes > 0 ? "+" : "")@Qt(l.QtAjustes)</td>
+                        <td class="text-end @(l.QtPerdas > 0 ? "text-danger fw-semibold" : "")">@Qt(l.QtPerdas)</td>
+                        <td class="text-end fw-bold @(negativo ? "text-danger" : "")">
+                            @Qt(l.QtSaldoFinal)
+                            @if (negativo)
+                            {
+                                <span class="badge-status badge-cancelado ms-1">NEGATIVO</span>
+                            }
+                        </td>
+                        <td class="text-end">R$ @l.VlCustoMedio.ToString("N2")</td>
+                        <td class="text-end">R$ @l.VlEstoque.ToString("N2")</td>
+                    </tr>
+                }
+            </tbody>
+            @if (Model.Linhas.Count > 0)
+            {
+                <tfoot>
+                    <tr class="fw-bold">
+                        <td colspan="10" class="text-end">Valor total em estoque</td>
+                        <td class="text-end">R$ @Model.VlEstoque.ToString("N2")</td>
+                    </tr>
+                </tfoot>
+            }
+        </table>
+    </div>
+</div>

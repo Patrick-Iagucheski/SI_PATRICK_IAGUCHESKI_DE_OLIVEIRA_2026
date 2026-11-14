@@ -20,7 +20,10 @@ public class ContasAPagarModel : PaginaBase
     }
 
     public List<ContaAPagar> Contas { get; set; } = [];
+    // Filtro da busca: todos, inclusive inativos (que ainda podem ter titulo).
     public List<Fornecedor> Fornecedores { get; set; } = [];
+    // Formulario: so ativos (o inativo que o titulo ja tem entra na edicao, pelo JS).
+    public List<Fornecedor> FornecedoresAtivos { get; set; } = [];
     public List<FormaPagamento> Formas { get; set; } = [];
 
     // Titulos de compra ja cancelada (abrem com todos os campos travados).
@@ -45,6 +48,7 @@ public class ContasAPagarModel : PaginaBase
     {
         Contas = await _conta.Listar();
         Fornecedores = await _fornecedor.Listar(somenteAtivos: false);
+        FornecedoresAtivos = Fornecedores.Where(f => f.FlAtivo).ToList();
         Formas = await _forma.Listar(somenteAtivas: true);
         IdsCompraCancelada = await _conta.IdsDeCompraCancelada(Contas);
 

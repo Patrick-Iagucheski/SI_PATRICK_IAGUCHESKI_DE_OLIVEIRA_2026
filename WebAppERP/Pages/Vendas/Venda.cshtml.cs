@@ -26,7 +26,7 @@ public class VendaModel : PaginaBase
     [BindProperty] public int? IdAgendamento { get; set; }
     [BindProperty] public int? IdFormaPagamento { get; set; }
     [BindProperty] public int? IdCondicaoPagamento { get; set; }
-    [BindProperty] public string TpStatus { get; set; } = Venda.RASCUNHO;
+    [BindProperty] public string TpStatus { get; set; } = Venda.ABERTA;
     [BindProperty] public decimal VlDesconto { get; set; }
     [BindProperty] public string? DsObservacao { get; set; }
 
@@ -44,6 +44,7 @@ public class VendaModel : PaginaBase
 
             Vm.Venda = venda;
             Vm.Itens = venda.Itens;
+            Vm.Agendamento = await _business.GetAgendamento(venda.IdAgendamento);
 
             // Preenche o cabecalho para os asp-for exibirem os valores atuais.
             IdVenda = venda.IdVenda;
@@ -73,8 +74,8 @@ public class VendaModel : PaginaBase
         var combos = await _business.GetCombos();
         return new JsonResult(new
         {
-            emRascunho = await _business.GetSituacao(id) == Venda.RASCUNHO,
-            clientes = combos.Clientes.Select(c => new { id = c.IdCliente, nome = c.NmCliente }),
+            emAberto = await _business.GetSituacao(id) == Venda.ABERTA,
+            clientes = combos.Clientes.Select(c => new { id = c.IdCliente, nome = c.NmCliente, detalhe = Module.DocumentoPessoa(c) }),
             funcionarios = combos.Funcionarios.Select(f => new { id = f.IdFuncionario, nome = f.NmFuncionario }),
             agendamentos = combos.Agendamentos.Select(a => new { id = a.IdAgendamento, nome = TextoAgendamento(a) }),
             formas = combos.Formas.Select(f => new { id = f.IdFormaPagamento, nome = f.DsFormaPagamento }),
@@ -89,13 +90,28 @@ public class VendaModel : PaginaBase
         $"#{a.IdAgendamento} - {a.DtAgendamento:dd/MM/yyyy} {a.HrInicio:HH:mm} - {a.Cliente?.NmCliente}";
 
     public static IEnumerable<object> ProdutosDaTela(IEnumerable<Produto> produtos) =>
-        produtos.Select(p => new { id = p.IdProduto, nome = p.DsProduto, saldo = p.QtSaldo ?? 0, valor = p.VlVenda ?? 0 });
+        produtos.Select(p => new { id = p.IdProduto, nome = p.DsProduto, saldo = p.QtSaldo ?? 0, valor = p.VlVenda ?? 0, imagem = p.DsImagem });
 
     public static IEnumerable<object> ServicosDaTela(IEnumerable<Servico> servicos) =>
         servicos.Select(s => new { id = s.IdServico, nome = s.DsServico, valor = s.VlServico });
 
-    private List<VendaItemDTO> ItensDaTela() =>
-        JsonSerializer.Deserialize<List<VendaItemDTO>>(ItensJson ?? "[]", JsonOpts) ?? [];
+    // Itens enviados pela tela. Texto fora do formato (ex.: numero invalido)
+    // vira mensagem, sem derrubar a pagina.
+    private List<VendaItemDTO> ItensDaTela()
+    {
+        List<VendaItemDTO?>? itens;
+        try
+        {
+            itens = JsonSerializer.Deserialize<List<VendaItemDTO?>>(string.IsNullOrWhiteSpace(ItensJson) ? "[]" : ItensJson, JsonOpts);
+        }
+        catch (JsonException)
+        {
+            itens = [null];
+        }
+        if (itens == null || itens.Any(i => i == null))
+            throw new ValidacaoException("Os itens da venda chegaram em formato inválido.", "Recarregue a tela e confira os itens.");
+        return itens.Select(i => i!).ToList();
+    }
 
     private VendaDTO MontarDados(List<VendaItemDTO> itens) => new()
     {
@@ -111,13 +127,13 @@ public class VendaModel : PaginaBase
         Itens = itens
     };
 
-    // Salvamento automatico do rascunho: devolve o numero da venda, para a tela
-    // continuar alterando a mesma venda.
+    // Salvamento automatico da venda aberta: devolve o numero da venda, para a
+    // tela continuar alterando a mesma venda.
     public async Task<IActionResult> OnPostAutoSalvar()
     {
         try
         {
-            var id = await _business.SalvarRascunho(MontarDados(ItensDaTela()));
+            var id = await _business.SalvarAberta(MontarDados(ItensDaTela()));
             return new JsonResult(new { ok = true, erro = (string?)null, id, hora = DateTime.Now.ToString("HH:mm:ss") });
         }
         catch (Exception ex) when (MensagemDeErro(ex) is { } mensagem)
@@ -128,14 +144,15 @@ public class VendaModel : PaginaBase
 
     public async Task<IActionResult> OnPost()
     {
-        var itens = ItensDaTela();
+        List<VendaItemDTO> itens = [];
 
         try
         {
+            itens = ItensDaTela();
             await _business.Salvar(MontarDados(itens));
             TempData["Sucesso"] = TpStatus == Venda.FINALIZADA
                 ? "Venda finalizada. Estoque atualizado e títulos gerados no Contas a Receber."
-                : "Rascunho da venda salvo com sucesso.";
+                : "Venda salva como aberta.";
             return RedirectToPage("Vendas");
         }
         catch (Exception ex) when (MensagemDeErro(ex) is { } mensagem)
@@ -155,9 +172,7 @@ public class VendaModel : PaginaBase
             QtItem = i.QtItem,
             VlUnitario = i.VlUnitario,
             VlDesconto = i.VlDesconto,
-            VlTotal = Math.Max(i.QtItem * i.VlUnitario - i.VlDesconto, 0),
-            Servico = combos.Servicos.FirstOrDefault(s => s.IdServico == i.IdServico),
-            Produto = combos.Produtos.FirstOrDefault(p => p.IdProduto == i.IdProduto)
+            VlTotal = Math.Max(i.QtItem * i.VlUnitario - i.VlDesconto, 0)
         }).ToList();
         Vm.Venda = new Venda
         {
@@ -167,11 +182,15 @@ public class VendaModel : PaginaBase
             IdAgendamento = IdAgendamento,
             IdFormaPagamento = IdFormaPagamento,
             IdCondicaoPagamento = IdCondicaoPagamento,
-            TpStatus = await _business.GetSituacao(IdVenda) ?? Venda.RASCUNHO,   // a gravacao falhou: vale a situacao do banco
+            TpStatus = await _business.GetSituacao(IdVenda) ?? Venda.ABERTA,   // a gravacao falhou: vale a situacao do banco
             VlDesconto = VlDesconto,
             DsObservacao = DsObservacao,
             DtVenda = DateTime.Now
         };
+        // Cliente, funcionario, forma, condicao, produtos e servicos inativos nao
+        // estao nas listas: vem pelo id, para continuarem no formulario.
+        await _business.CarregarVinculos(Vm.Venda, Vm.Itens);
+        Vm.Agendamento = await _business.GetAgendamento(IdAgendamento);
         return Page();
     }
 }

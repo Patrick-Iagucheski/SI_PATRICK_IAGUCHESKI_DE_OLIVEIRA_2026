@@ -78,9 +78,10 @@
                 <label class="form-label small mb-1">Cliente</label>
                 <select class="form-select" id="buscaCliente">
                     <option value="">Todos</option>
-                    @foreach (var cli in Model.Clientes)
+                    @foreach (var cli in Model.ClientesFiltro)
                     {
-                        <option value="@cli.IdCliente">@cli.NmCliente</option>
+                        @* Filtro (lista do navegador, uma linha so): documento depois do nome *@
+                        <option value="@cli.IdCliente">@cli.NmCliente@(Module.DocumentoPessoa(cli) is { } docCli ? " - " + docCli : "")@(cli.FlAtivo ? "" : " (inativo)")</option>
                     }
                 </select>
             </div>
@@ -225,7 +226,7 @@
                                 <option value="">Selecione um cliente</option>
                                 @foreach (var cli in Model.Clientes)
                                 {
-                                    <option value="@cli.IdCliente">@cli.NmCliente</option>
+                                    <option value="@cli.IdCliente" data-detalhe="@Module.DocumentoPessoa(cli)">@cli.NmCliente</option>
                                 }
                             </select>
                         </div>
@@ -246,11 +247,11 @@
                     <div class="row g-3">
                         <div class="col-md-4">
                             <label class="form-label">Emissão</label>
-                            <input type="date" class="form-control" asp-for="ContaForm.DtEmissao" id="contaDtEmissao" />
+                            <input type="date" class="form-control" asp-for="ContaForm.DtEmissao" id="contaDtEmissao" min="2000-01-01" max="@DateTime.Today.ToString("yyyy-MM-dd")" />
                         </div>
                         <div class="col-md-4">
                             <label class="form-label">Vencimento</label>
-                            <input type="date" class="form-control" asp-for="ContaForm.DtVencimento" id="contaDtVencimento" />
+                            <input type="date" class="form-control" asp-for="ContaForm.DtVencimento" id="contaDtVencimento" min="2000-01-01" max="2100-12-31" />
                         </div>
                         <div class="col-md-4">
                             <label class="form-label">Valor (R$) *</label>
@@ -262,7 +263,7 @@
                     <div class="row g-3">
                         <div class="col-md-4">
                             <label class="form-label">Data do Recebimento</label>
-                            <input type="date" class="form-control" asp-for="ContaForm.DtRecebimento" id="contaDtRecebimento" />
+                            <input type="date" class="form-control" asp-for="ContaForm.DtRecebimento" id="contaDtRecebimento" min="2000-01-01" max="@DateTime.Today.ToString("yyyy-MM-dd")" />
                         </div>
                         <div class="col-md-4">
                             <label class="form-label">Valor recebido (R$)</label>
@@ -283,7 +284,7 @@
                     <div class="row g-3 mt-1">
                         <div class="col-12">
                             <label class="form-label">Observações</label>
-                            <textarea class="form-control" rows="2" asp-for="ContaForm.DsObservacao" id="contaDsObservacao" placeholder="Detalhes da conta, negociação ou baixa"></textarea>
+                            <textarea maxlength="500" class="form-control" rows="2" asp-for="ContaForm.DsObservacao" id="contaDsObservacao" placeholder="Detalhes da conta, negociação ou baixa"></textarea>
                         </div>
                     </div>
                     <partial name="_Registro" />

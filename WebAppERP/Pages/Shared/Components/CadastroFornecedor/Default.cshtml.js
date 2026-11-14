@@ -109,7 +109,11 @@ function editarFornecedor(f) {
     document.getElementById('formDsComplemento').value = f.complemento || '';
     document.getElementById('formDsBairro').value = f.bairro || '';
     definirCidade('formIdCidade', f.idCidade, f.cidadeNome);
-    document.getElementById('formIdCondicaoPagamento').value = f.idCondicaoPagamento || '';
+    // Condicao fora da lista (inativada depois): entra como opcao para nao se perder ao salvar.
+    const condicao = document.getElementById('formIdCondicaoPagamento');
+    if (f.idCondicaoPagamento && !condicao.querySelector('option[value="' + f.idCondicaoPagamento + '"]'))
+        condicao.add(new Option(f.condicaoNome || 'Condição inativa', f.idCondicaoPagamento));
+    condicao.value = f.idCondicaoPagamento || '';
     document.getElementById('formNrTelefoneFixo').value = mascaraTelefone(f.telefoneFixo || '');
     document.getElementById('formNrCelular').value = mascaraTelefone(f.celular || '');
     document.getElementById('formDsSite').value = f.site || '';
@@ -166,3 +170,17 @@ const PESQUISA_FORNECEDOR = {
 function abrirPesquisaFornecedor(opcoes) {
     abrirPesquisaComCadastro(PESQUISA_FORNECEDOR, opcoes);
 }
+
+// Documento ja cadastrado: carrega o cadastro existente (carregarPorDocumento no module.js).
+carregarPorDocumento({
+    idCampo: 'formId',
+    campos: [
+        { id: 'formNrCNPJ', completo: cnpjValido, doc: f => f.cnpj },
+        { id: 'formNrCpf', completo: cpfValido, doc: f => f.cpf },
+        { id: 'formNrDocumento', completo: v => v.length >= 3, doc: f => f.documento }
+    ],
+    url: (doc, inativos) => urlFornecedores('BuscarFornecedores') + '&documento=' + encodeURIComponent(doc) + '&incluirInativos=' + inativos,
+    preencher: editarFornecedor,
+    modal: 'modalFornecedor',
+    nome: f => f.razaoSocial
+});

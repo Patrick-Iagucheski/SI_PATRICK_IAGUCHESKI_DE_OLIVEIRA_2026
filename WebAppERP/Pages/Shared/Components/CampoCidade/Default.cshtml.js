@@ -69,6 +69,20 @@ function selecionarLocalidade(campo, tipo, reg) {
     selecionarNoSelect(campo, reg.id, textoLocalidade(tipo, reg));
 }
 
+// Autocomplete dos campos (data-autocomplete, module.js): a mesma busca e a
+// mesma selecao da pesquisa de cada um.
+function autocompleteLocalidade(campo, tipo) {
+    return {
+        url: urlLocalidades(LOCALIDADE[tipo].handler),
+        param: 'termo',
+        texto: r => textoLocalidade(tipo, r),
+        escolher: r => selecionarLocalidade(campo, tipo, r)
+    };
+}
+const autocompleteCidade = campo => autocompleteLocalidade(campo, 'cidade');
+const autocompleteEstado = (campo = 'cidEstado') => autocompleteLocalidade(campo, 'estado');
+const autocompletePais = (campo = 'estPais') => autocompleteLocalidade(campo, 'pais');
+
 // ===== Pesquisas (a lupa de cada campo) =====
 // Cada uma tem o seu modal (abrirPesquisa, no module.js), um por cima do
 // outro: Cidade > Estado > Pais. Selecionar preenche o campo de quem chamou;

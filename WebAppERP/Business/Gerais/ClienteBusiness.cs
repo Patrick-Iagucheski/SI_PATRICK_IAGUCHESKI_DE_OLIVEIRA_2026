@@ -16,12 +16,13 @@ public class ClienteBusiness
     // Consultas
     // ============================================================
 
-    // Clientes ativos (listagem da tela e listas para escolher cliente).
-    public async Task<List<Cliente>> Listar() =>
+    // Clientes ativos (listagem da tela e listas para escolher cliente); com
+    // somenteAtivos false, todos (filtros de consulta, ex.: Contas a Receber).
+    public async Task<List<Cliente>> Listar(bool somenteAtivos = true) =>
         await _db.Clientes
             .Include(c => c.Cidade).ThenInclude(c => c!.Estado)
             .Include(c => c.CondicaoPagamento)
-            .Where(c => c.FlAtivo)
+            .Where(c => !somenteAtivos || c.FlAtivo)
             .OrderBy(c => c.NmCliente)
             .ToListAsync();
 
@@ -133,9 +134,12 @@ public class ClienteBusiness
 
         c.NrCpf = Module.SomenteNumeros(c.NrCpf);
         c.NrCnpj = Module.SomenteNumeros(c.NrCnpj);
-        c.NrTelefoneFixo = Module.SomenteNumeros(c.NrTelefoneFixo);
-        c.NrCelular = Module.SomenteNumeros(c.NrCelular);
-        c.NrCEP = Module.SomenteNumeros(c.NrCEP);
+        // CEP e telefones brasileiros conferidos (8 digitos; DDD + 10 ou 11).
+        // Estrangeiro pode ter outro formato: so tira a mascara.
+        var brasileiro = tipo is "F" or "J";
+        c.NrTelefoneFixo = brasileiro ? Module.TelefoneValido(c.NrTelefoneFixo, "Telefone") : Module.SomenteNumeros(c.NrTelefoneFixo);
+        c.NrCelular = brasileiro ? Module.TelefoneValido(c.NrCelular, "Celular") : Module.SomenteNumeros(c.NrCelular);
+        c.NrCEP = brasileiro ? Module.CepValido(c.NrCEP) : Module.SomenteNumeros(c.NrCEP);
         c.NrRG = Module.SomenteNumeros(c.NrRG);
 
         // So fica o que vale para o tipo: RG so na fisica; sexo e nascimento
@@ -155,10 +159,10 @@ public class ClienteBusiness
                 break;
         }
 
-        c.NmCliente = Module.Truncar(c.NmCliente?.Trim(), 200) ?? string.Empty;
+        c.NmCliente = Module.Truncar(c.NmCliente?.Trim(), 100) ?? string.Empty;
         c.NrCpf = Module.Truncar(c.NrCpf, 11);
         c.NrCnpj = Module.Truncar(c.NrCnpj, 14);
-        c.NrDocumento = Module.Truncar(c.NrDocumento, 20);
+        c.NrDocumento = Module.Truncar(c.NrDocumento, 30);
         c.NrRG = Module.Truncar(c.NrRG, 12);
         c.DsNomeFantasia = Module.Truncar(c.DsNomeFantasia?.Trim(), 150);
         c.NrInscEstadual = Module.Truncar(c.NrInscEstadual?.Trim(), 13);
@@ -166,11 +170,11 @@ public class ClienteBusiness
         c.NrTelefoneFixo = Module.Truncar(c.NrTelefoneFixo, 11);
         c.NrCelular = Module.Truncar(c.NrCelular, 11);
         c.DsSite = Module.Truncar(c.DsSite?.Trim(), 150);
-        c.DsEmail = Module.Truncar(c.DsEmail, 150);
-        c.DsEndereco = Module.Truncar(c.DsEndereco, 200);
+        c.DsEmail = Module.Truncar(c.DsEmail, 100);
+        c.DsEndereco = Module.Truncar(c.DsEndereco, 100);
         c.NrNumero = Module.Truncar(c.NrNumero, 10);
         c.DsComplemento = Module.Truncar(c.DsComplemento, 100);
-        c.DsBairro = Module.Truncar(c.DsBairro, 100);
+        c.DsBairro = Module.Truncar(c.DsBairro, 60);
         c.NrCEP = Module.Truncar(c.NrCEP, 8);
         c.DsObservacao = Module.Truncar(c.DsObservacao, 500);
     }
@@ -181,6 +185,7 @@ public class ClienteBusiness
     {
         if (string.IsNullOrWhiteSpace(c.NmCliente))
             throw new ValidacaoException("Informe o nome do cliente.");
+        Module.ValidarNascimento(c.DtNascimento);
 
         if (c.TpPessoa == "F")
         {
@@ -204,13 +209,27 @@ public class ClienteBusiness
                 throw new ValidacaoException("Inscrição Municipal deve ter de 7 a 15 caracteres.");
         }
 
-        // Condicao de pagamento vem da pesquisa do campo; so aceita uma ja cadastrada e ativa.
+        // Condicao de pagamento vem da pesquisa do campo; so aceita uma ja cadastrada e
+        // ativa, ou a que o cliente ja tinha (inativada depois nao trava o cadastro).
         if (c.IdCondicaoPagamento is int idCondicao
-            && !await _db.CondicoesPagamento.AnyAsync(x => x.IdCondicaoPagamento == idCondicao && x.FlAtivo))
+            && !await _db.CondicoesPagamento.AnyAsync(x => x.IdCondicaoPagamento == idCondicao && x.FlAtivo)
+            && !await _db.Clientes.AnyAsync(x => x.IdCliente == c.IdCliente && x.IdCondicaoPagamento == idCondicao))
             throw new ValidacaoException("Condição de pagamento inválida.");
 
         if (!string.IsNullOrWhiteSpace(c.DsEmail) && !new EmailAddressAttribute().IsValid(c.DsEmail))
             throw new ValidacaoException("E-mail inválido. Verifique o formato (exemplo: nome@dominio.com).");
+
+        // Estrangeiro: o documento (passaporte etc.) tambem nao se repete.
+        if (c.TpPessoa == "E" && !string.IsNullOrWhiteSpace(c.NrDocumento))
+        {
+            var mesmoPassaporte = await _db.Clientes
+                .Where(x => x.IdCliente != c.IdCliente && x.TpPessoa == "E" && x.NrDocumento == c.NrDocumento)
+                .Select(x => x.NmCliente)
+                .FirstOrDefaultAsync();
+            if (mesmoPassaporte != null)
+                throw new ValidacaoException($"Já existe um cliente com este documento: {mesmoPassaporte}.",
+                                             "Utilize a pesquisa para encontrá-lo.");
+        }
 
         // CPF e CNPJ unicos (respeita UQ_tbGerClientes_nrCpf e UQ_tbGerClientes_nrCnpj)
         var mesmoDocumento = await _db.Clientes

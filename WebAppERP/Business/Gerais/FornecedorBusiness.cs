@@ -21,6 +21,7 @@ public class FornecedorBusiness
     public async Task<List<Fornecedor>> Listar(bool somenteAtivos = true) =>
         await _db.Fornecedores
             .Include(f => f.Cidade).ThenInclude(c => c!.Estado)
+            .Include(f => f.CondicaoPagamento)
             .Where(f => !somenteAtivos || f.FlAtivo)
             .OrderBy(f => f.DsRazaoSocial)
             .ToListAsync();
@@ -39,6 +40,7 @@ public class FornecedorBusiness
     {
         var query = _db.Fornecedores
             .Include(f => f.Cidade).ThenInclude(c => c!.Estado)
+            .Include(f => f.CondicaoPagamento)
             .Where(f => f.FlAtivo != somenteInativos);
 
         if (id.HasValue)
@@ -139,9 +141,12 @@ public class FornecedorBusiness
 
         f.NrCpf = Module.SomenteNumeros(f.NrCpf);
         f.NrCNPJ = Module.SomenteNumeros(f.NrCNPJ);
-        f.NrCEP = Module.SomenteNumeros(f.NrCEP);
-        f.NrTelefoneFixo = Module.SomenteNumeros(f.NrTelefoneFixo);
-        f.NrCelular = Module.SomenteNumeros(f.NrCelular);
+        // CEP e telefones brasileiros conferidos (8 digitos; DDD + 10 ou 11).
+        // Estrangeiro/outro pode ter outro formato: so tira a mascara.
+        var brasileiro = tipo is "F" or "J";
+        f.NrCEP = brasileiro ? Module.CepValido(f.NrCEP) : Module.SomenteNumeros(f.NrCEP);
+        f.NrTelefoneFixo = brasileiro ? Module.TelefoneValido(f.NrTelefoneFixo, "Telefone") : Module.SomenteNumeros(f.NrTelefoneFixo);
+        f.NrCelular = brasileiro ? Module.TelefoneValido(f.NrCelular, "Celular") : Module.SomenteNumeros(f.NrCelular);
         f.NrRG = Module.SomenteNumeros(f.NrRG);
 
         // PJ (J)  -> CNPJ, Nome Fantasia, Inscricao Estadual, Inscricao Municipal
@@ -167,7 +172,7 @@ public class FornecedorBusiness
         if (tpPix is "CPF" or "CNPJ" or "CELULAR")
             f.DsChavePix = Module.SomenteNumeros(f.DsChavePix);
 
-        f.DsRazaoSocial = Module.Truncar(f.DsRazaoSocial?.Trim(), 200) ?? string.Empty;
+        f.DsRazaoSocial = Module.Truncar(f.DsRazaoSocial?.Trim(), 100) ?? string.Empty;
         f.DsNomeFantasia = Module.Truncar(f.DsNomeFantasia, 150);
         f.NrCpf = Module.Truncar(f.NrCpf, 11);
         f.NrCNPJ = Module.Truncar(f.NrCNPJ, 14);
@@ -175,13 +180,13 @@ public class FornecedorBusiness
         f.NrInscEstadual = Module.Truncar(f.NrInscEstadual, 13);
         f.NrInscMunicipal = Module.Truncar(f.NrInscMunicipal, 15);
         f.NrRG = Module.Truncar(f.NrRG, 9);
-        f.DsEmail = Module.Truncar(f.DsEmail, 150);
+        f.DsEmail = Module.Truncar(f.DsEmail, 100);
         f.DsObservacao = Module.Truncar(f.DsObservacao, 500);
         f.NrCEP = Module.Truncar(f.NrCEP, 8);
-        f.DsEndereco = Module.Truncar(f.DsEndereco, 200);
+        f.DsEndereco = Module.Truncar(f.DsEndereco, 100);
         f.NrNumero = Module.Truncar(f.NrNumero, 10);
         f.DsComplemento = Module.Truncar(f.DsComplemento, 100);
-        f.DsBairro = Module.Truncar(f.DsBairro, 100);
+        f.DsBairro = Module.Truncar(f.DsBairro, 60);
         f.NrTelefoneFixo = Module.Truncar(f.NrTelefoneFixo, 11);
         f.NrCelular = Module.Truncar(f.NrCelular, 11);
         f.DsSite = Module.Truncar(f.DsSite?.Trim(), 150);
@@ -196,6 +201,7 @@ public class FornecedorBusiness
     {
         if (string.IsNullOrWhiteSpace(f.DsRazaoSocial))
             throw new ValidacaoException("Informe a Razão Social / Nome do fornecedor.");
+        Module.ValidarNascimento(f.DtNascimento);
 
         // Documento do tipo de pessoa obrigatorio: CPF na fisica, CNPJ na juridica.
         if (f.TpPessoa == "F")
@@ -249,7 +255,8 @@ public class FornecedorBusiness
 
         // Condicao de pagamento vem da pesquisa do campo; so aceita uma ja cadastrada e ativa.
         if (f.IdCondicaoPagamento is int idCondicao
-            && !await _db.CondicoesPagamento.AnyAsync(c => c.IdCondicaoPagamento == idCondicao && c.FlAtivo))
+            && !await _db.CondicoesPagamento.AnyAsync(c => c.IdCondicaoPagamento == idCondicao && c.FlAtivo)
+            && !await _db.Fornecedores.AnyAsync(x => x.IdFornecedor == f.IdFornecedor && x.IdCondicaoPagamento == idCondicao))
             throw new ValidacaoException("Condição de pagamento inválida.");
 
         // Mesmo CPF/CNPJ/documento ja cadastrado em outro fornecedor.

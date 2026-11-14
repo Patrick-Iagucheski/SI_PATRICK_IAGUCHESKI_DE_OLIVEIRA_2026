@@ -23,6 +23,8 @@ public class ContasAReceberModel : PaginaBase
     // valor inicial do filtro Situacao.
     public List<ContaAReceber> ContasGrade { get; set; } = [];
     public List<Cliente> Clientes { get; set; } = [];
+    // Filtro da busca: todos os clientes, inclusive inativos (que ainda podem ter titulo).
+    public List<Cliente> ClientesFiltro { get; set; } = [];
     public List<FormaPagamento> Formas { get; set; } = [];
 
     // Vendas canceladas entre as dos titulos da grade.
@@ -42,7 +44,8 @@ public class ContasAReceberModel : PaginaBase
     public async Task OnGet()
     {
         ContasGrade = await _conta.Buscar(null, null, null, null, ContaAReceber.PENDENTE);
-        Clientes = await _cliente.Listar();
+        ClientesFiltro = await _cliente.Listar(somenteAtivos: false);
+        Clientes = ClientesFiltro.Where(c => c.FlAtivo).ToList();
         Formas = await _forma.Listar(somenteAtivas: true);
         VendasCanceladas = await _conta.VendasCanceladas(ContasGrade);
 

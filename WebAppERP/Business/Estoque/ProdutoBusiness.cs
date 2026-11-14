@@ -62,15 +62,6 @@ public class ProdutoBusiness
         return await query.OrderBy(p => p.DsProduto).Take(100).ToListAsync();
     }
 
-    // Produtos que ja tiveram entrada por compra finalizada (so eles mostram
-    // custo e estoque no cadastro).
-    public async Task<HashSet<int>> IdsComEntrada() =>
-        (await _db.CompraItens
-            .Where(i => i.IdProduto != null && i.Compra!.TpStatus == Compra.FINALIZADA)
-            .Select(i => i.IdProduto!.Value)
-            .Distinct()
-            .ToListAsync()).ToHashSet();
-
     // ============================================================
     // Gravacao
     // ============================================================
@@ -150,13 +141,21 @@ public class ProdutoBusiness
 
         if (p.DsProduto.Length == 0)
             throw new ValidacaoException("Informe o nome do produto.");
-        if (p.DsProduto.Length > 300)
-            throw new ValidacaoException("O nome do produto deve ter no máximo 300 caracteres.");
+        if (p.DsProduto.Length > 100)
+            throw new ValidacaoException("O nome do produto deve ter no máximo 100 caracteres.");
+        // Mesmo nome (sem diferenciar maiusculas nem acentos)
+        var repetido = await _db.Produtos
+            .Where(x => x.IdProduto != p.IdProduto
+                     && EF.Functions.Collate(x.DsProduto, Module.CollationSemAcento) == p.DsProduto)
+            .Select(x => x.DsProduto)
+            .FirstOrDefaultAsync();
+        if (repetido != null)
+            throw new ValidacaoException($"Já existe o produto \"{repetido}\".", "Utilize a pesquisa para encontrá-lo.");
         if (p.DsDescricao?.Length > 500)
             throw new ValidacaoException("A descrição deve ter no máximo 500 caracteres.");
 
-        if (p.PcComissao is < 0 or > 999.99m)
-            throw new ValidacaoException("Percentual de comissão inválido.", "Informe um percentual entre 0 e 999,99.");
+        if (p.PcComissao is < 0 or > 100)
+            throw new ValidacaoException("Percentual de comissão inválido.", "Informe um percentual entre 0 e 100.");
 
         if (Module.EhNegativo(p.VlVenda))
             throw new ValidacaoException("O valor de venda não pode ser negativo.");
@@ -171,8 +170,10 @@ public class ProdutoBusiness
         if (!await _marca.Existe(p.IdMarca.Value))
             throw new ValidacaoException("Marca inválida.");
 
-        // Unidade de medida opcional; quando informada, do cadastro e ativa.
-        if (p.IdUnidadeMedida is int idUnidade && !await _unidade.ExisteAtiva(idUnidade))
+        // Unidade de medida opcional; quando informada, do cadastro e ativa, ou a
+        // que o produto ja tinha (inativada depois nao trava o cadastro).
+        if (p.IdUnidadeMedida is int idUnidade && !await _unidade.ExisteAtiva(idUnidade)
+            && !await _db.Produtos.AnyAsync(x => x.IdProduto == p.IdProduto && x.IdUnidadeMedida == idUnidade))
             throw new ValidacaoException("Unidade de medida inválida.");
 
         _arquivo.ValidarImagem(imagem, TamanhoMaxImagem, "A imagem");
@@ -192,6 +193,8 @@ public class ProdutoBusiness
             throw new ValidacaoException("Não é possível excluir: existe venda vinculada a este produto.", dica);
         if (await _db.CompraItens.AnyAsync(i => i.IdProduto == id))
             throw new ValidacaoException("Não é possível excluir: existe compra vinculada a este produto.", dica);
+        if (await _db.Movimentacoes.AnyAsync(m => m.IdProduto == id))
+            throw new ValidacaoException("Não é possível excluir: existe movimentação de estoque deste produto.", dica);
 
         var imagem = produto.DsImagem;
         try

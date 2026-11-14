@@ -186,9 +186,13 @@ public class CompraModel : PaginaBase
             Erro = mensagem;
         }
 
-        // Em caso de erro, recarrega os combos e reexibe a tela com os dados digitados.
+        // Em caso de erro, recarrega os combos e reexibe a tela com os dados, os
+        // itens e as parcelas digitados. A situacao e a do banco: a gravacao
+        // falhou, entao a compra continua como estava (em geral, rascunho).
         Vm.Combos = await _business.GetCombos();
         Vm.Edicao = !string.IsNullOrEmpty(OrigNrNota);
+        (Vm.Itens, Vm.Pagamentos) = await _business.GetDigitados(input);
+        var situacao = await _business.GetSituacao(Vm.Edicao ? input.ChaveOriginal! : input.GetChave()) ?? Compra.RASCUNHO;
 
         // Numa inclusao, a chave so volta travada se ainda estiver livre.
         ChaveValidada = Vm.Edicao || await ChaveLivre(input.GetChave());
@@ -206,8 +210,8 @@ public class CompraModel : PaginaBase
             VlFrete = VlFrete,
             VlSeguro = VlSeguro,
             VlOutrasDespesas = VlOutrasDespesas,
-            TpStatus = TpStatus,
             DsObservacao = DsObservacao,
+            TpStatus = situacao,
             Fornecedor = await _fornecedor.GetFornecedor(IdFornecedor),
             Transportador = IdTransportador is > 0 ? await _transportador.GetTransportador(IdTransportador.Value) : null
         };

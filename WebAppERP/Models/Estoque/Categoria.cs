@@ -14,6 +14,7 @@ public class Categoria : EntidadeComRegistro
     [Column("idCategoria")]
     public int IdCategoria { get; set; }
 
+    [Nome]
     [Column("nmCategoria")]
     [Required(ErrorMessage = "O nome da categoria é obrigatório.")]
     [MaxLength(100)]

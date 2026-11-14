@@ -71,16 +71,18 @@ public class AgendamentosModel : PaginaBase
     public async Task<IActionResult> OnGetBuscarAgendamentos(int? id, DateOnly? data, string? texto, string? situacao)
     {
         var lista = await _agendamento.Pesquisar(id, data, texto, situacao);
-        return new JsonResult(lista.Select(Registro));
+        var vendas = await _agendamento.VendasDosAgendamentos(lista.Select(a => a.IdAgendamento));
+        return new JsonResult(lista.Select(a => Registro(a, vendas.TryGetValue(a.IdAgendamento, out var v) ? v : null)));
     }
 
     // Agendamento no formato que o componente usa (pesquisa e editarAgendamento).
-    // Cancelado nao pode ser escolhido na Venda (ativo false).
+    // Cancelado ou ja cobrado em outra venda (idVenda) nao pode ser escolhido na
+    // Venda (ativo false).
     // Texto do agendamento no campo da Venda (mesmo das opcoes da lista).
     public static string Texto(Agendamento a) =>
         $"#{a.IdAgendamento} - {a.DtAgendamento:dd/MM/yyyy} {a.HrInicio:HH:mm} - {a.Cliente?.NmCliente}";
 
-    public static object Registro(Agendamento a) => new
+    public static object Registro(Agendamento a, int? idVenda) => new
     {
         id = a.IdAgendamento,
         registro = Module.Registro(a),
@@ -98,8 +100,9 @@ public class AgendamentosModel : PaginaBase
         situacao = a.TpStatus,
         observacao = a.DsObservacao,
         nome = Texto(a),
-        ativo = a.TpStatus != Agendamento.CANCELADO,
-        motivoInativo = "Cancelado"
+        idVenda,
+        ativo = a.TpStatus != Agendamento.CANCELADO && idVenda == null,
+        motivoInativo = a.TpStatus == Agendamento.CANCELADO ? "Cancelado" : "Venda Nº " + idVenda
     };
 
     public Task<IActionResult> OnPostExcluir(int id, string? data) =>

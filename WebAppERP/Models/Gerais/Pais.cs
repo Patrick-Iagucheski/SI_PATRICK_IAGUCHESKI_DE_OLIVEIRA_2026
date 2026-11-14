@@ -12,19 +12,20 @@ public class Pais : EntidadeComRegistro
     [Column("idPais")]
     public int IdPais { get; set; }
 
+    [Nome]
     [Column("nmPais")]
-    [Required, MaxLength(100)]
+    [Required, MaxLength(60)]
     public string NmPais { get; set; } = string.Empty;
 
     [Column("sgPais")]
-    [Required, MaxLength(5)]
+    [Required, MaxLength(2)]
     public string SgPais { get; set; } = string.Empty;
 
     [Column("nrDDI")]
-    [MaxLength(5)]
+    [MaxLength(4)]
     public string? NrDDI { get; set; }
 
     [Column("dsMoeda")]
-    [MaxLength(50)]
+    [MaxLength(30)]
     public string? DsMoeda { get; set; }
 }

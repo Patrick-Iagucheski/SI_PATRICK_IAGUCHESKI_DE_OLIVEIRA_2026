@@ -174,3 +174,17 @@ const PESQUISA_CLIENTE = {
 function abrirPesquisaCliente(opcoes) {
     abrirPesquisaComCadastro(PESQUISA_CLIENTE, opcoes);
 }
+
+// Documento ja cadastrado: carrega o cadastro existente (carregarPorDocumento no module.js).
+carregarPorDocumento({
+    idCampo: 'cliIdCliente',
+    campos: [
+        { id: 'cliNrCpf', completo: cpfValido, doc: c => c.cpf },
+        { id: 'cliNrCnpj', completo: cnpjValido, doc: c => c.cnpj },
+        { id: 'cliNrDocumento', completo: v => v.length >= 3, doc: c => c.documento }
+    ],
+    url: (doc, inativos) => urlClientes('BuscarClientes') + '&documento=' + encodeURIComponent(doc) + '&incluirInativos=' + inativos,
+    preencher: editarCliente,
+    modal: 'modalCliente',
+    nome: c => c.nome
+});

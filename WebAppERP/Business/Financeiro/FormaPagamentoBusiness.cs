@@ -48,8 +48,8 @@ public class FormaPagamentoBusiness
 
         if (nome.Length == 0)
             throw new ValidacaoException("Informe a forma de pagamento.");
-        if (nome.Length > 100)
-            throw new ValidacaoException("A forma de pagamento deve ter no máximo 100 caracteres.");
+        if (nome.Length > 50)
+            throw new ValidacaoException("A forma de pagamento deve ter no máximo 50 caracteres.");
 
         // Mesmo nome (sem diferenciar maiusculas nem acentos)
         var repetida = await _db.FormasPagamento

@@ -34,7 +34,7 @@
                                 <option value="">Selecione o cliente</option>
                                 @foreach (var c in Model.Clientes)
                                 {
-                                    <option value="@c.IdCliente">@c.NmCliente</option>
+                                    <option value="@c.IdCliente" data-detalhe="@Module.DocumentoPessoa(c)">@c.NmCliente</option>
                                 }
                             </select>
                         </div>

@@ -32,11 +32,15 @@ public class PrincipalBusiness
         painel.TotalServicosMes = await _db.Agendamentos
             .CountAsync(a => a.DtAgendamento >= inicioMes && a.DtAgendamento <= hoje && a.TpStatus == Agendamento.CONCLUIDO);
 
+        // Proximos: so os que ainda vao acontecer (Agendado ou Confirmado; hoje,
+        // os que ainda nao terminaram). Em atendimento e concluido ja nao sao proximos.
+        var agora = TimeOnly.FromDateTime(DateTime.Now);
         painel.ProximosAgendamentos = await _db.Agendamentos
             .Include(a => a.Cliente)
             .Include(a => a.Funcionario)
             .Include(a => a.Servico)
-            .Where(a => a.DtAgendamento >= hoje && a.TpStatus != Agendamento.CANCELADO)
+            .Where(a => (a.TpStatus == Agendamento.AGENDADO || a.TpStatus == Agendamento.CONFIRMADO)
+                     && (a.DtAgendamento > hoje || (a.DtAgendamento == hoje && (a.HrFim ?? a.HrInicio) >= agora)))
             .OrderBy(a => a.DtAgendamento).ThenBy(a => a.HrInicio)
             .Take(5)
             .ToListAsync();

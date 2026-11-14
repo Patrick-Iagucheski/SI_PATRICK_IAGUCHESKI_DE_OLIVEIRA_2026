@@ -6,8 +6,6 @@ namespace WebAppERP.Infrastructure;
 
 public class InvariantDecimalModelBinder : IModelBinder
 {
-    private static readonly CultureInfo PtBr = CultureInfo.GetCultureInfo("pt-BR");
-
     public Task BindModelAsync(ModelBindingContext bindingContext)
     {
         ArgumentNullException.ThrowIfNull(bindingContext);
@@ -37,29 +35,28 @@ public class InvariantDecimalModelBinder : IModelBinder
         return Task.CompletedTask;
     }
 
+    // Aceita o ponto do <input type="number"> ("1234.56") e o formato pt-BR
+    // ("1.234,56" ou "1,5"): o ultimo separador e o decimal e o outro, de milhar.
+    // Antes "1,5" era lido como 15 (virgula tratada como milhar).
+    private static string Normalizar(string raw)
+    {
+        var s = raw.Trim().Replace(" ", "");
+        int virgula = s.LastIndexOf(','), ponto = s.LastIndexOf('.');
+        if (virgula >= 0 && ponto >= 0)
+            return virgula > ponto ? s.Replace(".", "").Replace(',', '.') : s.Replace(",", "");
+        return virgula >= 0 ? s.Replace(',', '.') : s;
+    }
+
     private static bool TryParse(string raw, Type type, out object? value)
     {
         value = null;
+        var s = Normalizar(raw);
+        const NumberStyles estilo = NumberStyles.Float;
+        var inv = CultureInfo.InvariantCulture;
 
-        if (type == typeof(decimal))
-        {
-            if (decimal.TryParse(raw, NumberStyles.Number, CultureInfo.InvariantCulture, out var d) ||
-                decimal.TryParse(raw, NumberStyles.Number, PtBr, out d))
-            { value = d; return true; }
-        }
-        else if (type == typeof(double))
-        {
-            if (double.TryParse(raw, NumberStyles.Number, CultureInfo.InvariantCulture, out var d) ||
-                double.TryParse(raw, NumberStyles.Number, PtBr, out d))
-            { value = d; return true; }
-        }
-        else if (type == typeof(float))
-        {
-            if (float.TryParse(raw, NumberStyles.Number, CultureInfo.InvariantCulture, out var d) ||
-                float.TryParse(raw, NumberStyles.Number, PtBr, out d))
-            { value = d; return true; }
-        }
-
+        if (type == typeof(decimal) && decimal.TryParse(s, estilo, inv, out var m)) { value = m; return true; }
+        if (type == typeof(double) && double.TryParse(s, estilo, inv, out var d)) { value = d; return true; }
+        if (type == typeof(float) && float.TryParse(s, estilo, inv, out var f)) { value = f; return true; }
         return false;
     }
 }

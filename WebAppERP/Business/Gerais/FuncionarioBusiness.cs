@@ -44,9 +44,13 @@ public class FuncionarioBusiness
             query = query.Where(Module.MontarFiltroTexto<Funcionario>(apelido, f => f.NmApelido));
         }
 
-        var cpfDigitos = Module.SomenteNumeros(cpf) ?? "";
-        if (cpfDigitos != "")
-            query = query.Where(f => f.NrCpf.Contains(cpfDigitos));
+        // CPF so tem digitos: busca com texto sem nenhum digito nao acha ninguem
+        // (antes trazia todos, como se o filtro estivesse vazio).
+        if (!string.IsNullOrWhiteSpace(cpf))
+        {
+            var cpfDigitos = Module.SomenteNumeros(cpf) ?? "";
+            query = cpfDigitos != "" ? query.Where(f => f.NrCpf.Contains(cpfDigitos)) : query.Where(f => false);
+        }
 
         return await query.OrderBy(f => f.NmFuncionario).Take(100).ToListAsync();
     }
@@ -105,16 +109,17 @@ public class FuncionarioBusiness
     private static void Normalizar(Funcionario f)
     {
         f.NrCpf = Module.SomenteNumeros(f.NrCpf) ?? string.Empty;
-        f.NrTelefone = Module.SomenteNumeros(f.NrTelefone);
-        f.NrCEP = Module.SomenteNumeros(f.NrCEP);
+        // CEP (8 digitos) e telefone (DDD + 10 ou 11) conferidos.
+        f.NrTelefone = Module.TelefoneValido(f.NrTelefone, "Telefone");
+        f.NrCEP = Module.CepValido(f.NrCEP);
         f.NrRG = Module.SomenteNumeros(f.NrRG);
 
-        f.NmFuncionario = Module.Truncar(f.NmFuncionario?.Trim(), 200) ?? string.Empty;
+        f.NmFuncionario = Module.Truncar(f.NmFuncionario?.Trim(), 100) ?? string.Empty;
         f.NmApelido = Module.Truncar(f.NmApelido?.Trim(), 100);
-        f.DsSexo = Module.Truncar(f.DsSexo, 30);
-        f.DsEmail = Module.Truncar(f.DsEmail?.Trim(), 150);
-        f.DsEndereco = Module.Truncar(f.DsEndereco, 200);
-        f.DsBairro = Module.Truncar(f.DsBairro, 100);
+        f.DsSexo = f.DsSexo?.Trim().ToUpper() is "M" or "F" or "O" ? f.DsSexo.Trim().ToUpper() : null;
+        f.DsEmail = Module.Truncar(f.DsEmail?.Trim(), 100);
+        f.DsEndereco = Module.Truncar(f.DsEndereco, 100);
+        f.DsBairro = Module.Truncar(f.DsBairro, 60);
         f.NrNumero = Module.Truncar(f.NrNumero, 10);
         f.DsComplemento = Module.Truncar(f.DsComplemento, 100);
         f.NrTelefone = Module.Truncar(f.NrTelefone, 20);
@@ -140,19 +145,28 @@ public class FuncionarioBusiness
 
         if (f.IdCargo <= 0 || !await _db.Cargos.AnyAsync(c => c.IdCargo == f.IdCargo))
             throw new ValidacaoException("Selecione o cargo do funcionário.");
+        // Cargo ativo, ou o que o funcionario ja tinha (inativado depois nao trava o cadastro).
+        if (!await _db.Cargos.AnyAsync(c => c.IdCargo == f.IdCargo && c.FlAtivo)
+            && !await _db.Funcionarios.AnyAsync(x => x.IdFuncionario == f.IdFuncionario && x.IdCargo == f.IdCargo))
+            throw new ValidacaoException("O cargo selecionado está inativo.", "Escolha um cargo ativo.");
 
         var hoje = DateOnly.FromDateTime(DateTime.Today);
         if (f.DtAdmissao == default)
             throw new ValidacaoException("Informe a data de admissão.");
+        if (f.DtAdmissao > hoje)
+            throw new ValidacaoException("A data de admissão não pode ser futura.");
+        if (f.DtAdmissao < new DateOnly(1900, 1, 1))
+            throw new ValidacaoException("Data de admissão inválida.", "Informe uma data a partir de 01/01/1900.");
         if (f.DtDemissao != null && f.DtDemissao < f.DtAdmissao)
             throw new ValidacaoException("A data de demissão não pode ser anterior à admissão.");
-        if (f.DtNascimento != null && f.DtNascimento > hoje)
-            throw new ValidacaoException("A data de nascimento não pode ser futura.");
+        if (f.DtDemissao > hoje)
+            throw new ValidacaoException("A data de demissão não pode ser futura.");
+        Module.ValidarNascimento(f.DtNascimento);
 
         if (f.VlSalario < 0)
             throw new ValidacaoException("O salário não pode ser negativo.");
-        if (f.VlComissao is < 0 or > 999.99m)
-            throw new ValidacaoException("Comissão inválida.", "Informe um percentual entre 0 e 999,99.");
+        if (f.VlComissao is < 0 or > 100)
+            throw new ValidacaoException("Comissão inválida.", "Informe um percentual entre 0 e 100.");
 
         // CPF unico (respeita a constraint UQ_tbGerFuncionarios_nrCpf)
         var mesmoCpf = await _db.Funcionarios

@@ -12,16 +12,18 @@ public class Funcionario : EntidadeComRegistro
     [Column("idFuncionario")]
     public int IdFuncionario { get; set; }
 
+    [Nome]
     [Column("nmFuncionario")]
-    [Required, MaxLength(200)]
+    [Required, MaxLength(100)]
     public string NmFuncionario { get; set; } = string.Empty;
 
+    [Nome]
     [Column("nmApelido")]
     [MaxLength(100)]
     public string? NmApelido { get; set; }
 
     [Column("nrCpf")]
-    [Required, MaxLength(14)]
+    [Required, MaxLength(11)]
     public string NrCpf { get; set; } = string.Empty;
 
     [Column("nrRG")]
@@ -29,7 +31,7 @@ public class Funcionario : EntidadeComRegistro
     public string? NrRG { get; set; }
 
     [Column("dsSexo")]
-    [MaxLength(30)]
+    [MaxLength(15)]
     public string? DsSexo { get; set; }
 
     [Column("nrTelefone")]
@@ -37,16 +39,16 @@ public class Funcionario : EntidadeComRegistro
     public string? NrTelefone { get; set; }
 
     [Column("dsEmail")]
-    [MaxLength(150)]
+    [MaxLength(100)]
     [ManterCaixa]
     public string? DsEmail { get; set; }
 
     [Column("dsEndereco")]
-    [MaxLength(200)]
+    [MaxLength(100)]
     public string? DsEndereco { get; set; }
 
     [Column("dsBairro")]
-    [MaxLength(100)]
+    [MaxLength(60)]
     public string? DsBairro { get; set; }
 
     [Column("nrNumero")]
@@ -64,7 +66,7 @@ public class Funcionario : EntidadeComRegistro
     public Cidade? Cidade { get; set; }
 
     [Column("nrCEP")]
-    [MaxLength(10)]
+    [MaxLength(8)]
     public string? NrCEP { get; set; }
 
     [Column("dtNascimento")]
@@ -92,6 +94,7 @@ public class Funcionario : EntidadeComRegistro
     [Column("vlComissao")]
     public decimal? VlComissao { get; set; }
 
+    [MultiLinha]
     [Column("dsObservacao")]
     [MaxLength(500)]
     public string? DsObservacao { get; set; }

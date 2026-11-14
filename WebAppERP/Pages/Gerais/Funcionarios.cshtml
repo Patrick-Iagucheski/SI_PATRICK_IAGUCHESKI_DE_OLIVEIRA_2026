@@ -5,6 +5,8 @@
     ViewData["Title"] = "Funcionários";
     // Valores passados ao JavaScript vao com ponto decimal (o campo numerico nao aceita virgula).
     CultureInfo inv = CultureInfo.InvariantCulture;
+    // Texto para o onclick em JSON: aspas e quebras de linha nao quebram o JS.
+    string J(object? v) => System.Text.Json.JsonSerializer.Serialize(v ?? "");
 
 }
 
@@ -99,7 +101,7 @@
                                 <button class="btn btn-icon btn-outline-primary" title="Editar"
                                         data-bs-toggle="modal" data-bs-target="#modalFuncionario"
                                         data-registro="@Module.RegistroJson(f)"
-                                        onclick="editarFunc(@f.IdFuncionario,'@f.NmFuncionario.Replace("'", "\\'")','@f.NrCpf','@f.NrTelefone','@f.DsEmail','@f.DsEndereco?.Replace("'", "\\'")','@f.DsBairro?.Replace("'", "\\'")','@(f.IdCidade?.ToString() ?? "")','@f.NrCEP','@(f.DtNascimento?.ToString("yyyy-MM-dd") ?? "")','@f.DtAdmissao.ToString("yyyy-MM-dd")','@(f.DtDemissao?.ToString("yyyy-MM-dd") ?? "")','@f.IdCargo','@(f.VlSalario?.ToString("F2", inv) ?? "")','@(f.VlComissao?.ToString("F2", inv) ?? "")','@f.DsObservacao?.Replace("'", "\\'")','@f.FlAtivo','@f.NmApelido?.Replace("'", "\\'")','@f.NrRG','@f.NrNumero','@f.DsComplemento?.Replace("'", "\\'")','@f.DsSexo')">
+                                        onclick="editarFunc(@f.IdFuncionario, @J(f.NmFuncionario), @J(f.NrCpf), @J(f.NrTelefone), @J(f.DsEmail), @J(f.DsEndereco), @J(f.DsBairro), @J(f.IdCidade?.ToString()), @J(f.NrCEP), @J(f.DtNascimento?.ToString("yyyy-MM-dd")), @J(f.DtAdmissao.ToString("yyyy-MM-dd")), @J(f.DtDemissao?.ToString("yyyy-MM-dd")), @J(f.IdCargo.ToString()), @J(f.VlSalario?.ToString("F2", inv)), @J(f.VlComissao?.ToString("F2", inv)), @J(f.DsObservacao), @J(f.FlAtivo.ToString()), @J(f.NmApelido), @J(f.NrRG), @J(f.NrNumero), @J(f.DsComplemento), @J(f.DsSexo), @J(f.Cargo?.NmCargo))">
                                     <i class="bi bi-pencil"></i>
                                 </button>
                                 <form method="post" asp-page-handler="Excluir" class="d-inline" onsubmit="return confirm('Deseja realmente excluir este funcionário?')">

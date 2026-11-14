@@ -5,6 +5,8 @@
     ViewData["Title"] = "Serviços";
     // Valores passados ao JavaScript vao com ponto decimal (o campo numerico nao aceita virgula).
     CultureInfo inv = CultureInfo.InvariantCulture;
+    // Texto para o onclick em JSON: aspas e quebras de linha nao quebram o JS.
+    string J(object? v) => System.Text.Json.JsonSerializer.Serialize(v ?? "");
 }
 
 <div class="d-flex justify-content-between align-items-start mb-4">
@@ -92,7 +94,7 @@
                                 <button class="btn btn-icon btn-outline-primary" title="Editar"
                                         data-bs-toggle="modal" data-bs-target="#modalServico"
                                         data-registro="@Module.RegistroJson(s)"
-                                        onclick="editarServico(@s.IdServico,'@s.DsServico.Replace("'", "\\'")','@s.DsDescricao?.Replace("'", "\\'")','@s.VlServico.ToString("F2", inv)','@(s.NrDuracaoMin?.ToString() ?? "")','@(s.IdCategoriaServico?.ToString() ?? "")','@s.FlAtivo')">
+                                        onclick="editarServico(@s.IdServico, @J(s.DsServico), @J(s.DsDescricao), @J(s.VlServico.ToString("F2", inv)), @J(s.NrDuracaoMin?.ToString()), @J(s.IdCategoriaServico?.ToString()), @J(s.FlAtivo.ToString()), @J(s.CategoriaServico?.NmCategoria))">
                                     <i class="bi bi-pencil"></i>
                                 </button>
                                 <form method="post" asp-page-handler="Excluir" class="d-inline" onsubmit="return confirm('Deseja realmente excluir este serviço?')">

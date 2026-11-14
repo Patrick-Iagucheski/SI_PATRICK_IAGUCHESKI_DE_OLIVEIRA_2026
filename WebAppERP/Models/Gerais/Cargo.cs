@@ -13,11 +13,13 @@ public class Cargo : EntidadeComRegistro
     [Column("idCargo")]
     public int IdCargo { get; set; }
 
+    [Nome]
     [Column("nmCargo")]
     [Required(ErrorMessage = "O nome do cargo é obrigatório.")]
     [MaxLength(100)]
     public string NmCargo { get; set; } = string.Empty;
 
+    [MultiLinha]
     [Column("dsCargo")]
     [MaxLength(300)]
     public string? DsCargo { get; set; }

@@ -45,16 +45,18 @@ public class PaisBusiness
 
         if (nome.Length == 0)
             throw new ValidacaoException("Informe o nome do país.");
-        if (nome.Length > 100)
-            throw new ValidacaoException("O nome do país deve ter no máximo 100 caracteres.");
+        if (nome.Length > 60)
+            throw new ValidacaoException("O nome do país deve ter no máximo 60 caracteres.");
         if (sigla.Length == 0)
             throw new ValidacaoException("Informe a sigla do país.", "Exemplo: BR.");
-        if (sigla.Length > 5)
-            throw new ValidacaoException("A sigla do país deve ter no máximo 5 caracteres.");
-        if (ddi?.Length > 5)
-            throw new ValidacaoException("O DDI deve ter no máximo 5 números.");
-        if (moeda?.Length > 50)
-            throw new ValidacaoException("A moeda deve ter no máximo 50 caracteres.");
+        if (sigla.Length != 2 || !sigla.All(ch => ch is >= 'A' and <= 'Z'))
+            throw new ValidacaoException("A sigla do país deve ter 2 letras, sem acento.", "Exemplo: BR.");
+        if (!string.IsNullOrWhiteSpace(pais.NrDDI) && pais.NrDDI.Trim().TrimStart('+').Any(ch => !char.IsDigit(ch)))
+            throw new ValidacaoException("O DDI deve ter só números.", "Exemplo: 55.");
+        if (ddi?.Length > 4)
+            throw new ValidacaoException("O DDI deve ter no máximo 4 números.");
+        if (moeda?.Length > 30)
+            throw new ValidacaoException("A moeda deve ter no máximo 30 caracteres.");
 
         // Mesma sigla ou mesmo nome (sem diferenciar maiusculas nem acentos)
         var repetido = await _db.Paises

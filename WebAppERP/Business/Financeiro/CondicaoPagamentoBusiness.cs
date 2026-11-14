@@ -12,6 +12,10 @@ public class CondicaoPagamentoBusiness
 
     public CondicaoPagamentoBusiness(AppDbContext db) => _db = db;
 
+    // Prazo maximo de cada parcela (10 anos). Acima disso o vencimento nao faz
+    // sentido e, muito acima, nem cabe numa data (a venda caia com erro).
+    public const int DiasMaximos = 3650;
+
     // ============================================================
     // Consultas
     // ============================================================
@@ -75,6 +79,12 @@ public class CondicaoPagamentoBusiness
             throw new ValidacaoException("O percentual de cada parcela deve estar entre 0 e 100.");
         if (parcelas.Any(p => p.NrDiasVencimento < 0))
             throw new ValidacaoException("Os dias para vencimento não podem ser negativos.");
+        if (parcelas.Any(p => p.NrDiasVencimento > DiasMaximos))
+            throw new ValidacaoException($"Os dias para vencimento devem ser no máximo {DiasMaximos} (10 anos).");
+        for (var i = 1; i < parcelas.Count; i++)
+            if (parcelas[i].NrDiasVencimento <= parcelas[i - 1].NrDiasVencimento)
+                throw new ValidacaoException("Os dias das parcelas devem ser crescentes, sem repetir.",
+                                             "Exemplo: 30, 60, 90.");
 
         var soma = parcelas.Sum(p => p.VlPercentual);
         if (Math.Abs(soma - 100m) > 0.01m)
@@ -114,6 +124,21 @@ public class CondicaoPagamentoBusiness
                 .FirstOrDefaultAsync(c => c.IdCondicaoPagamento == condicao.IdCondicaoPagamento)
                 ?? throw new ValidacaoException("Condição de pagamento não encontrada.", "Ela pode ter sido excluída por outra pessoa.");
             _db.CondicoesPagamentoParcelas.RemoveRange(registro.Parcelas);
+        }
+
+        // Forma da parcela: precisa existir e estar ativa; a que a condicao ja
+        // usava fica valendo mesmo se a forma foi inativada depois.
+        var jaUsadas = registro.Parcelas.Select(p => p.IdFormaPagamento).ToHashSet();
+        var idsFormas = ordenadas.Select(p => p.IdFormaPagamento).Distinct().ToList();
+        var formas = await _db.FormasPagamento.Where(f => idsFormas.Contains(f.IdFormaPagamento))
+                                              .ToDictionaryAsync(f => f.IdFormaPagamento);
+        foreach (var id in idsFormas)
+        {
+            if (!formas.TryGetValue(id, out var forma))
+                throw new ValidacaoException("Forma de pagamento inválida em uma das parcelas.", "Selecione a forma novamente.");
+            if (!forma.FlAtivo && !jaUsadas.Contains(id))
+                throw new ValidacaoException($"A forma de pagamento \"{forma.DsFormaPagamento}\" está inativa.",
+                                             "Escolha uma forma ativa ou reative o cadastro.");
         }
 
         registro.DsCondicao = nome;

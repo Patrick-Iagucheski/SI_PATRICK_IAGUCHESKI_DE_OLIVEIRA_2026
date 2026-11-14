@@ -15,6 +15,7 @@ public class CategoriaServico : EntidadeComRegistro
     [Column("idCategoriaServico")]
     public int IdCategoriaServico { get; set; }
 
+    [Nome]
     [Column("nmCategoria")]
     [Required, MaxLength(100)]
     public string NmCategoria { get; set; } = string.Empty;

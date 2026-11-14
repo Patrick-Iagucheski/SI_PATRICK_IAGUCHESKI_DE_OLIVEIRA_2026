@@ -81,6 +81,7 @@ public class ContaAPagarBusiness
     // Inclui (IdContaPagar = 0) ou altera o titulo e devolve o registro gravado.
     public async Task<ContaAPagar> Salvar(ContaAPagar conta)
     {
+        await using var tx = await _db.Database.BeginTransactionAsync();
         var status = (conta.DsStatus ?? ContaAPagar.PENDENTE).Trim().ToUpper();
         if (!StatusValidos.Contains(status)) status = ContaAPagar.PENDENTE;
 
@@ -98,8 +99,28 @@ public class ContaAPagarBusiness
             throw new ValidacaoException("Informe o valor da conta.");
         if (conta.VlPago < 0)
             throw new ValidacaoException("O valor pago não pode ser negativo.");
-        if (conta.DtEmissao != null && conta.DtVencimento != null && conta.DtVencimento < conta.DtEmissao)
-            throw new ValidacaoException("O vencimento não pode ser anterior à emissão.");
+        if (conta.VlPago > conta.VlValor)
+            throw new ValidacaoException("O valor pago não pode ser maior que o valor da conta.");
+
+        // Situacao e pagamento andam juntos: Pago tem valor e data (sem informar,
+        // o valor da conta e hoje); Pendente nao tem pagamento (voltar para
+        // Pendente e o estorno do pagamento).
+        // Pago e o valor total: pagamento parcial nao e registrado (a conta
+        // continua Pendente ate pagar tudo).
+        if (status == ContaAPagar.PAGO)
+        {
+            if (conta.VlPago == 0) conta.VlPago = conta.VlValor;
+            if (conta.VlPago != conta.VlValor)
+                throw new ValidacaoException($"Para marcar como Pago, o valor pago deve ser o total da conta (R$ {conta.VlValor:N2}).",
+                                             "Pagamento parcial não é registrado: deixe a conta Pendente até pagar o total.");
+            conta.DtPagamento ??= DateOnly.FromDateTime(DateTime.Today);
+        }
+        else if (status == ContaAPagar.PENDENTE)
+        {
+            conta.VlPago = 0;
+            conta.DtPagamento = null;
+        }
+        Module.ValidarDatasTitulo(conta.DtEmissao, conta.DtVencimento, conta.DtPagamento, "pagamento");
 
         ContaAPagar registro;
         if (conta.IdContaPagar == 0)
@@ -109,6 +130,9 @@ public class ContaAPagarBusiness
         }
         else
         {
+            // Linha travada ate gravar: baixa ou cancelamento ao mesmo tempo esperam.
+            await _db.Database.ExecuteSqlInterpolatedAsync(
+                $"SELECT 1 FROM dbo.tbFinContasAPagar WITH (UPDLOCK, ROWLOCK) WHERE idContaPagar = {conta.IdContaPagar}");
             registro = await _db.ContasAPagar.FindAsync(conta.IdContaPagar)
                 ?? throw new ValidacaoException("Conta a pagar não encontrada.", "Ela pode ter sido excluída por outra pessoa.");
 
@@ -132,6 +156,16 @@ public class ContaAPagarBusiness
             }
         }
 
+        // Fornecedor e forma precisam estar ativos no titulo novo ou quando sao
+        // trocados; o que o titulo ja tinha fica, mesmo inativado depois (o
+        // fornecedor inativo ainda pode ter parcela a pagar).
+        if (conta.IdFornecedor != registro.IdFornecedor
+            && !await _db.Fornecedores.AnyAsync(f => f.IdFornecedor == conta.IdFornecedor && f.FlAtivo))
+            throw new ValidacaoException("O fornecedor selecionado está inativo.", "Escolha um fornecedor ativo ou reative o cadastro.");
+        if (conta.IdFormaPagamento is int idFormaNova && conta.IdFormaPagamento != registro.IdFormaPagamento
+            && !await _db.FormasPagamento.AnyAsync(f => f.IdFormaPagamento == idFormaNova && f.FlAtivo))
+            throw new ValidacaoException("A forma de pagamento selecionada está inativa.", "Escolha uma forma ativa ou reative o cadastro.");
+
         registro.DsConta = descricao;
         registro.NrDocumento = documento;
         registro.IdFornecedor = conta.IdFornecedor;
@@ -145,12 +179,17 @@ public class ContaAPagarBusiness
         registro.DsObservacao = observacao;
 
         await _db.SaveChangesAsync();
+        await tx.CommitAsync();
         return registro;
     }
 
     // Baixa financeira: marca como pago hoje e, sem valor pago informado, usa o valor do titulo.
     public async Task Baixar(int id)
     {
+        // Linha travada ate gravar: cancelamento da compra/venda ao mesmo tempo espera.
+        await using var tx = await _db.Database.BeginTransactionAsync();
+        await _db.Database.ExecuteSqlInterpolatedAsync(
+            $"SELECT 1 FROM dbo.tbFinContasAPagar WITH (UPDLOCK, ROWLOCK) WHERE idContaPagar = {id}");
         var conta = await _db.ContasAPagar.FindAsync(id)
             ?? throw new ValidacaoException("Conta a pagar não encontrada.");
         if (conta.DsStatus == ContaAPagar.CANCELADO || (conta.OriginadoDeCompra && await CompraCancelada(conta)))
@@ -162,6 +201,7 @@ public class ContaAPagarBusiness
         conta.DtPagamento = DateOnly.FromDateTime(DateTime.Today);
         if (conta.VlPago == 0) conta.VlPago = conta.VlValor;
         await _db.SaveChangesAsync();
+        await tx.CommitAsync();
     }
 
     // Titulo gerado por uma compra que ja foi cancelada.

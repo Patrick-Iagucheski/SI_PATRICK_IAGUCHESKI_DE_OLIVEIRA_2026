@@ -7,7 +7,7 @@ namespace WebAppERP.Models.Vendas;
 public class Venda : EntidadeComRegistro
 {
     // Situacoes da venda (TpStatus)
-    public const string RASCUNHO   = "RASCUNHO";
+    public const string ABERTA     = "ABERTA";
     public const string FINALIZADA = "FINALIZADA";
     public const string CANCELADA  = "CANCELADA";
 
@@ -47,8 +47,9 @@ public class Venda : EntidadeComRegistro
 
     [Column("tpStatus")]
     [Required, MaxLength(20)]
-    public string TpStatus { get; set; } = RASCUNHO;
+    public string TpStatus { get; set; } = ABERTA;
 
+    [MultiLinha]
     [Column("dsObservacao")]
     [MaxLength(500)]
     public string? DsObservacao { get; set; }

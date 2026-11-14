@@ -125,9 +125,12 @@ public class TransportadorBusiness
 
         t.NrCpf = Module.SomenteNumeros(t.NrCpf);
         t.NrCNPJ = Module.SomenteNumeros(t.NrCNPJ);
-        t.NrCEP = Module.SomenteNumeros(t.NrCEP);
-        t.NrTelefoneFixo = Module.SomenteNumeros(t.NrTelefoneFixo);
-        t.NrCelular = Module.SomenteNumeros(t.NrCelular);
+        // CEP e telefones brasileiros conferidos (8 digitos; DDD + 10 ou 11).
+        // Estrangeiro/outro pode ter outro formato: so tira a mascara.
+        var brasileiro = tipo is "F" or "J";
+        t.NrCEP = brasileiro ? Module.CepValido(t.NrCEP) : Module.SomenteNumeros(t.NrCEP);
+        t.NrTelefoneFixo = brasileiro ? Module.TelefoneValido(t.NrTelefoneFixo, "Telefone") : Module.SomenteNumeros(t.NrTelefoneFixo);
+        t.NrCelular = brasileiro ? Module.TelefoneValido(t.NrCelular, "Celular") : Module.SomenteNumeros(t.NrCelular);
         t.NrRG = Module.SomenteNumeros(t.NrRG);
 
         // PJ (J)  -> CNPJ, Nome Fantasia, Inscricao Estadual, Inscricao Municipal
@@ -157,13 +160,13 @@ public class TransportadorBusiness
         t.NrInscEstadual = Module.Truncar(t.NrInscEstadual, 13);
         t.NrInscMunicipal = Module.Truncar(t.NrInscMunicipal, 15);
         t.NrRG = Module.Truncar(t.NrRG, 9);
-        t.DsEmail = Module.Truncar(t.DsEmail, 150);
+        t.DsEmail = Module.Truncar(t.DsEmail, 100);
         t.DsObservacao = Module.Truncar(t.DsObservacao, 500);
         t.NrCEP = Module.Truncar(t.NrCEP, 8);
         t.DsEndereco = Module.Truncar(t.DsEndereco, 100);
         t.NrNumero = Module.Truncar(t.NrNumero, 10);
         t.DsComplemento = Module.Truncar(t.DsComplemento, 100);
-        t.DsBairro = Module.Truncar(t.DsBairro, 100);
+        t.DsBairro = Module.Truncar(t.DsBairro, 60);
         t.NrTelefoneFixo = Module.Truncar(t.NrTelefoneFixo, 11);
         t.NrCelular = Module.Truncar(t.NrCelular, 11);
         t.DsSite = Module.Truncar(t.DsSite?.Trim(), 150);
@@ -173,6 +176,7 @@ public class TransportadorBusiness
     {
         if (string.IsNullOrWhiteSpace(t.DsRazaoSocial))
             throw new ValidacaoException("Informe a Razão Social / Nome da transportadora.");
+        Module.ValidarNascimento(t.DtNascimento);
 
         // Documento do tipo de pessoa obrigatorio: CPF na fisica, CNPJ na juridica.
         if (t.TpPessoa == "F")

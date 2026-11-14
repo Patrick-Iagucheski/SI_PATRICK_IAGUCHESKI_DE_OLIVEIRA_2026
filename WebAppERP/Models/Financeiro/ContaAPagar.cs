@@ -64,6 +64,7 @@ public class ContaAPagar : EntidadeComRegistro
     // sai da lista padrao da tela
     // (Database/Migracoes/1794069000000_Alter_Table_tbFinContasAPagar_Remove_flAtivo.sql).
 
+    [MultiLinha]
     [Column("dsObservacao")]
     [MaxLength(500)]
     public string? DsObservacao { get; set; }

@@ -119,7 +119,28 @@ function travarCamposConta(c) {
         : 'Título gerado pela compra Nº ' + escaparHtml(c.nota) + ': fornecedor, valor, datas e descrição só mudam pela própria compra.');
 }
 
+// Cadastro inativado depois de lancado o titulo: a lista do formulario so
+// tem ativos, entao o vinculo que o titulo ja tem entra como opcao, para nao
+// sumir nem se perder ao salvar. O servidor aceita o vinculo que o titulo ja
+// tinha e recusa escolher um inativo novo.
+function removerOpcoesInativas(id) {
+    document.querySelectorAll('#' + id + ' option[data-inativo]').forEach(o => o.remove());
+}
+
+function manterOpcaoInativa(id, valor, texto) {
+    removerOpcoesInativas(id);
+    const sel = document.getElementById(id);
+    if (valor != null && valor !== '' && !sel.querySelector('option[value="' + valor + '"]')) {
+        const opt = new Option((texto || 'Cadastro') + ' (inativo)', valor);
+        opt.dataset.inativo = '1';
+        sel.add(opt);
+    }
+    sel.value = valor ?? '';
+}
+
 function limparFormConta() {
+    removerOpcoesInativas('contaIdFornecedor');
+    removerOpcoesInativas('contaIdFormaPagamento');
     document.getElementById('contaTitulo').innerHTML = '<i class="bi bi-cash-stack me-2"></i>Nova Conta a Pagar';
     document.getElementById('contaIdConta').value = '0';
     document.getElementById('contaCodigoDisplay').value = '';
@@ -144,8 +165,8 @@ function editarConta(c) {
     document.getElementById('contaCodigoDisplay').value = c.id;
     document.getElementById('contaDsConta').value = c.conta || '';
     document.getElementById('contaNrDocumento').value = c.documento || '';
-    document.getElementById('contaIdFornecedor').value = c.idFornecedor;
-    document.getElementById('contaIdFormaPagamento').value = c.idForma ?? '';
+    manterOpcaoInativa('contaIdFornecedor', c.idFornecedor, c.fornecedorNome);
+    manterOpcaoInativa('contaIdFormaPagamento', c.idForma, c.formaNome);
     document.getElementById('contaDtEmissao').value = c.emissao || '';
     document.getElementById('contaDtVencimento').value = c.venc || '';
     document.getElementById('contaDtPagamento').value = c.pgto || '';
@@ -156,3 +177,16 @@ function editarConta(c) {
     travarCamposConta(c);
 }
 
+// Situacao e pagamento andam juntos (mesma regra do servidor): voltar para
+// Pendente limpa o valor e a data; marcar como Pago preenche o valor
+// total da conta (pagamento parcial nao e aceito) e a data de hoje quando vazia.
+document.addEventListener('DOMContentLoaded', () => {
+    document.getElementById('contaDsStatus').addEventListener('change', e => {
+        const valor = document.getElementById('contaVlPago'), data = document.getElementById('contaDtPagamento');
+        if (e.target.value === 'PENDENTE') { valor.value = '0'; data.value = ''; }
+        else if (e.target.value === 'PAGO') {
+            valor.value = document.getElementById('contaVlValor').value;   // pago e o total (sem parcial)
+            if (!data.value) data.value = hojeIso();
+        }
+    });
+});

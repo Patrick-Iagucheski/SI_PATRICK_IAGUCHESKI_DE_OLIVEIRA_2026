@@ -2,7 +2,7 @@
     var curr = ViewContext.RouteData.Values["page"]?.ToString() ?? "";
     string[] gCadastros = { "/Gerais/Clientes", "/Gerais/Funcionarios", "/Gerais/Cargos", "/Gerais/Servicos", "/Gerais/CategoriasServico", "/Gerais/Fornecedores", "/Gerais/Transportadores" };
     string[] gLocalidades = { "/Gerais/Paises", "/Gerais/Estados", "/Gerais/Cidades" };
-    string[] gEstoque = { "/Estoque/Produtos", "/Estoque/Marcas", "/Estoque/Categorias", "/Estoque/UnidadesMedida" };
+    string[] gEstoque = { "/Estoque/Produtos", "/Estoque/MovimentacaoEstoque", "/Estoque/BalanceteEstoque", "/Estoque/Marcas", "/Estoque/Categorias", "/Estoque/UnidadesMedida" };
     string[] gFinanceiro = { "/Financeiro/FormasPagamento", "/Financeiro/CondicoesPagamento", "/Financeiro/ContasAPagar", "/Financeiro/ContasAReceber" };
     string[] gOperacional = { "/Operacional/Agendamentos", "/Vendas/Vendas", "/Vendas/Venda", "/Compras/Compras", "/Compras/Compra" };
     string[] gVendas = { "/Vendas/Vendas", "/Vendas/Venda" };
@@ -17,7 +17,8 @@
 @inject Microsoft.AspNetCore.Antiforgery.IAntiforgery Antiforgery
 <!DOCTYPE html>
 @* Tela de digitacao (ViewData["ManterAoVoltar"]): nao recarrega sozinha ao voltar para a aba (site.js). *@
-<html lang="pt-BR" data-empresa="@empresa.Nome" data-manter-ao-voltar="@(ViewData["ManterAoVoltar"] is true ? "1" : "0")">
+@* data-raiz: pasta do site ("/" no Visual Studio, "/WebERP/" no IIS), para o JS montar enderecos (enderecoNoSite). *@
+<html lang="pt-BR" data-empresa="@empresa.Nome" data-raiz="@Url.Content("~/")" data-manter-ao-voltar="@(ViewData["ManterAoVoltar"] is true ? "1" : "0")">
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -140,6 +141,16 @@
                         <li class="sidebar-item">
                             <a class="sidebar-link @Active("/Estoque/Produtos")" asp-page="/Estoque/Produtos">
                                 <i class="bi bi-box-seam"></i><span>Produtos</span>
+                            </a>
+                        </li>
+                        <li class="sidebar-item">
+                            <a class="sidebar-link @Active("/Estoque/MovimentacaoEstoque")" asp-page="/Estoque/MovimentacaoEstoque">
+                                <i class="bi bi-arrow-left-right"></i><span>Movimentação de Estoque</span>
+                            </a>
+                        </li>
+                        <li class="sidebar-item">
+                            <a class="sidebar-link @Active("/Estoque/BalanceteEstoque")" asp-page="/Estoque/BalanceteEstoque">
+                                <i class="bi bi-clipboard-data"></i><span>Balancete de Estoque</span>
                             </a>
                         </li>
                         <li class="sidebar-item">

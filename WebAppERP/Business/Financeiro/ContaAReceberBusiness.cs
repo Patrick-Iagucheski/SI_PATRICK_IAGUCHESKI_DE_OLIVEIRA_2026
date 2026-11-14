@@ -98,6 +98,7 @@ public class ContaAReceberBusiness
     // Inclui (IdContaReceber = 0) ou altera o titulo e devolve o registro gravado.
     public async Task<ContaAReceber> Salvar(ContaAReceber conta)
     {
+        await using var tx = await _db.Database.BeginTransactionAsync();
         var status = (conta.DsStatus ?? ContaAReceber.PENDENTE).Trim().ToUpper();
         if (!StatusValidos.Contains(status)) status = ContaAReceber.PENDENTE;
 
@@ -113,8 +114,28 @@ public class ContaAReceberBusiness
             throw new ValidacaoException("Informe o valor da conta.");
         if (conta.VlRecebido < 0)
             throw new ValidacaoException("O valor recebido não pode ser negativo.");
-        if (conta.DtEmissao != null && conta.DtVencimento != null && conta.DtVencimento < conta.DtEmissao)
-            throw new ValidacaoException("O vencimento não pode ser anterior à emissão.");
+        if (conta.VlRecebido > conta.VlValor)
+            throw new ValidacaoException("O valor recebido não pode ser maior que o valor da conta.");
+
+        // Situacao e recebimento andam juntos: Recebido tem valor e data (sem
+        // informar, o valor da conta e hoje); Pendente nao tem recebimento (voltar
+        // para Pendente e o estorno do recebimento).
+        // Recebido e o valor total: recebimento parcial nao e registrado (a conta
+        // continua Pendente ate receber tudo).
+        if (status == ContaAReceber.RECEBIDO)
+        {
+            if (conta.VlRecebido == 0) conta.VlRecebido = conta.VlValor;
+            if (conta.VlRecebido != conta.VlValor)
+                throw new ValidacaoException($"Para marcar como Recebido, o valor recebido deve ser o total da conta (R$ {conta.VlValor:N2}).",
+                                             "Recebimento parcial não é registrado: deixe a conta Pendente até receber o total.");
+            conta.DtRecebimento ??= DateOnly.FromDateTime(DateTime.Today);
+        }
+        else if (status == ContaAReceber.PENDENTE)
+        {
+            conta.VlRecebido = 0;
+            conta.DtRecebimento = null;
+        }
+        Module.ValidarDatasTitulo(conta.DtEmissao, conta.DtVencimento, conta.DtRecebimento, "recebimento");
 
         ContaAReceber registro;
         if (conta.IdContaReceber == 0)
@@ -125,6 +146,9 @@ public class ContaAReceberBusiness
         }
         else
         {
+            // Linha travada ate gravar: baixa ou cancelamento ao mesmo tempo esperam.
+            await _db.Database.ExecuteSqlInterpolatedAsync(
+                $"SELECT 1 FROM dbo.tbFinContasAReceber WITH (UPDLOCK, ROWLOCK) WHERE idContaReceber = {conta.IdContaReceber}");
             registro = await _db.ContasAReceber.FindAsync(conta.IdContaReceber)
                 ?? throw new ValidacaoException("Conta a receber não encontrada.", "Ela pode ter sido excluída por outra pessoa.");
 
@@ -133,6 +157,16 @@ public class ContaAReceberBusiness
             else
                 await ValidarCliente(conta.IdCliente);
         }
+
+        // Cliente e forma precisam estar ativos no titulo novo ou quando sao
+        // trocados; o que o titulo ja tinha fica, mesmo inativado depois (o
+        // cliente inativo ainda pode ter parcela a receber).
+        if (conta.IdCliente != registro.IdCliente
+            && !await _db.Clientes.AnyAsync(c => c.IdCliente == conta.IdCliente && c.FlAtivo))
+            throw new ValidacaoException("O cliente selecionado está inativo.", "Escolha um cliente ativo ou reative o cadastro.");
+        if (conta.IdFormaPagamento is int idFormaNova && conta.IdFormaPagamento != registro.IdFormaPagamento
+            && !await _db.FormasPagamento.AnyAsync(f => f.IdFormaPagamento == idFormaNova && f.FlAtivo))
+            throw new ValidacaoException("A forma de pagamento selecionada está inativa.", "Escolha uma forma ativa ou reative o cadastro.");
 
         registro.DsConta = descricao;
         registro.NrDocumento = documento;
@@ -147,6 +181,7 @@ public class ContaAReceberBusiness
         registro.DsObservacao = observacao;
 
         await _db.SaveChangesAsync();
+        await tx.CommitAsync();
         return registro;
     }
 
@@ -170,7 +205,7 @@ public class ContaAReceberBusiness
         if (registro.IdCliente != conta.IdCliente || registro.VlValor != conta.VlValor
             || registro.DtEmissao != conta.DtEmissao || registro.DtVencimento != conta.DtVencimento
             || registro.DsConta != descricao || registro.NrDocumento != documento)
-            throw new ValidacaoException(titulo, "Cliente, valor, datas e descrição só podem ser alterados pela própria venda.");
+            throw new ValidacaoException(titulo, "Cliente, valor, datas e descrição não podem ser alterados. Para corrigir, cancele a venda e lance uma nova.");
         if (status == ContaAReceber.CANCELADO && registro.DsStatus != ContaAReceber.CANCELADO)
             throw new ValidacaoException(titulo, "Para cancelá-lo, cancele a venda.");
     }
@@ -178,6 +213,10 @@ public class ContaAReceberBusiness
     // Baixa: marca como recebido hoje e, sem valor informado, usa o valor do titulo.
     public async Task Baixar(int id)
     {
+        // Linha travada ate gravar: cancelamento da compra/venda ao mesmo tempo espera.
+        await using var tx = await _db.Database.BeginTransactionAsync();
+        await _db.Database.ExecuteSqlInterpolatedAsync(
+            $"SELECT 1 FROM dbo.tbFinContasAReceber WITH (UPDLOCK, ROWLOCK) WHERE idContaReceber = {id}");
         var conta = await _db.ContasAReceber.FindAsync(id)
             ?? throw new ValidacaoException("Conta a receber não encontrada.");
         if (conta.DsStatus == ContaAReceber.CANCELADO || (conta.OriginadoDeVenda && await VendaCancelada(conta)))
@@ -189,6 +228,7 @@ public class ContaAReceberBusiness
         conta.DtRecebimento = DateOnly.FromDateTime(DateTime.Today);
         if (conta.VlRecebido == 0) conta.VlRecebido = conta.VlValor;
         await _db.SaveChangesAsync();
+        await tx.CommitAsync();
     }
 
     public async Task Excluir(int id)
@@ -203,7 +243,7 @@ public class ContaAReceberBusiness
                                          "O título já está cancelado e não pode ser excluído: ele fica como histórico da venda.");
         if (conta.OriginadoDeVenda)
             throw new ValidacaoException($"Este título foi gerado pela venda Nº {conta.IdVenda}.",
-                                         "Para retirá-lo, altere ou cancele a venda.");
+                                         "Para retirá-lo, cancele a venda.");
 
         _db.ContasAReceber.Remove(conta);
         await _db.SaveChangesAsync();
@@ -255,31 +295,23 @@ public class ContaAReceberBusiness
     private Task<List<ContaAReceber>> TitulosDaVenda(int idVenda) =>
         _db.ContasAReceber.Where(c => c.IdVenda == idVenda).ToListAsync();
 
-    public Task<bool> VendaTemTitulos(int idVenda) =>
-        _db.ContasAReceber.AnyAsync(c => c.IdVenda == idVenda);
-
-    // Parcela a prazo ja recebida impede alterar ou cancelar a venda. A parcela
-    // a vista nao conta: ela nasce recebida junto com a venda.
-    private static void ValidarSemRecebimento(List<ContaAReceber> titulos, string acao)
-    {
-        if (titulos.Any(c => !c.RecebidoNaVenda && (c.DsStatus == ContaAReceber.RECEBIDO || c.VlRecebido > 0)))
-            throw new ValidacaoException($"Não é possível {acao}: existe parcela já recebida no Contas a Receber.",
-                                         "Estorne o recebimento primeiro.");
-    }
-
-    // Venda finalizada sendo alterada: os titulos sao gerados de novo.
-    public async Task RemoverDaVenda(int idVenda)
-    {
-        var titulos = await TitulosDaVenda(idVenda);
-        ValidarSemRecebimento(titulos, "alterar a venda");
-        _db.ContasAReceber.RemoveRange(titulos);
-    }
-
-    // Titulos sao cancelados (nao excluidos) para preservar o historico.
+    // Titulos sao cancelados (nao excluidos) para preservar o historico. Parcela
+    // a prazo ja recebida impede o cancelamento; a parcela a vista nao conta:
+    // ela nasce recebida junto com a venda.
     public async Task CancelarDaVenda(int idVenda)
     {
+        // Titulos travados ate o fim do cancelamento (roda na transacao da venda).
+        // A trava vai pela chave primaria, a mesma que a baixa trava: pelo
+        // idVenda o banco travaria so a linha do indice e as duas nao se veriam.
+        var ids = await _db.ContasAReceber.Where(c => c.IdVenda == idVenda)
+                                          .Select(c => c.IdContaReceber).ToListAsync();
+        foreach (var id in ids)
+            await _db.Database.ExecuteSqlInterpolatedAsync(
+                $"SELECT 1 FROM dbo.tbFinContasAReceber WITH (UPDLOCK, ROWLOCK) WHERE idContaReceber = {id}");
         var titulos = await TitulosDaVenda(idVenda);
-        ValidarSemRecebimento(titulos, "cancelar a venda");
+        if (titulos.Any(c => !c.RecebidoNaVenda && (c.DsStatus == ContaAReceber.RECEBIDO || c.VlRecebido > 0)))
+            throw new ValidacaoException("Não é possível cancelar a venda: existe parcela já recebida no Contas a Receber.",
+                                         "Estorne o recebimento primeiro.");
         foreach (var titulo in titulos)
             titulo.DsStatus = ContaAReceber.CANCELADO;
     }

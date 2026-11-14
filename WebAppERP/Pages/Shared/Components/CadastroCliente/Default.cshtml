@@ -46,7 +46,7 @@
                         <div class="w-100 m-0 d-none" id="cliQuebraNome"></div>
                         <div class="col-md-6">
                             <label class="form-label" id="cliLblNome">Nome Completo *</label>
-                            <input type="text" class="form-control" asp-for="ClienteForm.NmCliente" id="cliNmCliente" maxlength="200" required />
+                            <input type="text" class="form-control" asp-for="ClienteForm.NmCliente" id="cliNmCliente" maxlength="100" required />
                         </div>
 
                         <div class="col-md-6 d-none" id="cliWrapFantasia">
@@ -88,7 +88,7 @@
                         </div>
                         <div class="col-md-3" id="cliWrapNascimento">
                             <label class="form-label">Data de Nascimento</label>
-                            <input type="date" class="form-control" asp-for="ClienteForm.DtNascimento" id="cliDtNascimento" />
+                            <input type="date" class="form-control" asp-for="ClienteForm.DtNascimento" id="cliDtNascimento" min="1900-01-01" max="@DateTime.Today.ToString("yyyy-MM-dd")" />
                         </div>
                     </div>
 
@@ -101,7 +101,7 @@
                         </div>
                         <div class="col-md-7">
                             <label class="form-label">Logradouro</label>
-                            <input type="text" class="form-control" asp-for="ClienteForm.DsEndereco" id="cliDsEndereco" maxlength="200" />
+                            <input type="text" class="form-control" asp-for="ClienteForm.DsEndereco" id="cliDsEndereco" maxlength="100" />
                         </div>
                         <div class="col-md-2">
                             <label class="form-label">Número</label>
@@ -113,7 +113,7 @@
                         </div>
                         <div class="col-md-3">
                             <label class="form-label">Bairro</label>
-                            <input type="text" class="form-control" asp-for="ClienteForm.DsBairro" id="cliDsBairro" maxlength="100" />
+                            <input type="text" class="form-control" asp-for="ClienteForm.DsBairro" id="cliDsBairro" maxlength="60" />
                         </div>
                         <div class="col-md-5">
                             <label class="form-label">Cidade</label>
@@ -134,7 +134,7 @@
                         </div>
                         <div class="col-md-3">
                             <label class="form-label">E-mail</label>
-                            <input type="email" class="form-control" asp-for="ClienteForm.DsEmail" id="cliDsEmail" maxlength="150" />
+                            <input type="email" class="form-control" asp-for="ClienteForm.DsEmail" id="cliDsEmail" maxlength="100" />
                         </div>
                         <div class="col-md-3">
                             <label class="form-label">Site</label>
@@ -149,7 +149,7 @@
                             <label class="form-label">Condição de Pagamento</label>
                             <select class="form-select" asp-for="ClienteForm.IdCondicaoPagamento" id="cliIdCondicaoPagamento"
                                     data-pesquisa="abrirPesquisaCondicao(opcoesDoSelect('cliIdCondicaoPagamento'))" data-titulo-pesquisa="Pesquisar condição de pagamento">
-                                <option value="">Clique no + para pesquisar a condição</option>
+                                <option value="">Digite para buscar a condição</option>
                                 @foreach (var condicao in Model.Condicoes)
                                 {
                                     <option value="@condicao.IdCondicaoPagamento">@condicao.DsCondicao</option>

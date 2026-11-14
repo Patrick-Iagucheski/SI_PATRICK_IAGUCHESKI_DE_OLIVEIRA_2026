@@ -123,8 +123,8 @@
                     <label class="form-label">Fornecedor *</label>
                     @* Campo de selecao com lupa (module.js): o nome do fornecedor, escolhido pela pesquisa. *@
                     <select class="form-select" asp-for="IdFornecedor" id="IdFornecedor" disabled="@chaveTravada"
-                            data-pesquisa="abrirBuscaFornecedor()" data-titulo-pesquisa="Pesquisar fornecedor">
-                        <option value="">Clique no + para pesquisar o fornecedor</option>
+                            data-pesquisa="abrirBuscaFornecedor()" data-autocomplete="autocompleteFornecedor()" data-titulo-pesquisa="Pesquisar fornecedor">
+                        <option value="">Digite para buscar o fornecedor</option>
                         @if (Model.IdFornecedor > 0)
                         {
                             <option value="@Model.IdFornecedor">@(Model.Vm.Compra.Fornecedor?.DsRazaoSocial ?? Model.IdFornecedor.ToString())</option>
@@ -173,7 +173,7 @@
                         <div class="col-12">
                             <label class="form-label">Transportadora</label>
                             <select class="form-select" asp-for="IdTransportador" id="IdTransportador" disabled="@ro"
-                                    data-pesquisa="abrirBuscaTransportador()" data-titulo-pesquisa="Pesquisar transportadora">
+                                    data-pesquisa="abrirBuscaTransportador()" data-autocomplete="autocompleteTransportador()" data-titulo-pesquisa="Pesquisar transportadora">
                                 <option value="">Opcional - clique no + para pesquisar</option>
                                 @if (Model.IdTransportador is int idTr)
                                 {
@@ -199,8 +199,8 @@
                     <div class="col-md-5 col-xxl-4">
                         <label class="form-label">Produto</label>
                         <select class="form-select" id="itCodigo"
-                                data-pesquisa="abrirBuscaItem()" data-titulo-pesquisa="Pesquisar produto">
-                            <option value="">Clique no + para pesquisar</option>
+                                data-pesquisa="abrirBuscaItem()" data-autocomplete="autocompleteItem()" data-titulo-pesquisa="Pesquisar produto">
+                            <option value="">Digite para buscar o produto</option>
                         </select>
                     </div>
                     <div class="col-md-1">

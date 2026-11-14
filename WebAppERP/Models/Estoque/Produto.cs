@@ -13,8 +13,9 @@ public class Produto : EntidadeComRegistro
     public int IdProduto { get; set; }
 
     // Nome / descricao curta do produto (ex: "Pomada modeladora")
+    [Nome]
     [Column("dsProduto")]
-    [Required, MaxLength(300)]
+    [Required, MaxLength(100)]
     public string DsProduto { get; set; } = string.Empty;
 
     // Marca: vinculo com o cadastro de Marcas (tbEstMarcas).
@@ -56,8 +57,9 @@ public class Produto : EntidadeComRegistro
     [Column("vlDesconto", TypeName = "decimal(12,2)")]
     public decimal? VlDesconto { get; set; }
 
-    // Saldo em estoque (usado tambem pela baixa de estoque nas Vendas)
-    [Column("qtSaldo", TypeName = "decimal(12,2)")]
+    // Saldo em estoque (usado tambem pela baixa de estoque nas Vendas). 4 casas,
+    // como a coluna e as quantidades dos itens e da movimentacao.
+    [Column("qtSaldo", TypeName = "decimal(12,4)")]
     public decimal? QtSaldo { get; set; }
 
     // Caminho relativo da imagem salva em wwwroot (ex: /uploads/xxx.png)
@@ -67,6 +69,7 @@ public class Produto : EntidadeComRegistro
     public string? DsImagem { get; set; }
 
     // Descricao longa / observacao do produto
+    [MultiLinha]
     [Column("dsDescricao")]
     [MaxLength(500)]
     public string? DsDescricao { get; set; }

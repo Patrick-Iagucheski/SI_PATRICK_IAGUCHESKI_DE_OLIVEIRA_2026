@@ -22,9 +22,6 @@ public class ProdutosModel : PaginaBase
 
     public List<Produto> Produtos { get; set; } = [];
 
-    // Produtos com entrada por compra finalizada (mostram custo e estoque).
-    public HashSet<int> ComEntrada { get; set; } = [];
-
     // Marcas e categorias do modal sao carregadas pelo proprio componente
     // (ViewComponents/CadastroProdutoViewComponent).
     [BindProperty]
@@ -38,7 +35,6 @@ public class ProdutosModel : PaginaBase
     {
         // Por padrao a listagem mostra apenas ativos (checkbox de inativos desmarcada).
         Produtos = await _produto.Listar();
-        ComEntrada = await _produto.IdsComEntrada();
     }
 
     public Task<IActionResult> OnPost() =>
@@ -128,13 +124,12 @@ public class ProdutosModel : PaginaBase
     public async Task<IActionResult> OnGetBuscarProdutos(int? id, string? termo, bool incluirInativos = false)
     {
         var lista = await _produto.Buscar(id, termo, incluirInativos);
-        var comEntrada = await _produto.IdsComEntrada();
-        return new JsonResult(lista.Select(p => Registro(p, comEntrada.Contains(p.IdProduto))));
+        return new JsonResult(lista.Select(Registro));
     }
 
     // Produto no formato que o componente usa para editar (editarProduto) e a
-    // pesquisa mostra. temEntrada: ja entrou por compra (mostra custo e estoque).
-    public static object Registro(Produto p, bool temEntrada) => new
+    // pesquisa mostra.
+    public static object Registro(Produto p) => new
     {
         id = p.IdProduto,
         registro = Module.Registro(p),
@@ -150,7 +145,6 @@ public class ProdutosModel : PaginaBase
         venda = p.VlVenda,
         comissao = p.PcComissao,
         estoque = p.QtSaldo,
-        temEntrada,
         descricao = p.DsDescricao,
         imagem = p.DsImagem,
         ativo = p.FlAtivo

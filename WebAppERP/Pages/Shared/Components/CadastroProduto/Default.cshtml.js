@@ -151,16 +151,13 @@ function limparFormProduto() {
     esconderImagem();
 }
 
-// Custo medio e estoque (so leitura): aparecem so quando o produto ja teve
-// entrada por compra finalizada.
+// Custo medio e estoque (so leitura). Produto novo ou sem entrada: estoque 0
+// e custo em branco.
 function mostrarEntradaProduto(p) {
-    const tem = !!p?.temEntrada;
-    document.getElementById('prodSecaoEstoque').classList.toggle('d-none', !tem);
     // Custo medio com 6 casas, como e calculado na compra.
-    document.getElementById('prodCustoDisplay').value = tem
-        ? 'R$ ' + moeda(p.custo, 6) : '';
-    document.getElementById('prodEstoqueDisplay').value = tem
-        ? (Number(p.estoque) || 0).toLocaleString('pt-BR', { maximumFractionDigits: 2 }) + (p.unidade ? ' ' + p.unidade : '') : '';
+    document.getElementById('prodCustoDisplay').value = p?.custo != null ? 'R$ ' + moeda(p.custo, 6) : '-';
+    document.getElementById('prodEstoqueDisplay').value =
+        (Number(p?.estoque) || 0).toLocaleString('pt-BR', { maximumFractionDigits: 2 }) + (p?.unidade ? ' ' + p.unidade : '');
 }
 
 // Normaliza numero removendo casas decimais sobrando (ex: "15.0000" -> 15)
@@ -186,7 +183,7 @@ function editarProduto(p) {
     definirAtivo('prodFlAtivo', p.ativo);
     mostrarEntradaProduto(p);
 
-    if (p.imagem) { mostrarImagem(p.imagem); }
+    if (p.imagem) { mostrarImagem(enderecoNoSite(p.imagem)); }
     else { esconderImagem(); }
 }
 

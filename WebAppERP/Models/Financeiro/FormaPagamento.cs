@@ -12,8 +12,9 @@ public class FormaPagamento : EntidadeComRegistro
     [Column("idFormaPagamento")]
     public int IdFormaPagamento { get; set; }
 
+    [Nome]
     [Column("dsFormaPagamento")]
-    [Required, MaxLength(100)]
+    [Required, MaxLength(50)]
     public string DsFormaPagamento { get; set; } = string.Empty;
 
     [Column("flAtivo")]

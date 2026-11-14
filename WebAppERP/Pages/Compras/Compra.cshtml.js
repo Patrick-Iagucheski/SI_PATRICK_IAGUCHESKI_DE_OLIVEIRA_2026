@@ -43,6 +43,19 @@ function qtd(n) {
 function centavos(v) { return Math.round((Number(v) || 0) * 100); }
 function milionesimos(v) { return Math.round((Number(v) || 0) * 1e6); }
 
+// Valor com mais casas decimais do que o banco grava (mesma regra do servidor,
+// Module.PassaDasCasas). Comparado como texto, sem erro de conta do JavaScript.
+function passaDasCasas(valor, casas) {
+    const decimais = String(valor).split('.')[1] || '';
+    return decimais.replace(/0+$/, '').length > casas;
+}
+
+// Frete, seguro e outros: 2 casas. Devolve a mensagem de erro ou ''.
+function erroCustoAdicional() {
+    return ['VlFrete', 'VlSeguro', 'VlOutrasDespesas'].some(id => passaDasCasas(num(id), 2))
+        ? 'Frete, seguro e outros gastos aceitam no máximo 2 casas decimais.' : '';
+}
+
 // Arredonda em 6 casas decimais (5 para cima).
 function arred6(n) {
     return milionesimos(n) / 1e6;
@@ -101,6 +114,25 @@ function abrirBuscaFornecedor() {
 
 function abrirBuscaTransportador() {
     abrirPesquisaTransportador(opcoesDoSelect('IdTransportador', t => t.razaoSocial));
+}
+
+// Autocomplete dos campos que comecam vazios (data-autocomplete, module.js):
+// a mesma busca e a mesma selecao da pesquisa de cada um.
+// Digitando so numeros (com ou sem mascara), busca pelo documento; senao, pela razao social.
+// O documento aparece abaixo do nome, para separar fornecedores com nome parecido.
+function autocompleteFornecedor() {
+    return { url: urlFornecedores('BuscarFornecedores'),
+             param: t => /^[\d.\-\/\s]+$/.test(t) && /\d/.test(t) ? 'documento' : 'razao',
+             texto: f => f.razaoSocial, detalhe: documentoPessoa,
+             escolher: f => opcoesDoSelect('IdFornecedor', r => r.razaoSocial).selecionar(f) };
+}
+function autocompleteTransportador() {
+    return { url: urlTransportadores('BuscarTransportadores'), param: 'razao', texto: t => t.razaoSocial,
+             escolher: t => opcoesDoSelect('IdTransportador', r => r.razaoSocial).selecionar(t) };
+}
+function autocompleteItem() {
+    return { url: urlProdutos('BuscarProdutos'), param: 'termo', texto: p => p.nome,
+             escolher: p => aplicarItemSelecionado({ id: p.id, nome: p.nome, unidade: p.unidade, custo: p.custo }) };
 }
 
 // A compra so tem produtos: a pesquisa e sempre a de produto.
@@ -177,7 +209,8 @@ function adicionarItem() {
     if (qt !== arred2(qt)) { exibirErro(secao, 'A quantidade aceita no máximo 2 casas decimais.'); return; }
 
     const vlUnit = num('itVlUnit');
-    if (vlUnit < 0) { exibirErro(secao, 'O preço unitário não pode ser negativo.'); return; }
+    if (vlUnit <= 0) { exibirErro(secao, 'Informe o preço unitário (maior que zero).'); return; }
+    if (passaDasCasas(vlUnit, 4)) { exibirErro(secao, 'O preço unitário aceita no máximo 4 casas decimais.'); return; }
 
     // Desconto por unidade: o valor (R$) e o que vale; a porcentagem so ajuda a calcular.
     const perc = num('itDescPerc');
@@ -362,7 +395,7 @@ function calcTotalParcelas() {
     const lbl = document.getElementById('lblDiferencaParcelas');
     if (!PAGAMENTOS.length) {
         lbl.innerHTML = '';
-    } else if (Math.abs(diferenca) <= 0.01) {
+    } else if (Math.round(diferenca * 100) === 0) {
         lbl.innerHTML = '<span class="badge-status badge-concluido">Confere com o total</span>';
     } else {
         lbl.innerHTML = '<span class="badge-status badge-cancelado">Diferença de R$ ' + moeda(diferenca) + '</span>';
@@ -377,9 +410,13 @@ function adicionarPagamento() {
 
     const valor = num('pgValor');
     if (valor <= 0) { exibirErro(secaoDoCampo('pgValor'), 'Informe o valor da parcela.'); return; }
+    if (passaDasCasas(valor, 2)) { exibirErro(secaoDoCampo('pgValor'), 'O valor da parcela aceita no máximo 2 casas decimais.'); return; }
 
     const venc = texto('pgVencimento');
     if (!venc) { exibirErro(secaoDoCampo('pgValor'), 'Informe a data de vencimento.'); return; }
+    // Mesma regra do servidor: a parcela nao vence antes da emissao da nota.
+    const emissao = texto('DtEmissao');
+    if (emissao && venc < emissao) { exibirErro(secaoDoCampo('pgValor'), 'O vencimento não pode ser anterior à emissão da nota (' + dataBr(emissao) + ').'); return; }
 
     const idCondicao = parseInt(document.getElementById('IdCondicaoPagamento').value) || null;
 
@@ -626,6 +663,9 @@ function salvar(status) {
     if (!texto('IdFornecedor')) { exibirErro(secaoDoCampo('NrNota'), 'Informe o fornecedor.'); document.getElementById('IdFornecedorNome').focus(); return; }
     if (!chaveValidada) { exibirErro(secaoDoCampo('NrNota'), 'Valide a chave da nota antes de salvar.'); return; }
 
+    const erroCusto = erroCustoAdicional();
+    if (erroCusto) { exibirErro(secaoDoCampo('VlFrete'), erroCusto); return; }
+
     const erroData = validarDatas();
     if (erroData) {
         exibirErro(secaoDoCampo('NrNota'), erroData);
@@ -639,7 +679,7 @@ function salvar(status) {
         if (!PAGAMENTOS.length) { exibirErro(secaoDoCampo('pgValor'), 'Informe ao menos uma parcela de pagamento para finalizar a compra.'); return; }
 
         const soma = PAGAMENTOS.reduce((a, b) => a + (Number(b.vlParcela) || 0), 0);
-        if (Math.abs(soma - totalCompra()) > 0.01) {
+        if (Math.round(soma * 100) !== Math.round(totalCompra() * 100)) {
             exibirErro(secaoDoCampo('pgValor'), 'A soma das parcelas (R$ ' + moeda(soma) + ') é diferente do total da compra (R$ ' + moeda(totalCompra()) + ').');
             return;
         }

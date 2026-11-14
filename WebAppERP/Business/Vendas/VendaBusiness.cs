@@ -23,10 +23,11 @@ public class VendaBusiness
     private readonly ServicoBusiness _servico;
     private readonly CondicaoPagamentoBusiness _condicao;
     private readonly ContaAReceberBusiness _contas;
+    private readonly MovimentacaoEstoqueBusiness _movimentacao;
 
     public VendaBusiness(AppDbContext db, ClienteBusiness cliente, FuncionarioBusiness funcionario,
         FormaPagamentoBusiness forma, AgendamentoBusiness agendamento, ProdutoBusiness produto, ServicoBusiness servico,
-        CondicaoPagamentoBusiness condicao, ContaAReceberBusiness contas)
+        CondicaoPagamentoBusiness condicao, ContaAReceberBusiness contas, MovimentacaoEstoqueBusiness movimentacao)
     {
         _db = db;
         _cliente = cliente;
@@ -37,6 +38,7 @@ public class VendaBusiness
         _servico = servico;
         _condicao = condicao;
         _contas = contas;
+        _movimentacao = movimentacao;
     }
 
     // ============================================================
@@ -60,10 +62,10 @@ public class VendaBusiness
             .Include(v => v.Itens).ThenInclude(i => i.Produto)
             .FirstOrDefaultAsync(v => v.IdVenda == id);
 
-    // Situacao gravada da venda. Venda ainda nao gravada e rascunho; null: nao existe mais.
+    // Situacao gravada da venda. Venda ainda nao gravada e aberta; null: nao existe mais.
     public async Task<string?> GetSituacao(int? id) =>
         id is not > 0
-            ? Venda.RASCUNHO
+            ? Venda.ABERTA
             : await _db.Vendas.Where(v => v.IdVenda == id).Select(v => v.TpStatus).FirstOrDefaultAsync();
 
     // Listas da tela, cada uma vinda do Business da propria entidade (so ativos).
@@ -82,25 +84,26 @@ public class VendaBusiness
     // Gravacao
     // ============================================================
 
-    // Salvamento automatico da tela: so grava venda que ainda e rascunho, para
-    // uma tela antiga nao desfazer uma venda finalizada em outra aba.
-    public async Task<int> SalvarRascunho(VendaDTO input)
+    // Salvamento automatico da tela: so grava venda que continua aberta, para
+    // uma tela antiga nao mexer numa venda finalizada ou cancelada em outra aba.
+    public async Task<int> SalvarAberta(VendaDTO input)
     {
         var situacao = await GetSituacao(input.IdVenda)
-            ?? throw new ValidacaoException("Esta venda foi excluída em outra tela.", "Recarregue a tela.");
-        if (situacao != Venda.RASCUNHO)
-            throw new ValidacaoException("Só vendas em rascunho são salvas automaticamente.");
+            ?? throw new ValidacaoException("Esta venda não foi encontrada.", "Recarregue a tela.");
+        if (situacao != Venda.ABERTA)
+            throw new ValidacaoException("Só vendas abertas são salvas automaticamente.");
 
-        input.TpStatus = Venda.RASCUNHO;
+        input.TpStatus = Venda.ABERTA;
         return await Salvar(input);
     }
 
-    // Inclui (IdVenda = 0) ou altera a venda e devolve o id gravado. RASCUNHO so
-    // grava; FINALIZADA exige itens e forma ou condicao de pagamento, baixa o
-    // estoque e gera os titulos no Contas a Receber.
+    // Inclui (IdVenda = 0) ou altera a venda aberta e devolve o id gravado.
+    // ABERTA so grava; FINALIZADA exige itens e forma ou condicao de pagamento,
+    // baixa o estoque e gera os titulos no Contas a Receber. Venda finalizada ou
+    // cancelada nao e alterada: corrige-se cancelando e lancando uma nova.
     public async Task<int> Salvar(VendaDTO input)
     {
-        if (input.TpStatus is not (Venda.RASCUNHO or Venda.FINALIZADA))
+        if (input.TpStatus is not (Venda.ABERTA or Venda.FINALIZADA))
             throw new ValidacaoException("Situação da venda inválida.", "Para cancelar, use o botão Cancelar da lista de vendas.");
 
         var finalizar = input.TpStatus == Venda.FINALIZADA;
@@ -117,39 +120,35 @@ public class VendaBusiness
         Venda? existente = null;
         if (input.IdVenda > 0)
         {
+            // Duas abas finalizando a mesma venda: a segunda espera a primeira
+            // terminar e ja le a venda finalizada.
+            await TravarVenda(input.IdVenda);
             existente = await _db.Vendas.Include(v => v.Itens).FirstOrDefaultAsync(v => v.IdVenda == input.IdVenda)
-                ?? throw new ValidacaoException("Venda não encontrada.", "Ela pode ter sido excluída por outra pessoa.");
+                ?? throw new ValidacaoException("Venda não encontrada.");
             if (existente.TpStatus == Venda.CANCELADA)
-                throw new ValidacaoException("Venda cancelada não pode ser editada.");
+                throw new ValidacaoException("Venda cancelada não pode ser alterada.");
+            if (existente.TpStatus == Venda.FINALIZADA)
+                throw new ValidacaoException("Venda finalizada não pode ser alterada.",
+                                             "Para corrigir, cancele a venda e lance uma nova.");
         }
 
-        await ValidarCabecalho(input, existente, finalizar);
+        var agendamento = await ValidarCabecalho(input, existente, finalizar);
+        await ValidarItensCadastrados(input, existente);
         var parcelas = await ParcelasDaCondicao(input, existente, finalizar);
-
-        // Se a venda ja estava finalizada, estorna o estoque dos itens antigos
-        // antes de recalcular e tira os titulos (sao gerados de novo ao finalizar).
-        if (existente is { TpStatus: Venda.FINALIZADA })
-        {
-            await _contas.RemoverDaVenda(existente.IdVenda);
-            await AjustarEstoque(existente.Itens, +1);
-        }
 
         // Recalcula os itens e os totais no servidor (fonte da verdade).
         var (novosItens, subtotal) = MontarItens(input);
 
-        if (input.VlDesconto > subtotal)
-            throw new ValidacaoException($"O desconto da venda (R$ {input.VlDesconto:N2}) é maior que o subtotal "
-                                       + $"(R$ {subtotal:N2}) e deixaria o total negativo.");
-        var total = subtotal - input.VlDesconto;
+        // O desconto geral nao pode zerar a venda. So vale ao finalizar: a venda
+        // aberta grava mesmo com o desconto digitado antes dos itens (o total
+        // fica zerado ate os itens passarem do desconto).
+        if (finalizar && input.VlDesconto > 0 && input.VlDesconto >= subtotal)
+            throw new ValidacaoException($"O desconto da venda (R$ {input.VlDesconto:N2}) não pode ser igual ou maior "
+                                       + $"que o subtotal (R$ {subtotal:N2}).");
+        var total = Math.Max(subtotal - input.VlDesconto, 0);
 
-        // Ao finalizar: exige itens e valida/baixa o estoque dos produtos.
-        if (finalizar)
-        {
-            if (novosItens.Count == 0)
-                throw new ValidacaoException("Adicione ao menos um item para finalizar a venda.");
-
-            await AjustarEstoque(novosItens, -1, validar: true);
-        }
+        if (finalizar && novosItens.Count == 0)
+            throw new ValidacaoException("Adicione ao menos um item para finalizar a venda.");
 
         Venda venda;
         if (existente == null)
@@ -162,10 +161,15 @@ public class VendaBusiness
             venda = existente;
             _db.VendaItens.RemoveRange(existente.Itens);
 
-            // O rascunho pode ter sido comecado antes: a venda acontece ao finalizar.
-            if (finalizar && existente.TpStatus == Venda.RASCUNHO)
+            // A venda aberta pode ter sido comecada antes: a venda acontece ao finalizar.
+            if (finalizar)
                 venda.DtVenda = DateTime.Now;
         }
+
+        // Ao finalizar: valida e baixa o estoque dos produtos (a movimentacao
+        // aponta para a venda, por isso depois de ela existir).
+        if (finalizar)
+            await AjustarEstoque(novosItens, -1, venda, validar: true);
 
         venda.IdCliente = input.IdCliente is > 0 ? input.IdCliente : null;
         venda.IdFuncionario = input.IdFuncionario;
@@ -180,6 +184,10 @@ public class VendaBusiness
         venda.VlTotal = total;
         venda.DsObservacao = observacao;
         venda.Itens = novosItens;
+
+        // Venda finalizada: o atendimento do agendamento aconteceu.
+        if (finalizar && agendamento != null && agendamento.TpStatus != Agendamento.CANCELADO)
+            agendamento.TpStatus = Agendamento.CONCLUIDO;
 
         await _db.SaveChangesAsync();
 
@@ -200,56 +208,44 @@ public class VendaBusiness
 
     // Cancela a venda devolvendo ao estoque o que ela tinha baixado e cancelando
     // os titulos. Parcela a prazo ja recebida impede o cancelamento.
-    public async Task Cancelar(int id)
+    // Devolve a mensagem para a tela: so a finalizada tinha estoque e titulos.
+    public async Task<string> Cancelar(int id)
     {
+        // Travada antes de ler: cancelamento e finalizacao da mesma venda ao
+        // mesmo tempo esperam um pelo outro.
+        await using var tx = await _db.Database.BeginTransactionAsync();
+        await TravarVenda(id);
         var venda = await _db.Vendas.Include(v => v.Itens).FirstOrDefaultAsync(v => v.IdVenda == id)
             ?? throw new ValidacaoException("Venda não encontrada.");
         if (venda.TpStatus == Venda.CANCELADA)
-            return;
+            return "Esta venda já está cancelada.";
 
-        await using var tx = await _db.Database.BeginTransactionAsync();
-        if (venda.TpStatus == Venda.FINALIZADA)
-            await AjustarEstoque(venda.Itens, +1); // devolve o estoque
+        var finalizada = venda.TpStatus == Venda.FINALIZADA;
+        if (finalizada)
+            await AjustarEstoque(venda.Itens, +1, venda); // devolve o estoque
 
         await _contas.CancelarDaVenda(id);
         venda.TpStatus = Venda.CANCELADA;
         await _db.SaveChangesAsync();
         await tx.CommitAsync();
-    }
 
-    // Exclusao definitiva. Venda finalizada movimentou estoque: so pelo cancelamento,
-    // para o historico continuar mostrando a venda (mesma regra da Compra).
-    public async Task Excluir(int id)
-    {
-        var venda = await _db.Vendas.Include(v => v.Itens).FirstOrDefaultAsync(v => v.IdVenda == id);
-        if (venda == null)
-            return;
-
-        if (venda.TpStatus == Venda.FINALIZADA)
-            throw new ValidacaoException("Venda finalizada não pode ser excluída.", "Utilize o cancelamento.");
-        if (await _contas.VendaTemTitulos(id))
-            throw new ValidacaoException("Não é possível excluir: existem títulos no Contas a Receber vinculados a esta venda.");
-
-        try
-        {
-            _db.VendaItens.RemoveRange(venda.Itens);
-            _db.Vendas.Remove(venda);
-            await _db.SaveChangesAsync();
-        }
-        catch (DbUpdateException)
-        {
-            throw new ValidacaoException("Não é possível excluir: existem registros vinculados a esta venda.",
-                                         "Utilize o cancelamento.");
-        }
+        return finalizada ? "Venda cancelada. Estoque devolvido e títulos do Contas a Receber cancelados."
+                          : "Venda cancelada.";
     }
 
     // ============================================================
     // Apoio
     // ============================================================
 
+    // Trava a linha da venda ate o fim da transacao.
+    private Task TravarVenda(int idVenda) =>
+        _db.Database.ExecuteSqlInterpolatedAsync(
+            $"SELECT 1 FROM dbo.tbVenVendas WITH (UPDLOCK, ROWLOCK) WHERE idVenda = {idVenda}");
+
     // Funcionario, cliente, agendamento e forma de pagamento: precisam existir;
-    // inativos so sao aceitos se ja eram os da venda (alteracao).
-    private async Task ValidarCabecalho(VendaDTO input, Venda? existente, bool finalizar)
+    // inativos so sao aceitos se ja eram os da venda (alteracao). Devolve o
+    // agendamento da venda (null sem agendamento).
+    private async Task<Agendamento?> ValidarCabecalho(VendaDTO input, Venda? existente, bool finalizar)
     {
         var funcionario = input.IdFuncionario > 0 ? await _db.Funcionarios.FindAsync(input.IdFuncionario) : null;
         if (funcionario == null)
@@ -265,12 +261,30 @@ public class VendaBusiness
                 throw new ValidacaoException("O cliente selecionado está inativo.");
         }
 
-        if (input.IdAgendamento is > 0)
+        Agendamento? agendamento = null;
+        if (input.IdAgendamento is int idAgendamento && idAgendamento > 0)
         {
-            var agendamento = await _db.Agendamentos.FindAsync(input.IdAgendamento)
+            // Travado: duas vendas nao pegam o mesmo agendamento ao mesmo tempo.
+            await _db.Database.ExecuteSqlInterpolatedAsync(
+                $"SELECT 1 FROM dbo.tbOpeAgendamentos WITH (UPDLOCK, ROWLOCK) WHERE idAgendamento = {idAgendamento}");
+            agendamento = await _db.Agendamentos.Include(a => a.Cliente).FirstOrDefaultAsync(a => a.IdAgendamento == idAgendamento)
                 ?? throw new ValidacaoException("Agendamento informado não existe.");
-            if (agendamento.TpStatus == Agendamento.CANCELADO && existente?.IdAgendamento != agendamento.IdAgendamento)
+            var jaEraDaVenda = existente?.IdAgendamento == idAgendamento;
+            if (agendamento.TpStatus == Agendamento.CANCELADO && !jaEraDaVenda)
                 throw new ValidacaoException("O agendamento selecionado está cancelado.");
+
+            // Um atendimento e cobrado uma vez: venda cancelada libera o agendamento.
+            if (!jaEraDaVenda)
+            {
+                var outraVenda = await VendaDoAgendamento(idAgendamento, input.IdVenda);
+                if (outraVenda != null)
+                    throw new ValidacaoException($"O agendamento #{idAgendamento} já está na venda Nº {outraVenda}.",
+                                                 "Escolha outro agendamento ou continue a venda Nº " + outraVenda + ".");
+            }
+
+            if (input.IdCliente is > 0 && input.IdCliente != agendamento.IdCliente)
+                throw new ValidacaoException($"O agendamento #{idAgendamento} é do cliente {agendamento.Cliente?.NmCliente}.",
+                                             "Selecione o mesmo cliente na venda ou escolha outro agendamento.");
         }
 
         if (input.IdFormaPagamento is > 0)
@@ -283,6 +297,74 @@ public class VendaBusiness
         else if (finalizar && input.IdCondicaoPagamento is not > 0)
         {
             throw new ValidacaoException("Selecione a forma ou a condição de pagamento para finalizar a venda.");
+        }
+
+        return agendamento;
+    }
+
+    // Outra venda (aberta ou finalizada) que ja usa o agendamento, ou null.
+    private Task<int?> VendaDoAgendamento(int idAgendamento, int idVendaAtual) =>
+        _db.Vendas.Where(v => v.IdAgendamento == idAgendamento && v.IdVenda != idVendaAtual && v.TpStatus != Venda.CANCELADA)
+                  .Select(v => (int?)v.IdVenda).FirstOrDefaultAsync();
+
+    // Agendamento da venda (com o cliente, para o texto do campo), mesmo fora da
+    // lista do campo: mais antigo, cancelado depois ou de outro dia.
+    public async Task<Agendamento?> GetAgendamento(int? id) =>
+        id is > 0
+            ? await _db.Agendamentos.Include(a => a.Cliente).FirstOrDefaultAsync(a => a.IdAgendamento == id)
+            : null;
+
+    // Tela reexibida depois de uma gravacao que falhou: os vinculos da venda e
+    // dos itens vem pelo id, inclusive os inativos (as listas da tela so tem
+    // ativos), para nada sumir do formulario nem se perder no proximo salvamento.
+    public async Task CarregarVinculos(Venda venda, List<VendaItem> itens)
+    {
+        venda.Cliente = venda.IdCliente is int idCliente ? await _db.Clientes.FindAsync(idCliente) : null;
+        venda.Funcionario = await _db.Funcionarios.FindAsync(venda.IdFuncionario);
+        venda.FormaPagamento = venda.IdFormaPagamento is int idForma ? await _db.FormasPagamento.FindAsync(idForma) : null;
+        venda.CondicaoPagamento = venda.IdCondicaoPagamento is int idCondicao ? await _db.CondicoesPagamento.FindAsync(idCondicao) : null;
+        foreach (var item in itens)
+        {
+            item.Produto = item.IdProduto is int idProduto ? await _db.Produtos.FindAsync(idProduto) : null;
+            item.Servico = item.IdServico is int idServico ? await _db.Servicos.FindAsync(idServico) : null;
+        }
+    }
+
+    // Produto e servico dos itens precisam existir. Inativo so continua se ja
+    // era item da venda (inativado depois). Item novo inativo e recusado (ex.:
+    // tela aberta antes da inativacao).
+    private async Task ValidarItensCadastrados(VendaDTO input, Venda? existente)
+    {
+        var produtosDaVenda = existente?.Itens.Where(i => i.IdProduto != null).Select(i => i.IdProduto!.Value).ToHashSet() ?? [];
+        var servicosDaVenda = existente?.Itens.Where(i => i.IdServico != null).Select(i => i.IdServico!.Value).ToHashSet() ?? [];
+
+        var idsProdutos = input.Itens.Where(i => i.TpItem == VendaItem.PRODUTO && i.IdProduto is > 0)
+                                     .Select(i => i.IdProduto!.Value).Distinct().ToList();
+        var produtos = await _db.Produtos.Where(p => idsProdutos.Contains(p.IdProduto))
+                                         .Select(p => new { p.IdProduto, p.DsProduto, p.FlAtivo }).ToListAsync();
+        var idsServicos = input.Itens.Where(i => i.TpItem == VendaItem.SERVICO && i.IdServico is > 0)
+                                     .Select(i => i.IdServico!.Value).Distinct().ToList();
+        var servicos = await _db.Servicos.Where(s => idsServicos.Contains(s.IdServico))
+                                         .Select(s => new { s.IdServico, s.DsServico, s.FlAtivo }).ToListAsync();
+
+        var seq = 0;
+        foreach (var item in input.Itens)
+        {
+            seq++;
+            if (item.TpItem == VendaItem.PRODUTO && item.IdProduto is int idProduto && idProduto > 0)
+            {
+                var produto = produtos.FirstOrDefault(p => p.IdProduto == idProduto)
+                    ?? throw new ValidacaoException($"Item {seq}: o produto código {idProduto} não foi encontrado.", "Atualize a tela e escolha o produto de novo.");
+                if (!produto.FlAtivo && !produtosDaVenda.Contains(idProduto))
+                    throw new ValidacaoException($"O produto \"{produto.DsProduto}\" está inativo.", "Escolha um produto ativo ou reative o cadastro.");
+            }
+            else if (item.TpItem == VendaItem.SERVICO && item.IdServico is int idServico && idServico > 0)
+            {
+                var servico = servicos.FirstOrDefault(s => s.IdServico == idServico)
+                    ?? throw new ValidacaoException($"Item {seq}: o serviço código {idServico} não foi encontrado.", "Atualize a tela e escolha o serviço de novo.");
+                if (!servico.FlAtivo && !servicosDaVenda.Contains(idServico))
+                    throw new ValidacaoException($"O serviço \"{servico.DsServico}\" está inativo.", "Escolha um serviço ativo ou reative o cadastro.");
+            }
         }
     }
 
@@ -305,6 +387,10 @@ public class VendaBusiness
         var parcelas = await _condicao.GetParcelas(idCondicao);
         if (parcelas.Count == 0)
             throw new ValidacaoException("Esta condição de pagamento não possui parcelas cadastradas.");
+        // Condicao gravada antes do limite de prazo: o vencimento nao caberia numa data.
+        if (parcelas.Any(p => p.NrDiasVencimento > CondicaoPagamentoBusiness.DiasMaximos))
+            throw new ValidacaoException($"A condição \"{condicao.DsCondicao}\" tem parcela com mais de {CondicaoPagamentoBusiness.DiasMaximos} dias.",
+                                         "Corrija os dias na condição de pagamento ou escolha outra.");
         if (finalizar && input.IdCliente is not > 0 && parcelas.Any(p => p.NrDiasVencimento > 0))
             throw new ValidacaoException("Venda a prazo exige cliente.", "Selecione o cliente ou use uma condição à vista.");
 
@@ -347,11 +433,11 @@ public class VendaBusiness
 
     // Ajusta o saldo dos produtos. sinal = -1 (baixa) ou +1 (estorno).
     // validar=true impede saldo negativo (regra: produto nao pode ficar negativo).
-    private async Task AjustarEstoque(IEnumerable<VendaItem> itens, int sinal, bool validar = false)
+    private async Task AjustarEstoque(IEnumerable<VendaItem> itens, int sinal, Venda venda, bool validar = false)
     {
         foreach (var item in itens.Where(i => i.TpItem == VendaItem.PRODUTO && i.IdProduto != null))
         {
-            var prod = await _db.Produtos.FindAsync(item.IdProduto);
+            var prod = await _movimentacao.ProdutoTravado(item.IdProduto!.Value);
             if (prod == null) continue;
 
             var atual = prod.QtSaldo ?? 0;
@@ -361,7 +447,9 @@ public class VendaBusiness
                 throw new ValidacaoException($"Estoque insuficiente para '{prod.DsProduto}'. "
                                            + $"Saldo atual: {atual:N4}, solicitado: {item.QtItem:N4}.");
 
-            prod.QtSaldo = novo;
+            // sinal +1 devolve o que a venda tinha baixado (estorno).
+            await _movimentacao.Registrar(prod, sinal * item.QtItem, MovimentacaoEstoque.VENDA, estorno: sinal > 0,
+                                    prod.VlCusto, venda: venda);
         }
     }
 }

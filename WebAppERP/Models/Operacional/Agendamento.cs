@@ -48,6 +48,7 @@ public class Agendamento : EntidadeComRegistro
     [Required, MaxLength(20)]
     public string TpStatus { get; set; } = AGENDADO;
 
+    [MultiLinha]
     [Column("dsObservacao")]
     [MaxLength(500)]
     public string? DsObservacao { get; set; }

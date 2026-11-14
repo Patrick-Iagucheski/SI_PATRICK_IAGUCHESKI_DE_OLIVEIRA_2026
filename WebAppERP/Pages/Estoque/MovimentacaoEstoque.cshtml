@@ -1,0 +1,290 @@
+﻿@page
+@model WebAppERP.Pages.Estoque.MovimentacaoEstoqueModel
+@using WebAppERP.Business.Estoque
+@using WebAppERP.DTOs.Estoque
+@{
+    ViewData["Title"] = "Movimentação de Estoque";
+    string Qt(decimal v) => v.ToString("N2");
+    var produtosJs = Model.Produtos.Select(p => new { id = p.IdProduto, nome = p.DsProduto, saldo = p.QtSaldo ?? 0, custo = p.VlCusto, unidade = p.UnidadeMedida?.SgUnidade });
+}
+
+<div class="d-flex justify-content-between align-items-start mb-4">
+    <div>
+        <h1 class="page-title">Movimentação de Estoque</h1>
+        <p class="page-subtitle">Entradas e saídas de produtos: compras, vendas, ajustes e perdas</p>
+    </div>
+    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#modalLancamento" onclick="novoLancamento()">
+        <i class="bi bi-plus-lg me-1"></i> Novo Lançamento
+    </button>
+</div>
+
+@if (Model.Erro != null)
+{
+    <div class="alert alert-danger"><i class="bi bi-exclamation-triangle me-2"></i>@Model.Erro</div>
+}
+
+<!-- Indicadores (sobre os movimentos listados) -->
+<div class="row row-cols-1 row-cols-sm-2 row-cols-lg-4 g-3 mb-4">
+    <div class="col">
+        <div class="card kpi-card kpi-blue">
+            <div class="card-body d-flex align-items-center justify-content-between">
+                <div>
+                    <div class="kpi-label">Movimentos</div>
+                    <div class="kpi-value mt-1">@Model.Movimentos.Count</div>
+                </div>
+                <div class="kpi-icon" style="background: #dbeafe; color: #3b82f6;">
+                    <i class="bi bi-arrow-left-right"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col">
+        <div class="card kpi-card kpi-green">
+            <div class="card-body d-flex align-items-center justify-content-between">
+                <div>
+                    <div class="kpi-label">Entradas</div>
+                    <div class="kpi-value mt-1">@Qt(Model.QtEntradas)</div>
+                </div>
+                <div class="kpi-icon" style="background: #dcfce7; color: #10b981;">
+                    <i class="bi bi-box-arrow-in-down"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col">
+        <div class="card kpi-card kpi-orange">
+            <div class="card-body d-flex align-items-center justify-content-between">
+                <div>
+                    <div class="kpi-label">Saídas</div>
+                    <div class="kpi-value mt-1">@Qt(Model.QtSaidas)</div>
+                </div>
+                <div class="kpi-icon" style="background: #fee2e2; color: #ef4444;">
+                    <i class="bi bi-box-arrow-up"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col">
+        <div class="card kpi-card kpi-orange">
+            <div class="card-body d-flex align-items-center justify-content-between">
+                <div>
+                    <div class="kpi-label">Perdas</div>
+                    <div class="kpi-value mt-1">@Qt(Model.QtPerdas)</div>
+                </div>
+                <div class="kpi-icon" style="background: #ffedd5; color: #f97316;">
+                    <i class="bi bi-trash3"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Filtros: vao pela URL (GET) -->
+<form method="get" class="card mb-3">
+    <div class="card-body py-3">
+        <div class="row g-2 align-items-end">
+            <div class="col-md-2">
+                <label class="form-label small mb-1">De</label>
+                <input type="date" class="form-control" name="inicio" value="@Model.Inicio?.ToString("yyyy-MM-dd")" min="2000-01-01" max="2100-12-31" required />
+            </div>
+            <div class="col-md-2">
+                <label class="form-label small mb-1">Até</label>
+                <input type="date" class="form-control" name="fim" value="@Model.Fim?.ToString("yyyy-MM-dd")" min="2000-01-01" max="2100-12-31" required />
+            </div>
+            <div class="col-md-4">
+                <label class="form-label small mb-1">Produto</label>
+                <select class="form-select" name="produto">
+                    <option value="">Todos</option>
+                    @foreach (var p in Model.Produtos)
+                    {
+                        <option value="@p.IdProduto" selected="@(Model.Produto == p.IdProduto)">@p.DsProduto</option>
+                    }
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label small mb-1">Origem</label>
+                <select class="form-select" name="origem">
+                    <option value="">Todas</option>
+                    <option value="@MovimentacaoEstoque.COMPRA" selected="@(Model.Origem == MovimentacaoEstoque.COMPRA)">Compra</option>
+                    <option value="@MovimentacaoEstoque.VENDA" selected="@(Model.Origem == MovimentacaoEstoque.VENDA)">Venda</option>
+                    <option value="@MovimentacaoEstoque.AJUSTE" selected="@(Model.Origem == MovimentacaoEstoque.AJUSTE)">Ajuste</option>
+                    <option value="@MovimentacaoEstoque.PERDA" selected="@(Model.Origem == MovimentacaoEstoque.PERDA)">Perda</option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label small mb-1">Tipo</label>
+                <select class="form-select" name="tipo">
+                    <option value="">Todos</option>
+                    <option value="@MovimentacaoEstoque.ENTRADA" selected="@(Model.Tipo == MovimentacaoEstoque.ENTRADA)">Entrada</option>
+                    <option value="@MovimentacaoEstoque.SAIDA" selected="@(Model.Tipo == MovimentacaoEstoque.SAIDA)">Saída</option>
+                </select>
+            </div>
+        </div>
+        <div class="d-flex justify-content-end align-items-center mt-3">
+            <button type="submit" class="btn btn-primary">
+                <i class="bi bi-search me-1"></i>Buscar
+            </button>
+        </div>
+    </div>
+</form>
+
+<!-- Movimentos: o mais recente primeiro -->
+<div class="table-container">
+    <div class="table-header">
+        <h5><i class="bi bi-arrow-left-right me-2"></i>Movimentos de @Model.Inicio?.ToString("dd/MM/yyyy") a @Model.Fim?.ToString("dd/MM/yyyy")</h5>
+        <span class="text-muted small">@Model.Movimentos.Count movimentos encontrados</span>
+    </div>
+    <div class="table-responsive">
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Nº</th>
+                    <th>Data</th>
+                    <th>Produto</th>
+                    <th>Origem</th>
+                    <th>Documento</th>
+                    <th class="text-end">Quantidade</th>
+                    <th class="text-end">Saldo</th>
+                    <th class="text-end">Custo Unit.</th>
+                    <th>Observação</th>
+                    <th>Usuário</th>
+                    <th class="text-center">Ações</th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (Model.Movimentos.Count == 0)
+                {
+                    <tr><td colspan="11" class="text-center text-muted py-3">Nenhum movimento encontrado para os filtros informados</td></tr>
+                }
+                @foreach (var m in Model.Movimentos)
+                {
+                    var entrada = m.TpMovimento == MovimentacaoEstoque.ENTRADA;
+                    var estornado = Model.Estornados.Contains(m.IdMovimentacao);
+                    <tr class="@(estornado ? "text-muted" : "")">
+                        <td>@m.IdMovimentacao</td>
+                        <td class="text-nowrap">@m.DtMovimento.ToString("dd/MM/yyyy HH:mm")</td>
+                        <td><strong>@m.Produto?.DsProduto</strong> <span class="text-muted small">@m.Produto?.UnidadeMedida?.SgUnidade</span></td>
+                        <td class="text-nowrap">
+                            <span class="badge-status @(entrada ? "badge-concluido" : "badge-cancelado")">@m.DsOrigem</span>
+                            @if (m.FlEstorno)
+                            {
+                                <span class="badge-status badge-inativo ms-1">ESTORNO</span>
+                            }
+                            @if (estornado)
+                            {
+                                <span class="badge-status badge-inativo ms-1">ESTORNADO</span>
+                            }
+                        </td>
+                        <td class="text-nowrap">@WebAppERP.Pages.Estoque.MovimentacaoEstoqueModel.Documento(m)</td>
+                        <td class="text-end fw-semibold text-nowrap @(entrada ? "text-success" : "text-danger")">@(entrada ? "+" : "-")@Qt(m.QtMovimento)</td>
+                        <td class="text-end text-nowrap @(m.QtSaldo < 0 ? "text-danger fw-bold" : "")">@Qt(m.QtSaldo)</td>
+                        <td class="text-end text-nowrap">@(m.VlCustoUnitario is decimal c ? "R$ " + c.ToString("N2") : "-")</td>
+                        <td class="small">@Module.OuTraco(m.DsObservacao)</td>
+                        <td class="small">@Module.OuTraco(m.UsuarioInclusao?.NmUsuario)</td>
+                        <td class="text-center">
+                            @if (MovimentacaoEstoqueBusiness.PodeEstornar(m, Model.Estornados))
+                            {
+                                <form method="post" action="@Url.Page("MovimentacaoEstoque", "Estornar", Model.Filtros)" asp-antiforgery="true" class="d-inline"
+                                      onsubmit="return confirm('Estornar o lançamento Nº @m.IdMovimentacao? Será lançado o movimento contrário.')">
+                                    <input type="hidden" name="id" value="@m.IdMovimentacao" />
+                                    <button type="submit" class="btn btn-icon btn-outline-danger" title="Estornar lançamento">
+                                        <i class="bi bi-arrow-counterclockwise"></i>
+                                    </button>
+                                </form>
+                            }
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Modal Novo Lancamento (manual, sem compra ou venda) -->
+<div class="modal fade" id="modalLancamento" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <form method="post" data-modal-ajax id="formLancamento">
+                <div class="modal-header">
+                    <h5 class="modal-title"><i class="bi bi-arrow-left-right me-2"></i>Novo Lançamento de Estoque</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <h6 class="text-primary border-bottom pb-1 mb-3"><i class="bi bi-box-seam me-1"></i>Dados do Lançamento</h6>
+                    <div class="row g-3">
+                        <div class="col-md-8">
+                            <label class="form-label">Produto *</label>
+                            <select class="form-select" asp-for="Lancamento.IdProduto" id="lancIdProduto" required
+                                    data-pesquisa="abrirBuscaProdutoLancamento()" data-titulo-pesquisa="Pesquisar produto">
+                                <option value="">Selecione o produto</option>
+                                @foreach (var p in Model.Produtos)
+                                {
+                                    <option value="@p.IdProduto">@p.DsProduto</option>
+                                }
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Tipo *</label>
+                            <select class="form-select" asp-for="Lancamento.TpLancamento" id="lancTipo">
+                                <option value="@LancamentoEstoqueDTO.ENTRADA">Entrada (ajuste)</option>
+                                <option value="@LancamentoEstoqueDTO.SAIDA">Saída (ajuste)</option>
+                                <option value="@LancamentoEstoqueDTO.PERDA">Perda</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Custo unitario so na entrada (entra no custo medio); saida e perda
+                         usam o custo medio atual e mostram so a quantidade. -->
+                    <h6 class="text-primary border-bottom pb-1 mb-3 mt-4"><i class="bi bi-calculator me-1"></i>Quantidade, Custo e Saldo</h6>
+                    <div class="row g-3">
+                        <div class="col-md-3">
+                            <label class="form-label">Quantidade *</label>
+                            <div class="input-group">
+                                <input type="number" step="0.01" min="0.01" class="form-control" asp-for="Lancamento.QtMovimento" id="lancQuantidade" value="" required />
+                                <span class="input-group-text" id="lancUnidade">UN</span>
+                            </div>
+                        </div>
+                        <div class="col-md-3" id="lancWrapCusto">
+                            <label class="form-label">Custo unitário (R$) *</label>
+                            <input type="number" step="0.01" min="0.01" class="form-control" asp-for="Lancamento.VlCustoUnitario" id="lancCusto" value="" />
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Saldo atual</label>
+                            <input type="text" class="form-control bg-light" id="lancSaldoAtual" readonly />
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Saldo após</label>
+                            <input type="text" class="form-control bg-light fw-semibold" id="lancSaldoApos" readonly />
+                        </div>
+                    </div>
+
+                    <!-- Motivo (sempre o ultimo campo): obrigatorio no lancamento manual -->
+                    <div class="row g-3 mt-1">
+                        <div class="col-12">
+                            <label class="form-label">Motivo / Observações *</label>
+                            <textarea class="form-control" rows="2" asp-for="Lancamento.DsObservacao" id="lancObservacao" maxlength="500" required
+                                      placeholder="Ex: contagem do estoque, produto vencido, embalagem danificada"></textarea>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary"><i class="bi bi-check-lg me-1"></i>Lançar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Cadastro de produto: Novo / Editar da pesquisa do campo Produto -->
+@await Component.InvokeAsync("CadastroProduto", new { modo = "ajax" })
+
+@section Scripts {
+    <script type="application/json" id="dadosTela">
+    {
+        "PRODUTOS": @Json.Serialize(produtosJs),
+        "ENTRADA": @Json.Serialize(LancamentoEstoqueDTO.ENTRADA)
+    }
+    </script>
+    <script src="~/Pages/Estoque/MovimentacaoEstoque.cshtml.js" asp-append-version="true"></script>
+}

@@ -1,4 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using WebAppERP.Business.Estoque;
 using WebAppERP.Business.Financeiro;
 using WebAppERP.Data;
 using WebAppERP.DTOs.Compras;
@@ -14,16 +15,16 @@ public class CompraBusiness
     private readonly AppDbContext _db;
     private readonly CondicaoPagamentoBusiness _condicao;
     private readonly FormaPagamentoBusiness _forma;
+    private readonly MovimentacaoEstoqueBusiness _movimentacao;
 
-    public CompraBusiness(AppDbContext db, CondicaoPagamentoBusiness condicao, FormaPagamentoBusiness forma)
+    public CompraBusiness(AppDbContext db, CondicaoPagamentoBusiness condicao, FormaPagamentoBusiness forma,
+                          MovimentacaoEstoqueBusiness movimentacao)
     {
         _db = db;
         _condicao = condicao;
         _forma = forma;
+        _movimentacao = movimentacao;
     }
-
-    // Tolerancia de arredondamento na conferencia das parcelas (1 centavo).
-    private const decimal ToleranciaParcelas = 0.01m;
 
     // ============================================================
     // Consultas
@@ -64,6 +65,43 @@ public class CompraBusiness
 
     // Situacao atual da compra (RASCUNHO, FINALIZADA, CANCELADA); null se a
     // chave ainda nao foi gravada.
+    // Itens e parcelas digitados, no formato da tela, para reexibir a compra
+    // depois de um erro na gravacao (nada e gravado aqui).
+    public async Task<(List<CompraItem> itens, List<CompraPagamento> pagamentos)> GetDigitados(CompraDTO input)
+    {
+        var ids = input.Itens.Where(i => i.IdProduto != null).Select(i => i.IdProduto!.Value).Distinct().ToList();
+        var produtos = await _db.Produtos.Where(p => ids.Contains(p.IdProduto)).ToDictionaryAsync(p => p.IdProduto);
+        var condicoes = await _db.CondicoesPagamento.ToDictionaryAsync(c => c.IdCondicaoPagamento);
+        var formas = await _db.FormasPagamento.ToDictionaryAsync(f => f.IdFormaPagamento);
+
+        var itens = input.Itens.Select((i, n) => new CompraItem
+        {
+            NrItem = n + 1,
+            TpItem = i.TpItem,
+            IdProduto = i.IdProduto,
+            Produto = i.IdProduto is int idProduto ? produtos.GetValueOrDefault(idProduto) : null,
+            IdClassificacaoConta = i.IdClassificacaoConta,
+            SgUnidade = i.SgUnidade,
+            QtItem = i.QtItem,
+            VlUnitario = i.VlUnitario,
+            VlDesconto = i.VlDesconto,
+            VlTotal = Math.Round(i.QtItem * (i.VlUnitario - i.VlDesconto), 2, MidpointRounding.AwayFromZero)
+        }).ToList();
+
+        var pagamentos = input.Pagamentos.Select((p, n) => new CompraPagamento
+        {
+            NrParcela = n + 1,
+            IdCondicaoPagamento = p.IdCondicaoPagamento,
+            CondicaoPagamento = p.IdCondicaoPagamento is int idCondicao ? condicoes.GetValueOrDefault(idCondicao) : null,
+            IdFormaPagamento = p.IdFormaPagamento,
+            FormaPagamento = formas.GetValueOrDefault(p.IdFormaPagamento),
+            VlParcela = p.VlParcela,
+            DtVencimento = p.DtVencimento ?? DateOnly.FromDateTime(DateTime.Today)
+        }).ToList();
+
+        return (itens, pagamentos);
+    }
+
     public async Task<string?> GetSituacao(CompraChaveDTO chave) =>
         await _db.Compras
             .Where(c => c.NrNota == chave.NrNota
@@ -196,12 +234,24 @@ public class CompraBusiness
                 throw new ValidacaoException("Informe ao menos uma parcela de pagamento para finalizar a compra.");
 
             var somaParcelas = novasParcelas.Sum(p => p.VlParcela);
-            if (Math.Abs(somaParcelas - totalCompra) > ToleranciaParcelas)
+            if (Math.Round(somaParcelas, 2) != Math.Round(totalCompra, 2))
                 throw new ValidacaoException($"A soma das parcelas (R$ {somaParcelas:N2}) é diferente do total da compra "
                                            + $"(R$ {totalCompra:N2}).", "Ajuste os pagamentos.");
 
+            // Fornecedor e produtos podem ter sido inativados depois de aberto o rascunho.
+            if (!await _db.Fornecedores.AnyAsync(f => f.IdFornecedor == chave.IdFornecedor && f.FlAtivo))
+                throw new ValidacaoException("O fornecedor desta compra está inativo.", "Reative o fornecedor para finalizar a compra.");
+            var idsProdutos = novosItens.Where(i => i.IdProduto != null).Select(i => i.IdProduto!.Value).Distinct().ToList();
+            var produtosInativos = await _db.Produtos
+                .Where(p => idsProdutos.Contains(p.IdProduto) && !p.FlAtivo)
+                .Select(p => p.DsProduto)
+                .ToListAsync();
+            if (produtosInativos.Count > 0)
+                throw new ValidacaoException($"Produto inativo na compra: {string.Join(", ", produtosInativos)}.",
+                                             "Reative o produto ou retire-o da compra.");
+
             // Entrada no estoque dos produtos, recalculando o custo medio.
-            await AjustarEstoque(novosItens, +1);
+            await AjustarEstoque(novosItens, +1, chave, data: (input.DtChegada ?? input.DtEmissao)?.ToDateTime(TimeOnly.MinValue));
         }
 
         // ---------- 7. Persistencia do cabecalho ----------
@@ -305,17 +355,28 @@ public class CompraBusiness
         if (compra.TpStatus == Compra.RASCUNHO)
             throw new ValidacaoException("Rascunho não pode ser cancelado.", "Para desistir do rascunho, use Excluir.");
 
+        // Titulos travados ate o fim do cancelamento: uma baixa feita ao mesmo
+        // tempo espera e depois encontra o titulo cancelado (ou, se veio antes,
+        // o cancelamento encontra o titulo pago e para).
+        // A trava vai pela chave primaria, a mesma que a baixa trava: pela chave
+        // da compra o banco travaria so a linha do indice e as duas nao se veriam.
+        await using var tx = await _db.Database.BeginTransactionAsync();
+        var ids = await _db.ContasAPagar
+            .Where(c => c.NrNota == chave.NrNota && c.NrSerie == chave.NrSerie
+                     && c.NrModelo == chave.NrModelo && c.IdFornecedor == chave.IdFornecedor)
+            .Select(c => c.IdContaPagar).ToListAsync();
+        foreach (var id in ids)
+            await _db.Database.ExecuteSqlInterpolatedAsync(
+                $"SELECT 1 FROM dbo.tbFinContasAPagar WITH (UPDLOCK, ROWLOCK) WHERE idContaPagar = {id}");
         var contas = await GetContasGeradas(chave);
         if (contas.Any(c => c.DsStatus == ContaAPagar.PAGO || c.VlPago > 0))
             throw new ValidacaoException("Não é possível cancelar: existe título já pago/baixado no Contas a Pagar.",
                                          "Estorne o pagamento primeiro.");
 
-        await using var tx = await _db.Database.BeginTransactionAsync();
-
         if (compra.TpStatus == Compra.FINALIZADA)
         {
             // Devolve o estoque que a compra deu entrada.
-            await AjustarEstoque(compra.Itens, -1, validar: true);
+            await AjustarEstoque(compra.Itens, -1, chave, validar: true);
 
             // Titulos sao cancelados (nao excluidos) para preservar o historico.
             foreach (var conta in contas)
@@ -393,6 +454,9 @@ public class CompraBusiness
         var contas = await GetContasGeradas(chave);
         if (contas.Count > 0)
             throw new ValidacaoException("Não é possível excluir: existem títulos no Contas a Pagar vinculados a esta compra.");
+        if (await _movimentacao.CompraTemMovimento(chave))
+            throw new ValidacaoException("Não é possível excluir: esta compra movimentou o estoque.",
+                                         "Ela fica no histórico da movimentação de estoque.");
 
         await using var tx = await _db.Database.BeginTransactionAsync();
 
@@ -430,6 +494,9 @@ public class CompraBusiness
 
         if (input.VlFrete < 0 || input.VlSeguro < 0 || input.VlOutrasDespesas < 0)
             throw new ValidacaoException("Frete, seguro e outros gastos não podem ser negativos.");
+        if (Module.PassaDasCasas(input.VlFrete, 2) || Module.PassaDasCasas(input.VlSeguro, 2)
+            || Module.PassaDasCasas(input.VlOutrasDespesas, 2))
+            throw new ValidacaoException("Frete, seguro e outros gastos aceitam no máximo 2 casas decimais.");
 
         var fornecedor = await _db.Fornecedores.AsNoTracking()
             .Where(f => f.IdFornecedor == input.IdFornecedor)
@@ -506,6 +573,9 @@ public class CompraBusiness
             // Quantidade com no maximo 2 casas decimais.
             if (dto.QtItem != Math.Round(dto.QtItem, 2))
                 throw new ValidacaoException($"Item {seq}: a quantidade aceita no máximo 2 casas decimais.");
+            // Preco unitario com no maximo 4 casas (tamanho da coluna).
+            if (Module.PassaDasCasas(dto.VlUnitario, 4))
+                throw new ValidacaoException($"Item {seq}: o preço unitário aceita no máximo 4 casas decimais.");
 
             var totalItem = CalcularTotalItem(seq, dto.IdProduto, dto.QtItem, dto.VlUnitario, dto.VlDesconto);
             total += totalItem;
@@ -579,8 +649,14 @@ public class CompraBusiness
                 throw new ValidacaoException($"Parcela {seq}: selecione a forma de pagamento.");
             if (dto.VlParcela <= 0)
                 throw new ValidacaoException($"Parcela {seq}: o valor deve ser maior que zero.");
+            if (Module.PassaDasCasas(dto.VlParcela, 2))
+                throw new ValidacaoException($"Parcela {seq}: o valor aceita no máximo 2 casas decimais.");
             if (dto.DtVencimento == null)
                 throw new ValidacaoException($"Parcela {seq}: informe a data de vencimento.");
+            // A parcela nasce com a nota: nao vence antes da emissao.
+            if (input.DtEmissao is DateOnly emissao && dto.DtVencimento < emissao)
+                throw new ValidacaoException($"Parcela {seq}: o vencimento ({dto.DtVencimento:dd/MM/yyyy}) não pode ser anterior "
+                                           + $"à emissão da nota ({emissao:dd/MM/yyyy}).");
 
             parcelas.Add(new CompraPagamento
             {
@@ -639,11 +715,14 @@ public class CompraBusiness
     // (entrada pela compra) ou -1 (estorno). validar=true impede que o estorno
     // deixe saldo negativo. Mesmo mecanismo de saldo usado por VendaBusiness,
     // com o sinal invertido.
-    private async Task AjustarEstoque(IEnumerable<CompraItem> itens, int sinal, bool validar = false)
+    // data: quando a mercadoria entrou (chegada da nota); o estorno do
+    // cancelamento fica na data do cancelamento.
+    private async Task AjustarEstoque(IEnumerable<CompraItem> itens, int sinal, CompraChaveDTO chave, bool validar = false,
+                                      DateTime? data = null)
     {
         foreach (var item in itens.Where(i => i.TpItem == CompraItem.PRODUTO && i.IdProduto != null))
         {
-            var prod = await _db.Produtos.FindAsync(item.IdProduto);
+            var prod = await _movimentacao.ProdutoTravado(item.IdProduto!.Value);
             if (prod == null) continue;
 
             var atual = prod.QtSaldo ?? 0;
@@ -656,31 +735,12 @@ public class CompraBusiness
 
             // O custo medio usa o saldo ANTERIOR ao movimento, por isso e
             // calculado antes de gravar o novo saldo.
-            prod.VlCusto = CalcularCustoMedio(atual, prod.VlCusto ?? 0, sinal * item.QtItem, item.VlCustoUnitario)
+            prod.VlCusto = MovimentacaoEstoqueBusiness.CalcularCustoMedio(atual, prod.VlCusto ?? 0, sinal * item.QtItem, item.VlCustoUnitario)
                            ?? prod.VlCusto;
-            prod.QtSaldo = novo;
+            // sinal -1 desfaz a entrada da compra (estorno).
+            await _movimentacao.Registrar(prod, sinal * item.QtItem, MovimentacaoEstoque.COMPRA, estorno: sinal < 0,
+                                    item.VlCustoUnitario, compra: chave, data: data);
         }
     }
 
-    // Custo medio ponderado, conforme definido em aula:
-    //   custoMedio = (saldo * custo + qtde * custoUnit) / (saldo + qtde)
-    // custoUnit e o VlCustoUnitario do item, que ja sai com o desconto
-    // (vlTotal = bruto - desconto) e com o rateio de frete/seguro/outros.
-    // No estorno qtde vem negativa, o que desfaz a media daquela entrada.
-    // Retorna null quando a conta nao se aplica (saldo final zerado ou custo
-    // negativo); nesse caso o custo atual do produto e mantido.
-    private static decimal? CalcularCustoMedio(decimal saldo, decimal custo, decimal qtde, decimal custoUnit)
-    {
-        // Saldo negativo nao tem custo a ponderar: entra na media como zero.
-        if (saldo < 0) saldo = 0;
-
-        var saldoFinal = saldo + qtde;
-        if (saldoFinal <= 0) return null;
-
-        var custoMedio = (saldo * custo + qtde * custoUnit) / saldoFinal;
-        if (custoMedio < 0) return null;
-
-        // 6 casas, igual ao custo unitario do item (VlCustoUnitario).
-        return Math.Round(custoMedio, 6, MidpointRounding.AwayFromZero);
-    }
 }

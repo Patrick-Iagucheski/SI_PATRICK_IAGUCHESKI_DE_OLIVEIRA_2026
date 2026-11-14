@@ -22,11 +22,11 @@
                     <div class="row g-3">
                         <div class="col-12">
                             <label class="form-label">Nome do Serviço *</label>
-                            <input type="text" class="form-control" asp-for="ServicoForm.DsServico" id="sNome" required />
+                            <input maxlength="60" type="text" class="form-control" asp-for="ServicoForm.DsServico" id="sNome" required />
                         </div>
                         <div class="col-12">
                             <label class="form-label">Descrição</label>
-                            <textarea class="form-control" rows="2" asp-for="ServicoForm.DsDescricao" id="sDesc"></textarea>
+                            <textarea maxlength="500" class="form-control" rows="2" asp-for="ServicoForm.DsDescricao" id="sDesc"></textarea>
                         </div>
                         <div class="col-md-6">
                             <label class="form-label">Valor (R$) *</label>

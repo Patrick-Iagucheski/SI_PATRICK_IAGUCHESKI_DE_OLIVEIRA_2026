@@ -13,6 +13,7 @@ public class CondicaoPagamento : EntidadeComRegistro
     [Column("idCondicaoPagamento")]
     public int IdCondicaoPagamento { get; set; }
 
+    [Nome]
     [Column("dsCondicao")]
     [Required, MaxLength(100)]
     public string DsCondicao { get; set; } = string.Empty;

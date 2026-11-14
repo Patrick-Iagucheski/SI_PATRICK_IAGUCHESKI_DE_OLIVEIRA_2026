@@ -19,7 +19,7 @@ function limparFormFuncionario() {
     limparCidade('fCidade');
 }
 
-function editarFunc(id,nome,cpf,tel,email,end,bairro,cidade,cep,nasc,adm,dem,idCargo,sal,com,obs,ativo,apelido,rg,numero,complemento,sexo) {
+function editarFunc(id,nome,cpf,tel,email,end,bairro,cidade,cep,nasc,adm,dem,idCargo,sal,com,obs,ativo,apelido,rg,numero,complemento,sexo, cargoNome) {
     document.getElementById('funTitulo').innerHTML = '<i class="bi bi-pencil me-2"></i>Editar Funcionário';
     document.getElementById('fId').value = id;
     document.getElementById('fCodigoDisplay').value = id;
@@ -39,7 +39,11 @@ function editarFunc(id,nome,cpf,tel,email,end,bairro,cidade,cep,nasc,adm,dem,idC
     document.getElementById('fNasc').value = nasc;
     document.getElementById('fAdm').value = adm;
     document.getElementById('fDem').value = dem;
-    document.getElementById('fCargo').value = idCargo;
+    // Cargo fora da lista (inativado depois): entra como opcao para nao se perder ao salvar.
+    const cargo = document.getElementById('fCargo');
+    if (idCargo && !cargo.querySelector('option[value="' + idCargo + '"]'))
+        cargo.add(new Option(cargoNome || 'Cargo inativo', idCargo));
+    cargo.value = idCargo;
     document.getElementById('fSal').value = sal;
     document.getElementById('fCom').value = com;
     document.getElementById('fObs').value = obs;
@@ -124,7 +128,7 @@ function editarFuncionarioPorRegistro(f) {
         f.end || '', f.bairro || '', (f.idCidade ?? ''), f.cep || '',
         f.nasc || '', f.adm || '', f.dem || '', (f.idCargo ?? ''),
         (f.sal ?? ''), (f.com ?? ''), f.obs || '', (f.ativo ? 'True' : 'False'),
-        f.apelido || '', f.rg || '', f.numero || '', f.complemento || '', f.sexo || ''
+        f.apelido || '', f.rg || '', f.numero || '', f.complemento || '', f.sexo || '', f.cargoNome || ''
     );
 }
 
@@ -156,3 +160,13 @@ const PESQUISA_FUNCIONARIO = {
 function abrirPesquisaFuncionario(opcoes, titulo = 'Pesquisar Funcionário') {
     abrirPesquisaComCadastro({ ...PESQUISA_FUNCIONARIO, titulo }, opcoes);
 }
+
+// CPF ja cadastrado: carrega o cadastro existente (carregarPorDocumento no module.js).
+carregarPorDocumento({
+    idCampo: 'fId',
+    campos: [{ id: 'fCpf', completo: cpfValido, doc: f => f.cpf }],
+    url: (doc, inativos) => urlFuncionarios('BuscarFuncionarios') + '&cpf=' + encodeURIComponent(doc) + '&incluirInativos=' + inativos,
+    preencher: editarFuncionarioPorRegistro,
+    modal: 'modalFuncionario',
+    nome: f => f.nome
+});

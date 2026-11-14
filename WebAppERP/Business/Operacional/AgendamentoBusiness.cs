@@ -51,6 +51,19 @@ public class AgendamentoBusiness
                           .Take(100).ToListAsync();
     }
 
+    // Venda (aberta ou finalizada) de cada agendamento, para a pesquisa da Venda
+    // nao deixar escolher um agendamento ja cobrado.
+    public async Task<Dictionary<int, int>> VendasDosAgendamentos(IEnumerable<int> ids)
+    {
+        var lista = ids.Distinct().ToList();
+        return (await _db.Vendas
+                .Where(v => v.IdAgendamento != null && lista.Contains(v.IdAgendamento.Value) && v.TpStatus != Venda.CANCELADA)
+                .Select(v => new { Ag = v.IdAgendamento!.Value, v.IdVenda })
+                .ToListAsync())
+            .GroupBy(x => x.Ag)
+            .ToDictionary(g => g.Key, g => g.Min(x => x.IdVenda));
+    }
+
     // Agenda do dia.
     public async Task<List<Agendamento>> Listar(DateOnly data) =>
         await _db.Agendamentos
@@ -62,13 +75,21 @@ public class AgendamentoBusiness
             .ToListAsync();
 
     // Agendamentos que podem originar uma venda: os mais recentes, sem os cancelados.
-    public async Task<List<Agendamento>> ListarParaVenda() =>
-        await _db.Agendamentos
+    // Lista do campo de agendamento da venda: os de hoje primeiro (pela hora) e os
+    // dos ultimos 7 dias, sem os cancelados. Outro dia sai pela pesquisa do campo.
+    public async Task<List<Agendamento>> ListarParaVenda()
+    {
+        var hoje = DateOnly.FromDateTime(DateTime.Today);
+        var inicio = hoje.AddDays(-7);
+        return await _db.Agendamentos
             .Include(a => a.Cliente)
-            .Where(a => a.TpStatus != Agendamento.CANCELADO)
-            .OrderByDescending(a => a.DtAgendamento).ThenByDescending(a => a.HrInicio)
-            .Take(100)
+            .Where(a => a.TpStatus != Agendamento.CANCELADO && a.DtAgendamento >= inicio && a.DtAgendamento <= hoje)
+            // Ja cobrado (em venda aberta ou finalizada) nao entra de novo.
+            .Where(a => !_db.Vendas.Any(v => v.IdAgendamento == a.IdAgendamento && v.TpStatus != Venda.CANCELADA))
+            .OrderByDescending(a => a.DtAgendamento).ThenBy(a => a.HrInicio)
+            .Take(300)
             .ToListAsync();
+    }
 
     // ============================================================
     // Gravacao
@@ -98,6 +119,10 @@ public class AgendamentoBusiness
             throw new ValidacaoException("Situação inválida para um novo agendamento.");
         if (!Fluxo.ContainsKey(status))
             throw new ValidacaoException("Situação do agendamento inválida.");
+        // Na alteracao a situacao so fica como estava ou vai para a proxima permitida.
+        if (registro != null && status != registro.TpStatus && !Fluxo[registro.TpStatus].Contains(status))
+            throw new ValidacaoException("Situação do agendamento inválida.",
+                                         "A situação só avança pela ordem: Agendado, Confirmado, Em atendimento, Concluído.");
 
         // Cliente, funcionario e servico: precisam existir; inativos so sao
         // aceitos se ja eram os do agendamento (alteracao).

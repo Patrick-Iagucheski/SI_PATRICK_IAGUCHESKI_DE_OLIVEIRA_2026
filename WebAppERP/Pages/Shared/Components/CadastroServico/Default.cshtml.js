@@ -17,14 +17,18 @@ function limparFormServico() {
     definirAtivo('sAtivo', true);
 }
 
-function editarServico(id, nome, desc, valor, duracao, idCategoria, ativo) {
+function editarServico(id, nome, desc, valor, duracao, idCategoria, ativo, categoriaNome) {
     document.getElementById('svTitulo').innerHTML = '<i class="bi bi-pencil me-2"></i>Editar Serviço';
     document.getElementById('sId').value = id;
     document.getElementById('sNome').value = nome || '';
     document.getElementById('sDesc').value = desc || '';
     document.getElementById('sValor').value = valor ?? '';
     document.getElementById('sDuracao').value = duracao ?? '';
-    document.getElementById('sCat').value = idCategoria || '';
+    // Categoria fora da lista (inativada depois): entra como opcao para nao se perder ao salvar.
+    const cat = document.getElementById('sCat');
+    if (idCategoria && !cat.querySelector('option[value="' + idCategoria + '"]'))
+        cat.add(new Option(categoriaNome || 'Categoria inativa', idCategoria));
+    cat.value = idCategoria || '';
     definirAtivo('sAtivo', ativo === true || ativo === 'True');
 }
 
@@ -101,7 +105,7 @@ const PESQUISA_SERVICO = {
                    s.duracao ? s.duracao + ' min' : '-', 'R$ ' + moeda(s.valor)],
     modal: 'modalServico',
     evento: 'servico:salvo',
-    preencher: s => editarServico(s.id, s.nome, s.descricao, s.valor, s.duracao, s.idCategoria, s.ativo),
+    preencher: s => editarServico(s.id, s.nome, s.descricao, s.valor, s.duracao, s.idCategoria, s.ativo, s.categoria),
     limpar: limparFormServico,
     urlExcluir: () => urlServicos('Excluir'),
     nome: s => s.nome

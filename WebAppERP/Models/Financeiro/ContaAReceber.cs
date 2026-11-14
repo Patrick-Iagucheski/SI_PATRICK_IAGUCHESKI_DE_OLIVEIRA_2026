@@ -61,6 +61,7 @@ public class ContaAReceber : EntidadeComRegistro
     [Required, MaxLength(20)]
     public string DsStatus { get; set; } = PENDENTE;
 
+    [MultiLinha]
     [Column("dsObservacao")]
     [MaxLength(500)]
     public string? DsObservacao { get; set; }

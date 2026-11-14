@@ -85,6 +85,7 @@ public class Compra : EntidadeComRegistro
     [Required, MaxLength(20)]
     public string TpStatus { get; set; } = RASCUNHO;
 
+    [MultiLinha]
     [Column("dsObservacao")]
     [MaxLength(500)]
     public string? DsObservacao { get; set; }

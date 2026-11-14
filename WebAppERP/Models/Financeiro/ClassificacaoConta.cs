@@ -15,6 +15,7 @@ public class ClassificacaoConta : EntidadeComRegistro
     [Column("idClassificacaoConta")]
     public int IdClassificacaoConta { get; set; }
 
+    [Nome]
     [Column("dsClassificacaoConta")]
     [Required(ErrorMessage = "A descrição da classificação é obrigatória.")]
     [MaxLength(100)]
