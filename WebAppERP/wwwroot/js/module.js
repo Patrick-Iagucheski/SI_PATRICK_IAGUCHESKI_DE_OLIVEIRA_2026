@@ -112,6 +112,17 @@ function erroInscEstadual(valor) {
     return '';
 }
 
+// Inscricao Municipal digitada: vazia, ISENTO ou numeros (com ou sem mascara)
+// de 7 a 15 digitos (mesma regra do Module.InscricaoMunicipal). Devolve o erro ou ''.
+function erroInscMunicipal(valor) {
+    const v = (valor || '').trim();
+    if (!v || v.toUpperCase() === 'ISENTO') return '';
+    const d = v.replace(/\D/g, '');
+    if (/[^\d.\-\/ ]/.test(v) || d.length < 7 || d.length > 15)
+        return 'Inscrição Municipal inválida. Informe de 7 a 15 números ou a palavra ISENTO.';
+    return '';
+}
+
 function cnpjValido(cnpj) {
     const d = (cnpj || '').replace(/\D/g, '');
     if (d.length !== 14 || /^(\d)\1{13}$/.test(d)) return false;
@@ -1059,3 +1070,57 @@ function statusBadge(ativo) {
         ? '<span class="badge-status badge-ativo">Ativo</span>'
         : '<span class="badge-status badge-inativo">Inativo</span>';
 }
+
+// ===== Numeros a direita nas grades =====
+// Coluna em que toda celula preenchida e um numero (codigo, quantidade, valor
+// "R$ 1.234,56", percentual "10%", "30 dia(s)") ou um campo numerico fica alinhada a
+// direita, com o cabecalho junto. Vale para toda tabela do sistema, inclusive
+// as montadas por JS (pesquisas, itens, parcelas), sem marcar coluna por coluna.
+// Documento, CEP, telefone e data tem traco, barra ou parenteses: ficam como estao.
+const EH_NUMERO = /^(R\$\s*)?[-+]?\d[\d.]*(,\d+)?\s*(%|dia\(s\)|dias?|min)?(\s*\([\d.,]+\s*%\))?$/i;
+
+function alinharNumeros() {
+    document.querySelectorAll('table').forEach(tabela => {
+        const linhas = [...tabela.tBodies].flatMap(b => [...b.rows]);
+        const colunas = Math.max(0, ...linhas.map(r => r.cells.length));
+        const completas = linhas.filter(r => r.cells.length === colunas);
+        for (let i = 0; i < colunas; i++) {
+            let numerica = false;
+            for (const linha of completas) {
+                const cel = linha.cells[i];
+                const campo = cel.querySelector('input, select, textarea, button');
+                if (campo) {
+                    if (campo.matches('input[type="number"], input.num')) { numerica = true; continue; }
+                    numerica = false; break;
+                }
+                const texto = cel.textContent.trim();
+                if (!texto) continue;
+                if (!EH_NUMERO.test(texto)) { numerica = false; break; }
+                numerica = true;
+            }
+            if (!numerica) continue;
+            // Centralizada (text-center) tambem passa para a direita.
+            const direita = c => { c.classList.remove('text-center', 'text-start'); c.classList.add('text-end'); };
+            completas.forEach(r => direita(r.cells[i]));
+            const cab = tabela.tHead?.rows[tabela.tHead.rows.length - 1];
+            if (cab?.cells.length === colunas) direita(cab.cells[i]);
+        }
+    });
+}
+
+// Roda ao abrir a tela e sempre que uma grade e montada ou atualizada.
+(function () {
+    let agendado = false;
+    const agendar = () => {
+        if (agendado) return;
+        agendado = true;
+        requestAnimationFrame(() => { agendado = false; alinharNumeros(); });
+    };
+    document.addEventListener('DOMContentLoaded', () => {
+        alinharNumeros();
+        new MutationObserver(muts => {
+            if (muts.some(m => m.target.closest?.('table') || [...m.addedNodes].some(n => n.nodeType === 1 && (n.matches('table, tr, tbody') || n.querySelector?.('table')))))
+                agendar();
+        }).observe(document.body, { childList: true, subtree: true });
+    });
+})();

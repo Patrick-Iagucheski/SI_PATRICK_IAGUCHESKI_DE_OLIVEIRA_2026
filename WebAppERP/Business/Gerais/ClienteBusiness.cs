@@ -166,7 +166,6 @@ public class ClienteBusiness
         c.NrRG = Module.Truncar(c.NrRG, 12);
         c.DsNomeFantasia = Module.Truncar(c.DsNomeFantasia?.Trim(), 150);
         // Inscricao Estadual (so juridica) e conferida e tira a mascara no Validar.
-        c.NrInscMunicipal = Module.Truncar(c.NrInscMunicipal?.Trim(), 15);
         c.NrTelefoneFixo = Module.Truncar(c.NrTelefoneFixo, 11);
         c.NrCelular = Module.Truncar(c.NrCelular, 11);
         c.DsSite = Module.Truncar(c.DsSite?.Trim(), 150);
@@ -203,13 +202,13 @@ public class ClienteBusiness
                 throw new ValidacaoException("CNPJ inválido. Verifique os números informados.");
 
             // Inscricoes opcionais, validadas quando preenchidas (mesma regra do fornecedor).
-            // Inscricao Estadual: ISENTO ou o numero do estado da cidade.
-            var ieAnterior = c.IdCliente > 0
-                ? await _db.Clientes.Where(x => x.IdCliente == c.IdCliente).Select(x => x.NrInscEstadual).FirstOrDefaultAsync()
+            // Inscricoes: ISENTO ou o numero (a estadual conferida pelo estado da
+            // cidade). A que o cadastro ja tinha e nao mudou fica como esta.
+            var anterior = c.IdCliente > 0
+                ? await _db.Clientes.Where(x => x.IdCliente == c.IdCliente).Select(x => new { x.NrInscEstadual, x.NrInscMunicipal }).FirstOrDefaultAsync()
                 : null;
-            c.NrInscEstadual = Module.InscricaoEstadual(c.NrInscEstadual, await Module.UfDaCidade(_db, c.IdCidade), ieAnterior);
-            if (!string.IsNullOrEmpty(c.NrInscMunicipal) && c.NrInscMunicipal.Length < 7)
-                throw new ValidacaoException("Inscrição Municipal deve ter de 7 a 15 caracteres.");
+            c.NrInscEstadual = Module.InscricaoEstadual(c.NrInscEstadual, await Module.UfDaCidade(_db, c.IdCidade), anterior?.NrInscEstadual);
+            c.NrInscMunicipal = Module.InscricaoMunicipal(c.NrInscMunicipal, anterior?.NrInscMunicipal);
         }
 
         // Condicao de pagamento vem da pesquisa do campo; so aceita uma ja cadastrada e

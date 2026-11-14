@@ -74,8 +74,8 @@ document.querySelector('#modalCliente form')?.addEventListener('submit', functio
     if (tipo === 'J') {
         const erroIE = erroInscEstadual(document.getElementById('cliNrInscEstadual').value);
         if (erroIE) { e.preventDefault(); exibirErro(this, erroIE); return; }
-        const im = document.getElementById('cliNrInscMunicipal').value.trim();
-        if (im && (im.length < 7 || im.length > 15)) { e.preventDefault(); exibirErro(this, 'Inscrição Municipal deve ter de 7 a 15 caracteres.'); return; }
+        const erroIM = erroInscMunicipal(document.getElementById('cliNrInscMunicipal').value);
+        if (erroIM) { e.preventDefault(); exibirErro(this, erroIM); return; }
     }
     if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
         e.preventDefault();

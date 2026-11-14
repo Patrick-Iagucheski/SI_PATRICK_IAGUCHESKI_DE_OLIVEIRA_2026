@@ -179,7 +179,6 @@ public class FornecedorBusiness
         f.NrDocumento = Module.Truncar(f.NrDocumento, 30);
         // Na juridica a inscricao e conferida (e tira a mascara) no Validar.
         if (tipo != "J") f.NrInscEstadual = Module.Truncar(f.NrInscEstadual, 13);
-        f.NrInscMunicipal = Module.Truncar(f.NrInscMunicipal, 15);
         f.NrRG = Module.Truncar(f.NrRG, 9);
         f.DsEmail = Module.Truncar(f.DsEmail, 100);
         f.DsObservacao = Module.Truncar(f.DsObservacao, 500);
@@ -228,13 +227,13 @@ public class FornecedorBusiness
         // Inscricoes para Pessoa Juridica (validadas apenas quando preenchidas)
         if (f.TpPessoa == "J")
         {
-            // Inscricao Estadual: ISENTO ou o numero do estado da cidade.
-            var ieAnterior = f.IdFornecedor > 0
-                ? await _db.Fornecedores.Where(x => x.IdFornecedor == f.IdFornecedor).Select(x => x.NrInscEstadual).FirstOrDefaultAsync()
+            // Inscricoes: ISENTO ou o numero (a estadual conferida pelo estado da
+            // cidade). A que o cadastro ja tinha e nao mudou fica como esta.
+            var anterior = f.IdFornecedor > 0
+                ? await _db.Fornecedores.Where(x => x.IdFornecedor == f.IdFornecedor).Select(x => new { x.NrInscEstadual, x.NrInscMunicipal }).FirstOrDefaultAsync()
                 : null;
-            f.NrInscEstadual = Module.InscricaoEstadual(f.NrInscEstadual, await Module.UfDaCidade(_db, f.IdCidade), ieAnterior);
-            if (!string.IsNullOrEmpty(f.NrInscMunicipal) && f.NrInscMunicipal.Length < 7)
-                throw new ValidacaoException("Inscrição Municipal deve ter de 7 a 15 caracteres.");
+            f.NrInscEstadual = Module.InscricaoEstadual(f.NrInscEstadual, await Module.UfDaCidade(_db, f.IdCidade), anterior?.NrInscEstadual);
+            f.NrInscMunicipal = Module.InscricaoMunicipal(f.NrInscMunicipal, anterior?.NrInscMunicipal);
         }
 
         if (!string.IsNullOrWhiteSpace(f.DsEmail) && !new EmailAddressAttribute().IsValid(f.DsEmail))
@@ -257,7 +256,10 @@ public class FornecedorBusiness
                 throw new ValidacaoException("Chave PIX inválida para o tipo selecionado.");
         }
 
-        // Condicao de pagamento vem da pesquisa do campo; so aceita uma ja cadastrada e ativa.
+        // Condicao de pagamento obrigatoria (sugerida na compra). Vem da pesquisa do
+        // campo; so aceita uma ja cadastrada e ativa, ou a que o fornecedor ja tinha.
+        if (f.IdCondicaoPagamento is null)
+            throw new ValidacaoException("Selecione a condição de pagamento do fornecedor.");
         if (f.IdCondicaoPagamento is int idCondicao
             && !await _db.CondicoesPagamento.AnyAsync(c => c.IdCondicaoPagamento == idCondicao && c.FlAtivo)
             && !await _db.Fornecedores.AnyAsync(x => x.IdFornecedor == f.IdFornecedor && x.IdCondicaoPagamento == idCondicao))

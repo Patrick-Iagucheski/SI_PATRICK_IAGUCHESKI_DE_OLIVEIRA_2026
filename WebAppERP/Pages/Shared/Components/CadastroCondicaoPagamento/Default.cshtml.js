@@ -43,7 +43,7 @@ function addParcelaCondicao(dias, idForma, perc, formaNome) {
     const tr = document.createElement('tr');
     const idSelect = 'condForma' + (++seqFormaCondicao);
     tr.innerHTML =
-        '<td><input type="text" class="form-control form-control-sm p-num bg-light" readonly></td>' +
+        '<td><input type="text" class="num form-control form-control-sm p-num bg-light" readonly></td>' +
         '<td><input type="number" min="0" max="' + DIAS_MAXIMOS_CONDICAO + '" class="form-control form-control-sm p-dias" value="' + (dias ?? 0) + '"></td>' +
         '<td><select class="form-select form-select-sm p-forma" id="' + idSelect + '"' +
             ' data-pesquisa="abrirPesquisaFormaCondicao(\'' + idSelect + '\')">' +

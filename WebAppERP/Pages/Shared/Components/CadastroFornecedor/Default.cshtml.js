@@ -69,9 +69,10 @@ document.querySelector('#modalFornecedor form')?.addEventListener('submit', func
     if (tipo === 'J') {
         const erroIE = erroInscEstadual(document.getElementById('formNrInscEstadual').value);
         if (erroIE) { e.preventDefault(); exibirErro(this, erroIE); return; }
-        const im = document.getElementById('formNrInscMunicipal').value.trim();
-        if (im && (im.length < 7 || im.length > 15)) { e.preventDefault(); exibirErro(this, 'Inscrição Municipal deve ter de 7 a 15 caracteres.'); return; }
+        const erroIM = erroInscMunicipal(document.getElementById('formNrInscMunicipal').value);
+        if (erroIM) { e.preventDefault(); exibirErro(this, erroIM); return; }
     }
+    if (!document.getElementById('formIdCondicaoPagamento').value) { e.preventDefault(); exibirErro(this, 'Selecione a condição de pagamento do fornecedor.'); return; }
     if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { e.preventDefault(); exibirErro(this, 'E-mail inválido. Verifique o formato (exemplo: nome@dominio.com).'); return; }
 });
 

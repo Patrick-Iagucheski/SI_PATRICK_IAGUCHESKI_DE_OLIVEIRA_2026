@@ -111,12 +111,12 @@
                 </div>
                 <div class="col-md-2 col-lg-1 col-xxl-2">
                     <label class="form-label">Série *</label>
-                    <input type="text" inputmode="numeric" maxlength="3" class="form-control" asp-for="NrSerie" id="NrSerie"
+                    <input type="text" inputmode="numeric" maxlength="3" class="num form-control" asp-for="NrSerie" id="NrSerie"
                            placeholder="Até 3 dígitos" disabled="@chaveTravada" />
                 </div>
                 <div class="col-md-2">
                     <label class="form-label">Nº *</label>
-                    <input type="text" inputmode="numeric" maxlength="9" class="form-control" asp-for="NrNota" id="NrNota"
+                    <input type="text" inputmode="numeric" maxlength="9" class="num form-control" asp-for="NrNota" id="NrNota"
                            placeholder="Até 9 dígitos" disabled="@chaveTravada" />
                 </div>
                 <div class="@(chaveTravada ? "col-md-5" : "col-md-4")">
@@ -218,7 +218,7 @@
                     </div>
                     <div class="col-md-2 col-xxl-1">
                         <label class="form-label">Total</label>
-                        <input type="text" class="form-control" id="itTotal" readonly />
+                        <input type="text" class="num form-control" id="itTotal" readonly />
                     </div>
                     <div class="col-md-5 col-xxl-3">
                         @* Porcentagem e valor ficam abaixo do rotulo Desconto e
@@ -265,7 +265,7 @@
             <table class="table" id="tblItens">
                 <thead>
                     <tr>
-                        <th style="width: 50px;">#</th>
+                        <th class="text-end" style="width: 50px;">#</th>
                         <th>Produto</th>
                         <th class="text-center">UND</th>
                         <th class="text-end">Qtd.</th>
@@ -312,11 +312,11 @@
                 </div>
                 <div class="col-md-2">
                     <label class="form-label">Total dos Produtos</label>
-                    <input type="text" class="form-control" id="lblTotalProdutos" value="R$ 0,00" readonly />
+                    <input type="text" class="num form-control" id="lblTotalProdutos" value="R$ 0,00" readonly />
                 </div>
                 <div class="col-md-2">
                     <label class="form-label">Custo Adicional</label>
-                    <input type="text" class="form-control" id="lblCustoAdicional" value="R$ 0,00" readonly />
+                    <input type="text" class="num form-control" id="lblCustoAdicional" value="R$ 0,00" readonly />
                 </div>
                 <div class="col-md-2">
                     @* kpi-value (1.75rem) nao cabe em col-md-2 sem quebrar o
@@ -391,7 +391,7 @@
                 <table class="table" id="tblPagamentos">
                     <thead>
                         <tr>
-                            <th style="width: 50px;">#</th>
+                            <th class="text-end" style="width: 50px;">#</th>
                             <th>Condição de Pagamento</th>
                             <th>Forma de Pagamento</th>
                             <th class="text-end">Valor</th>

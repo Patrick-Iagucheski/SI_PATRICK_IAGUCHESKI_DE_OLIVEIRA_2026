@@ -83,7 +83,7 @@
                         <!-- Slot B: Inscricao Municipal (PJ) ou Data de Nascimento (Pessoa Fisica / Estrangeiro / Outro) -->
                         <div class="col-md-4 doc-wrap" id="wrapInscMunicipal">
                             <label class="form-label">Inscrição Municipal</label>
-                            <input type="text" class="form-control" asp-for="FornecedorForm.NrInscMunicipal" id="formNrInscMunicipal" maxlength="15" placeholder="7 a 15 caracteres" />
+                            <input type="text" class="form-control" asp-for="FornecedorForm.NrInscMunicipal" id="formNrInscMunicipal" maxlength="20" placeholder="Números ou ISENTO" />
                         </div>
                         <div class="col-md-4 doc-wrap d-none" id="wrapDataNasc">
                             <label class="form-label">Data de Nascimento</label>
@@ -197,7 +197,7 @@
                     <div class="row g-3 mt-1">
                         <!-- Condicao de pagamento padrao (so as ja cadastradas e ativas) -->
                         <div class="col-md-9">
-                            <label class="form-label">Condição de Pagamento</label>
+                            <label class="form-label">Condição de Pagamento *</label>
                             <select class="form-select" asp-for="FornecedorForm.IdCondicaoPagamento" id="formIdCondicaoPagamento"
                                     data-pesquisa="abrirPesquisaCondicao(opcoesDoSelect('formIdCondicaoPagamento'))" data-titulo-pesquisa="Pesquisar condição de pagamento">
                                 <option value="">Selecione</option>

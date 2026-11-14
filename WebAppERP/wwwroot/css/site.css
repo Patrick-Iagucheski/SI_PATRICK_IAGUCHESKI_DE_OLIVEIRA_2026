@@ -383,6 +383,15 @@ body {
     border-bottom: 1px solid #f1f5f9;
 }
 
+/* Numeros sempre a direita: campos numericos, codigos, totais e valores so
+   leitura (classe num). Nas grades, as colunas numericas recebem text-end
+   pelo alinharNumeros (module.js). */
+input[type="number"],
+input.num,
+input[id$="CodigoDisplay"] {
+    text-align: right;
+}
+
 /* Valores (colunas alinhadas a direita) nao quebram no "R$ " e os botoes
    de acoes (editar/excluir) ficam sempre lado a lado */
 .table tbody td.text-end,

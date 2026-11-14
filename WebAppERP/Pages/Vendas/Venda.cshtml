@@ -73,7 +73,7 @@
             <div class="row g-3">
                 <div class="col-md-2">
                     <label class="form-label">Número</label>
-                    <input type="text" class="form-control" id="vendaNumero" value="@(Model.Vm.Venda.IdVenda > 0 ? "#" + Model.Vm.Venda.IdVenda : "Novo")" disabled />
+                    <input type="text" class="num form-control" id="vendaNumero" value="@(Model.Vm.Venda.IdVenda > 0 ? "#" + Model.Vm.Venda.IdVenda : "Novo")" disabled />
                 </div>
                 <div class="col-md-3">
                     <label class="form-label">Data da Venda</label>
@@ -217,7 +217,7 @@
                     </div>
                     <div class="col-md-2">
                         <label class="form-label">Total</label>
-                        <input type="text" class="form-control" id="itTotal" readonly />
+                        <input type="text" class="num form-control" id="itTotal" readonly />
                     </div>
                     <div class="col-md-2">
                         <button type="button" class="btn btn-primary w-100" id="btnAdicionarItem" onclick="adicionarItem()">
@@ -244,7 +244,7 @@
                 <thead>
                     <tr>
                         <th>Tipo</th>
-                        <th>Código</th>
+                        <th class="text-end">Código</th>
                         <th>Descrição</th>
                         <th class="text-end">Qtd</th>
                         <th class="text-end">Vl. Unitario</th>

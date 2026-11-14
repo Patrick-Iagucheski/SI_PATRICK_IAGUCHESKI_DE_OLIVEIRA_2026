@@ -159,7 +159,6 @@ public class TransportadorBusiness
         t.NrDocumento = Module.Truncar(t.NrDocumento, 30);
         // Na juridica a inscricao e conferida (e tira a mascara) no Validar.
         if (tipo != "J") t.NrInscEstadual = Module.Truncar(t.NrInscEstadual, 13);
-        t.NrInscMunicipal = Module.Truncar(t.NrInscMunicipal, 15);
         t.NrRG = Module.Truncar(t.NrRG, 9);
         t.DsEmail = Module.Truncar(t.DsEmail, 100);
         t.DsObservacao = Module.Truncar(t.DsObservacao, 500);
@@ -203,13 +202,13 @@ public class TransportadorBusiness
         // Inscricoes para Pessoa Juridica (validadas apenas quando preenchidas)
         if (t.TpPessoa == "J")
         {
-            // Inscricao Estadual: ISENTO ou o numero do estado da cidade.
-            var ieAnterior = t.IdTransportador > 0
-                ? await _db.Transportadores.Where(x => x.IdTransportador == t.IdTransportador).Select(x => x.NrInscEstadual).FirstOrDefaultAsync()
+            // Inscricoes: ISENTO ou o numero (a estadual conferida pelo estado da
+            // cidade). A que o cadastro ja tinha e nao mudou fica como esta.
+            var anterior = t.IdTransportador > 0
+                ? await _db.Transportadores.Where(x => x.IdTransportador == t.IdTransportador).Select(x => new { x.NrInscEstadual, x.NrInscMunicipal }).FirstOrDefaultAsync()
                 : null;
-            t.NrInscEstadual = Module.InscricaoEstadual(t.NrInscEstadual, await Module.UfDaCidade(_db, t.IdCidade), ieAnterior);
-            if (!string.IsNullOrEmpty(t.NrInscMunicipal) && t.NrInscMunicipal.Length < 7)
-                throw new ValidacaoException("Inscrição Municipal deve ter de 7 a 15 caracteres.");
+            t.NrInscEstadual = Module.InscricaoEstadual(t.NrInscEstadual, await Module.UfDaCidade(_db, t.IdCidade), anterior?.NrInscEstadual);
+            t.NrInscMunicipal = Module.InscricaoMunicipal(t.NrInscMunicipal, anterior?.NrInscMunicipal);
         }
 
         if (!string.IsNullOrWhiteSpace(t.DsEmail) && !new EmailAddressAttribute().IsValid(t.DsEmail))

@@ -125,6 +125,24 @@ public static class Module
         return resto < 2 ? 0 : 11 - resto;
     }
 
+    // Inscricao Municipal: "ISENTO" ou o numero (com ou sem mascara), de 7 a 15
+    // digitos; cada prefeitura tem o seu formato, entao nao ha digito verificador.
+    // Vazio: null. anterior: a inscricao que o cadastro ja tinha; se nao mudou,
+    // fica como esta.
+    public static string? InscricaoMunicipal(string? valor, string? anterior = null)
+    {
+        if (string.IsNullOrWhiteSpace(valor)) return null;
+        var texto = valor.Trim();
+        if (texto.Equals(ISENTO, StringComparison.OrdinalIgnoreCase)) return ISENTO;
+
+        var digitos = SomenteNumeros(texto)!;
+        if (anterior != null && (texto == anterior || digitos == anterior)) return anterior;
+
+        if (texto.Any(ch => !char.IsDigit(ch) && !".-/ ".Contains(ch)) || digitos.Length is < 7 or > 15)
+            throw new ValidacaoException("Inscrição Municipal inválida.", "Informe de 7 a 15 números ou a palavra ISENTO.");
+        return digitos;
+    }
+
     // UF da cidade do cadastro (para conferir a Inscricao Estadual). null sem cidade.
     public static Task<string?> UfDaCidade(Data.AppDbContext db, int? idCidade) =>
         db.Cidades.Where(c => c.IdCidade == idCidade).Select(c => c.Estado!.SgUF).FirstOrDefaultAsync();

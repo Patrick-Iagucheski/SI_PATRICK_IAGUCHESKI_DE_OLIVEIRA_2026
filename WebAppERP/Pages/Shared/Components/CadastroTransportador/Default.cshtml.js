@@ -59,8 +59,8 @@ document.querySelector('#modalTransportador form')?.addEventListener('submit', f
     if (tipo === 'J') {
         const erroIE = erroInscEstadual(document.getElementById('trNrInscEstadual').value);
         if (erroIE) { e.preventDefault(); exibirErro(this, erroIE); return; }
-        const im = document.getElementById('trNrInscMunicipal').value.trim();
-        if (im && (im.length < 7 || im.length > 15)) { e.preventDefault(); exibirErro(this, 'Inscrição Municipal deve ter de 7 a 15 caracteres.'); return; }
+        const erroIM = erroInscMunicipal(document.getElementById('trNrInscMunicipal').value);
+        if (erroIM) { e.preventDefault(); exibirErro(this, erroIM); return; }
     }
     if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { e.preventDefault(); exibirErro(this, 'E-mail inválido. Verifique o formato (exemplo: nome@dominio.com).'); return; }
 });
