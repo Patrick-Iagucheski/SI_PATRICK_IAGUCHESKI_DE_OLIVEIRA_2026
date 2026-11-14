@@ -100,6 +100,18 @@ function cpfValido(cpf) {
 }
 
 // CNPJ pelos digitos verificadores (aceita com ou sem mascara).
+// Inscricao Estadual digitada: vazia, ISENTO ou numeros (com ou sem mascara)
+// de 8 a 13 digitos. Tamanho e digito do estado sao conferidos no servidor,
+// pela cidade do cadastro (Module.InscricaoEstadual). Devolve o erro ou ''.
+function erroInscEstadual(valor) {
+    const v = (valor || '').trim();
+    if (!v || v.toUpperCase() === 'ISENTO') return '';
+    const d = v.replace(/\D/g, '');
+    if (/[^\d.\-\/ ]/.test(v) || d.length < 8 || d.length > 13)
+        return 'Inscrição Estadual inválida. Informe só os números da inscrição ou a palavra ISENTO.';
+    return '';
+}
+
 function cnpjValido(cnpj) {
     const d = (cnpj || '').replace(/\D/g, '');
     if (d.length !== 14 || /^(\d)\1{13}$/.test(d)) return false;

@@ -177,7 +177,8 @@ public class FornecedorBusiness
         f.NrCpf = Module.Truncar(f.NrCpf, 11);
         f.NrCNPJ = Module.Truncar(f.NrCNPJ, 14);
         f.NrDocumento = Module.Truncar(f.NrDocumento, 30);
-        f.NrInscEstadual = Module.Truncar(f.NrInscEstadual, 13);
+        // Na juridica a inscricao e conferida (e tira a mascara) no Validar.
+        if (tipo != "J") f.NrInscEstadual = Module.Truncar(f.NrInscEstadual, 13);
         f.NrInscMunicipal = Module.Truncar(f.NrInscMunicipal, 15);
         f.NrRG = Module.Truncar(f.NrRG, 9);
         f.DsEmail = Module.Truncar(f.DsEmail, 100);
@@ -227,8 +228,11 @@ public class FornecedorBusiness
         // Inscricoes para Pessoa Juridica (validadas apenas quando preenchidas)
         if (f.TpPessoa == "J")
         {
-            if (!string.IsNullOrEmpty(f.NrInscEstadual) && (f.NrInscEstadual.Length < 8 || !f.NrInscEstadual.All(char.IsDigit)))
-                throw new ValidacaoException("Inscrição Estadual deve ter de 8 a 13 dígitos.");
+            // Inscricao Estadual: ISENTO ou o numero do estado da cidade.
+            var ieAnterior = f.IdFornecedor > 0
+                ? await _db.Fornecedores.Where(x => x.IdFornecedor == f.IdFornecedor).Select(x => x.NrInscEstadual).FirstOrDefaultAsync()
+                : null;
+            f.NrInscEstadual = Module.InscricaoEstadual(f.NrInscEstadual, await Module.UfDaCidade(_db, f.IdCidade), ieAnterior);
             if (!string.IsNullOrEmpty(f.NrInscMunicipal) && f.NrInscMunicipal.Length < 7)
                 throw new ValidacaoException("Inscrição Municipal deve ter de 7 a 15 caracteres.");
         }

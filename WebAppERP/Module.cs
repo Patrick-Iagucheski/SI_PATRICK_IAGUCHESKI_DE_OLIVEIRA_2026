@@ -42,6 +42,93 @@ public static class Module
         return digitos;
     }
 
+    // ============================================================
+    // Inscricao Estadual (pessoa juridica)
+    // ============================================================
+
+    public const string ISENTO = "ISENTO";
+
+    // Quantidade de digitos da inscricao em cada estado. Estado fora da lista
+    // (ou cadastro sem cidade): de 8 a 13 digitos, o tamanho da coluna.
+    private static readonly Dictionary<string, int[]> TamanhosIE = new()
+    {
+        ["AC"] = [13], ["AL"] = [9], ["AP"] = [9], ["AM"] = [9], ["BA"] = [8, 9], ["CE"] = [9],
+        ["DF"] = [13], ["ES"] = [9], ["GO"] = [9], ["MA"] = [9], ["MT"] = [11], ["MS"] = [9],
+        ["MG"] = [13], ["PA"] = [9], ["PB"] = [9], ["PR"] = [10], ["PE"] = [9], ["PI"] = [9],
+        ["RJ"] = [8], ["RN"] = [9, 10], ["RS"] = [10], ["RR"] = [9], ["SC"] = [9], ["SP"] = [12],
+        ["SE"] = [9], ["TO"] = [9, 11]
+    };
+
+    // "ISENTO" ou o numero da inscricao (com ou sem mascara), conferido pelo
+    // estado da cidade do cadastro: so digitos, na quantidade do estado e, em
+    // PR, SC, RS e SP, com o digito verificador. Vazio: null.
+    // anterior: a inscricao que o cadastro ja tinha; se nao mudou, fica como
+    // esta (dado antigo nao trava a gravacao de outro campo).
+    public static string? InscricaoEstadual(string? valor, string? uf, string? anterior = null)
+    {
+        if (string.IsNullOrWhiteSpace(valor)) return null;
+        var texto = valor.Trim();
+        if (texto.Equals(ISENTO, StringComparison.OrdinalIgnoreCase)) return ISENTO;
+
+        var digitos = SomenteNumeros(texto)!;
+        if (anterior != null && digitos == anterior) return anterior;
+
+        if (digitos.Length == 0 || texto.Any(ch => !char.IsDigit(ch) && !".-/ ".Contains(ch)))
+            throw new ValidacaoException("Inscrição Estadual inválida.", "Informe só os números da inscrição ou a palavra ISENTO.");
+
+        uf = uf?.Trim().ToUpperInvariant();
+        if (uf == null || !TamanhosIE.TryGetValue(uf, out var tamanhos))
+        {
+            if (digitos.Length is < 8 or > 13)
+                throw new ValidacaoException("Inscrição Estadual inválida.", "Informe de 8 a 13 dígitos ou a palavra ISENTO.");
+            return digitos;
+        }
+
+        if (!tamanhos.Contains(digitos.Length))
+            throw new ValidacaoException($"Inscrição Estadual inválida para {uf}.",
+                $"A inscrição de {uf} tem {string.Join(" ou ", tamanhos)} dígitos. Confira o número ou a cidade do cadastro.");
+
+        if (!DigitoIEConfere(digitos, uf))
+            throw new ValidacaoException($"Inscrição Estadual inválida para {uf}.",
+                "O dígito verificador não confere. Confira os números informados.");
+        return digitos;
+    }
+
+    // Digito verificador da inscricao (regras da SEFAZ de cada estado). Estado
+    // sem regra aqui: so o tamanho e conferido.
+    private static bool DigitoIEConfere(string ie, string uf)
+    {
+        int[] d = ie.Select(ch => ch - '0').ToArray();
+        switch (uf)
+        {
+            case "PR":   // 10 digitos: 8 + 2 verificadores
+                return d[8] == Modulo11(d[..8], [3, 2, 7, 6, 5, 4, 3, 2])
+                    && d[9] == Modulo11(d[..9], [4, 3, 2, 7, 6, 5, 4, 3, 2]);
+            case "SC":   // 9 digitos: 8 + 1 verificador
+                return d[8] == Modulo11(d[..8], [9, 8, 7, 6, 5, 4, 3, 2]);
+            case "RS":   // 10 digitos: 9 + 1 verificador
+                return d[9] == Modulo11(d[..9], [2, 9, 8, 7, 6, 5, 4, 3, 2]);
+            case "SP":   // 12 digitos: verificadores na 9a e na 12a posicao
+                return d[8] == Soma(d[..8], [1, 3, 4, 5, 6, 7, 8, 10]) % 11 % 10
+                    && d[11] == Soma(d[..11], [3, 2, 10, 9, 8, 7, 6, 5, 4, 3, 2]) % 11 % 10;
+            default:
+                return true;
+        }
+    }
+
+    private static int Soma(int[] digitos, int[] pesos) => digitos.Select((v, i) => v * pesos[i]).Sum();
+
+    // Resto 0 ou 1: digito 0; senao, 11 - resto.
+    private static int Modulo11(int[] digitos, int[] pesos)
+    {
+        var resto = Soma(digitos, pesos) % 11;
+        return resto < 2 ? 0 : 11 - resto;
+    }
+
+    // UF da cidade do cadastro (para conferir a Inscricao Estadual). null sem cidade.
+    public static Task<string?> UfDaCidade(Data.AppDbContext db, int? idCidade) =>
+        db.Cidades.Where(c => c.IdCidade == idCidade).Select(c => c.Estado!.SgUF).FirstOrDefaultAsync();
+
     // Data de nascimento: nao pode ser futura nem anterior a 1900.
     public static void ValidarNascimento(DateOnly? data)
     {

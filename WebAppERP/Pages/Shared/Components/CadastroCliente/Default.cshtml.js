@@ -10,7 +10,8 @@ aplicarMascara('cliNrTelefoneFixo', mascaraTelefone);
 aplicarMascara('cliNrCelular', mascaraTelefone);
 aplicarMascara('cliNrRG', mascaraRG);
 // Inscricao estadual: so digitos.
-document.getElementById('cliNrInscEstadual')?.addEventListener('input', e => { e.target.value = e.target.value.replace(/\D/g, ''); });
+// Inscricao Estadual: numeros (com mascara) ou a palavra ISENTO.
+document.getElementById('cliNrInscEstadual')?.addEventListener('input', e => { e.target.value = e.target.value.toUpperCase(); });
 
 // ===== Tipo de Pessoa: alterna o documento e os campos de pessoa =====
 // RG so na fisica; sexo e nascimento na fisica e no estrangeiro (nao na
@@ -71,8 +72,8 @@ document.querySelector('#modalCliente form')?.addEventListener('submit', functio
         return;
     }
     if (tipo === 'J') {
-        const ie = document.getElementById('cliNrInscEstadual').value.replace(/\D/g, '');
-        if (ie && (ie.length < 8 || ie.length > 13)) { e.preventDefault(); exibirErro(this, 'Inscrição Estadual deve ter de 8 a 13 dígitos.'); return; }
+        const erroIE = erroInscEstadual(document.getElementById('cliNrInscEstadual').value);
+        if (erroIE) { e.preventDefault(); exibirErro(this, erroIE); return; }
         const im = document.getElementById('cliNrInscMunicipal').value.trim();
         if (im && (im.length < 7 || im.length > 15)) { e.preventDefault(); exibirErro(this, 'Inscrição Municipal deve ter de 7 a 15 caracteres.'); return; }
     }

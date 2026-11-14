@@ -67,8 +67,8 @@ document.querySelector('#modalFornecedor form')?.addEventListener('submit', func
         if (rg && rg.length !== 9) { e.preventDefault(); exibirErro(this, 'RG inválido. Informe 9 dígitos.'); return; }
     }
     if (tipo === 'J') {
-        const ie = document.getElementById('formNrInscEstadual').value.replace(/\D/g, '');
-        if (ie && (ie.length < 8 || ie.length > 13)) { e.preventDefault(); exibirErro(this, 'Inscrição Estadual deve ter de 8 a 13 dígitos.'); return; }
+        const erroIE = erroInscEstadual(document.getElementById('formNrInscEstadual').value);
+        if (erroIE) { e.preventDefault(); exibirErro(this, erroIE); return; }
         const im = document.getElementById('formNrInscMunicipal').value.trim();
         if (im && (im.length < 7 || im.length > 15)) { e.preventDefault(); exibirErro(this, 'Inscrição Municipal deve ter de 7 a 15 caracteres.'); return; }
     }

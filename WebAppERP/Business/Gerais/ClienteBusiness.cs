@@ -165,7 +165,7 @@ public class ClienteBusiness
         c.NrDocumento = Module.Truncar(c.NrDocumento, 30);
         c.NrRG = Module.Truncar(c.NrRG, 12);
         c.DsNomeFantasia = Module.Truncar(c.DsNomeFantasia?.Trim(), 150);
-        c.NrInscEstadual = Module.Truncar(c.NrInscEstadual?.Trim(), 13);
+        // Inscricao Estadual (so juridica) e conferida e tira a mascara no Validar.
         c.NrInscMunicipal = Module.Truncar(c.NrInscMunicipal?.Trim(), 15);
         c.NrTelefoneFixo = Module.Truncar(c.NrTelefoneFixo, 11);
         c.NrCelular = Module.Truncar(c.NrCelular, 11);
@@ -203,8 +203,11 @@ public class ClienteBusiness
                 throw new ValidacaoException("CNPJ inválido. Verifique os números informados.");
 
             // Inscricoes opcionais, validadas quando preenchidas (mesma regra do fornecedor).
-            if (!string.IsNullOrEmpty(c.NrInscEstadual) && (c.NrInscEstadual.Length < 8 || !c.NrInscEstadual.All(char.IsDigit)))
-                throw new ValidacaoException("Inscrição Estadual deve ter de 8 a 13 dígitos.");
+            // Inscricao Estadual: ISENTO ou o numero do estado da cidade.
+            var ieAnterior = c.IdCliente > 0
+                ? await _db.Clientes.Where(x => x.IdCliente == c.IdCliente).Select(x => x.NrInscEstadual).FirstOrDefaultAsync()
+                : null;
+            c.NrInscEstadual = Module.InscricaoEstadual(c.NrInscEstadual, await Module.UfDaCidade(_db, c.IdCidade), ieAnterior);
             if (!string.IsNullOrEmpty(c.NrInscMunicipal) && c.NrInscMunicipal.Length < 7)
                 throw new ValidacaoException("Inscrição Municipal deve ter de 7 a 15 caracteres.");
         }
