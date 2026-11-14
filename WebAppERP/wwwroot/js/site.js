@@ -332,9 +332,34 @@ if (document.querySelector('[data-gravou]')) avisarGravacao();
         else salvar();
     }
 
+    // Limite de abas abertas, contando a Principal: cada aba e um iframe com a
+    // pagina carregada, e abas demais pesam no navegador e lotam a barra.
+    var LIMITE_ABAS = 35;
+
+    function avisarLimiteAbas() {
+        var el = document.getElementById('modalLimiteAbas');
+        if (!el) {
+            el = document.createElement('div');
+            el.className = 'modal fade';
+            el.id = 'modalLimiteAbas';
+            el.tabIndex = -1;
+            el.innerHTML =
+                '<div class="modal-dialog modal-dialog-centered"><div class="modal-content">' +
+                '<div class="modal-header"><h5 class="modal-title"><i class="bi bi-exclamation-triangle text-warning me-2"></i>Aviso</h5>' +
+                '<button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>' +
+                '<div class="modal-body">Limite máximo de abas é de ' + LIMITE_ABAS + '.<br>Feche as que não está utilizando para abrir mais!</div>' +
+                '<div class="modal-footer"><button type="button" class="btn btn-primary" data-bs-dismiss="modal">OK</button></div>' +
+                '</div></div>';
+            document.body.appendChild(el);
+        }
+        bootstrap.Modal.getOrCreateInstance(el).show();
+    }
+
     // Cada clique no menu abre a tela numa aba nova, mesmo que ela ja esteja aberta
-    // (para alternar entre as abas abertas usa-se a barra de abas)
+    // (para alternar entre as abas abertas usa-se a barra de abas). No limite de
+    // abas, avisa e nao abre.
     function abrir(url, titulo, icone, tituloFixo) {
+        if (abas.length >= LIMITE_ABAS) { avisarLimiteAbas(); return null; }
         var aba = criarAba({
             chave: chaveDe(url), url: urlLimpa(url), titulo: titulo, tituloFixo: tituloFixo, icone: icone
         });
