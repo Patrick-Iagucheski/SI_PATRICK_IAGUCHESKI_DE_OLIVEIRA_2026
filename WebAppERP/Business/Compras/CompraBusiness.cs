@@ -482,15 +482,21 @@ public class CompraBusiness
         if (input.DtEmissao == null)
             throw new ValidacaoException("Informe a data de emissão.");
 
+        // Data absurda (ex.: ano 0001) e erro de digitacao: mesma faixa dos titulos.
+        if (input.DtEmissao < Module.DataTituloMinima)
+            throw new ValidacaoException("Data de emissão inválida.", $"Informe uma data a partir de {Module.DataTituloMinima:dd/MM/yyyy}.");
         if (input.DtEmissao > DateOnly.FromDateTime(DateTime.Today))
-            throw new ValidacaoException("A data de emissão não pode ser posterior à data atual.");
+            throw new ValidacaoException("A data de emissão não pode ser uma data futura.");
 
-        if (input.DtChegada != null && input.DtChegada < input.DtEmissao)
-            throw new ValidacaoException("A data de chegada não pode ser anterior à data de emissão.");
+        if (input.DtChegada < Module.DataTituloMinima)
+            throw new ValidacaoException("Data de chegada inválida.", $"Informe uma data a partir de {Module.DataTituloMinima:dd/MM/yyyy}.");
 
         // So se informa a chegada depois que a mercadoria chegou.
         if (input.DtChegada > DateOnly.FromDateTime(DateTime.Today))
-            throw new ValidacaoException("A data de chegada não pode ser posterior à data atual.");
+            throw new ValidacaoException("A data de chegada não pode ser uma data futura.");
+
+        if (input.DtChegada != null && input.DtChegada < input.DtEmissao)
+            throw new ValidacaoException("A data de chegada não pode ser anterior à data de emissão.");
 
         if (input.VlFrete < 0 || input.VlSeguro < 0 || input.VlOutrasDespesas < 0)
             throw new ValidacaoException("Frete, seguro e outros gastos não podem ser negativos.");
@@ -654,9 +660,12 @@ public class CompraBusiness
             if (dto.DtVencimento == null)
                 throw new ValidacaoException($"Parcela {seq}: informe a data de vencimento.");
             // A parcela nasce com a nota: nao vence antes da emissao.
+            if (dto.DtVencimento < Module.DataTituloMinima || dto.DtVencimento > Module.DataTituloMaxima)
+                throw new ValidacaoException($"Parcela {seq}: data de vencimento inválida.",
+                    $"Informe uma data entre {Module.DataTituloMinima:dd/MM/yyyy} e {Module.DataTituloMaxima:dd/MM/yyyy}.");
             if (input.DtEmissao is DateOnly emissao && dto.DtVencimento < emissao)
-                throw new ValidacaoException($"Parcela {seq}: o vencimento ({dto.DtVencimento:dd/MM/yyyy}) não pode ser anterior "
-                                           + $"à emissão da nota ({emissao:dd/MM/yyyy}).");
+                throw new ValidacaoException($"Parcela {seq}: a data de vencimento ({dto.DtVencimento:dd/MM/yyyy}) não pode ser "
+                                           + $"anterior à data de emissão ({emissao:dd/MM/yyyy}).");
 
             parcelas.Add(new CompraPagamento
             {

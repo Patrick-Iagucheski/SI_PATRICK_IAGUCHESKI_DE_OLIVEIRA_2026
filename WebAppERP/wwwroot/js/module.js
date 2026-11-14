@@ -568,6 +568,8 @@ function abrirPesquisaComCadastro(cfg, opcoes) {
 // lista de textos) e no lugar aparece um campo de texto com os botoes
 // X (limpa a escolha; so aparece com valor) e + (abre a pesquisa, onde se
 // seleciona, edita ou cadastra pelo Novo).
+// droplist comentado: o autocomplete descrito abaixo esta desligado (codigo
+// comentado em montarCampoSelecao); o campo so abre a pesquisa. Ao religar:
 // Autocomplete: digitando, abre uma lista com as opcoes do <select> que
 // contem o texto (sem diferenciar maiusculas nem acentos); clicar no campo
 // mostra todas. Setas andam na lista, Enter/Tab escolhem, Esc cancela. Ao
@@ -593,8 +595,8 @@ function montarCampoSelecao(sel) {
     texto.id = sel.id + 'Nome';
     texto.className = 'form-control campo-selecao';
     texto.autocomplete = 'off';
-    texto.placeholder = vazio ? vazio.textContent.trim() : 'Digite para buscar';
-    texto.title = 'Digite para buscar ou clique no + para pesquisar';
+    texto.placeholder = vazio ? vazio.textContent.trim() : 'Clique para pesquisar';
+    texto.title = 'Clique no campo ou no + para pesquisar';
     // required fica no campo visivel: o navegador mostra o aviso nele.
     if (sel.required) { texto.required = true; sel.required = false; }
 
@@ -621,6 +623,11 @@ function montarCampoSelecao(sel) {
         sel.value = '';
         sel.dispatchEvent(new Event('change', { bubbles: true }));
     };
+    // droplist comentado
+    // A lista de sugestoes que abria embaixo do campo ao digitar (autocomplete)
+    // foi retirada a pedido do professor: o registro e escolhido so pela
+    // pesquisa (botao +, clique no campo ou Enter). O codigo fica guardado abaixo.
+    /*
     // ----- Autocomplete -----
     // A lista fica no <body> com posicao fixa: assim nao e cortada por modal,
     // tabela com rolagem (grade de parcelas) nem card.
@@ -783,6 +790,21 @@ function montarCampoSelecao(sel) {
             if (lista) { e.preventDefault(); e.stopPropagation(); fecharLista(); atualizarTexto(); }
         }
     });
+    */
+
+    // Sem o droplist o campo nao aceita digitacao: clique, Enter, espaco ou seta
+    // para baixo abrem a pesquisa; Delete/Backspace limpam; Tab segue normal.
+    // (Nao usa readonly: campo readonly nao e conferido pelo required do navegador.)
+    texto.addEventListener('click', pesquisar);
+    texto.addEventListener('keydown', e => {
+        if (e.key === 'Tab' || e.ctrlKey || e.metaKey || e.altKey) return;
+        e.preventDefault();
+        if (e.key === 'Enter' || e.key === ' ' || e.key === 'ArrowDown') pesquisar();
+        else if (e.key === 'Delete' || e.key === 'Backspace') limpar();
+    });
+    texto.addEventListener('paste', e => e.preventDefault());
+    texto.addEventListener('drop', e => e.preventDefault());
+    texto.addEventListener('input', atualizarTexto);
 
     const grupo = document.createElement('div');
     grupo.className = 'input-group';
@@ -1048,6 +1070,32 @@ function escaparHtml(s) {
 
 // Data de hoje no formato ISO (2026-11-07), pelo relogio do computador.
 // toISOString() nao serve: e em UTC e, depois das 21h, ja daria o dia seguinte.
+// ===== Data minima ligada a outro campo =====
+// <input type="date" data-minimo-de="idCampo">: o calendario so libera os dias
+// a partir da data do outro campo (ex.: chegada a partir da emissao); com o max
+// de hoje, emissao de hoje deixa so o dia de hoje. Sem data no outro campo,
+// vale o min escrito no proprio campo. Atualiza ao mudar o outro campo e ao
+// abrir o calendario (valor posto pelo JS, ao editar um registro, nao avisa).
+function aplicarDataMinima(campo) {
+    if (!('minPadrao' in campo.dataset)) campo.dataset.minPadrao = campo.min || '';
+    const base = campo.dataset.minPadrao;
+    const origem = document.getElementById(campo.dataset.minimoDe)?.value || '';
+    campo.min = origem && origem > base ? origem : base;
+}
+
+(function () {
+    const ehLigado = el => el?.matches?.('input[data-minimo-de]');
+    const atualizarLigados = origem => {
+        if (!origem?.id) return;
+        document.querySelectorAll('input[data-minimo-de="' + CSS.escape(origem.id) + '"]').forEach(aplicarDataMinima);
+    };
+    document.addEventListener('focusin', e => { if (ehLigado(e.target)) aplicarDataMinima(e.target); });
+    document.addEventListener('pointerdown', e => { if (ehLigado(e.target)) aplicarDataMinima(e.target); }, true);
+    document.addEventListener('input', e => atualizarLigados(e.target));
+    document.addEventListener('change', e => atualizarLigados(e.target));
+    document.addEventListener('DOMContentLoaded', () => document.querySelectorAll('input[data-minimo-de]').forEach(aplicarDataMinima));
+})();
+
 function hojeIso() {
     const d = new Date();
     return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');

@@ -154,13 +154,13 @@
                     <div class="row g-3">
                         <div class="col-md-6">
                             <label class="form-label">Data de Emissão *</label>
-                            <input type="date" class="form-control" asp-for="DtEmissao" id="DtEmissao"
+                            <input type="date" class="form-control" asp-for="DtEmissao" id="DtEmissao" min="2000-01-01"
                                    max="@DateTime.Today.ToString("yyyy-MM-dd")" disabled="@ro" />
                             <div class="invalid-feedback" id="DtEmissaoErro"></div>
                         </div>
                         <div class="col-md-6">
                             <label class="form-label">Data de Chegada</label>
-                            <input type="date" class="form-control" asp-for="DtChegada" id="DtChegada"
+                            <input type="date" class="form-control" asp-for="DtChegada" id="DtChegada" data-minimo-de="DtEmissao" min="2000-01-01"
                                    max="@DateTime.Today.ToString("yyyy-MM-dd")" disabled="@ro" />
                             <div class="invalid-feedback" id="DtChegadaErro"></div>
                         </div>
@@ -368,7 +368,7 @@
                     </div>
                     <div class="col-md-2">
                         <label class="form-label">Vencimento</label>
-                        <input type="date" class="form-control" id="pgVencimento" />
+                        <input type="date" class="form-control" id="pgVencimento" data-minimo-de="DtEmissao" min="2000-01-01" max="2100-12-31" />
                     </div>
                     <div class="col-md-2">
                         <button type="button" class="btn btn-primary w-100" onclick="adicionarPagamento()">

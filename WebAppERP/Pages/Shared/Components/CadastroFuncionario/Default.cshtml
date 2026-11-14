@@ -123,7 +123,7 @@
                         </div>
                         <div class="col-md-4">
                             <label class="form-label">Data de Demissão</label>
-                            <input type="date" class="form-control" asp-for="FuncionarioForm.DtDemissao" id="fDem" min="1900-01-01" max="@DateTime.Today.ToString("yyyy-MM-dd")" />
+                            <input type="date" class="form-control" asp-for="FuncionarioForm.DtDemissao" id="fDem" data-minimo-de="fAdm" min="1900-01-01" max="@DateTime.Today.ToString("yyyy-MM-dd")" />
                         </div>
                         <div class="col-md-4">
                             <label class="form-label">Salário (R$)</label>

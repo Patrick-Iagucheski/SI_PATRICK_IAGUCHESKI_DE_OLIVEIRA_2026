@@ -152,7 +152,7 @@ public static class Module
     {
         if (data == null) return;
         if (data > DateOnly.FromDateTime(DateTime.Today))
-            throw new ValidacaoException("A data de nascimento não pode ser futura.");
+            throw new ValidacaoException("A data de nascimento não pode ser uma data futura.");
         if (data < new DateOnly(1900, 1, 1))
             throw new ValidacaoException("Data de nascimento inválida.", "Informe uma data a partir de 01/01/1900.");
     }
@@ -173,13 +173,13 @@ public static class Module
 
         var hoje = DateOnly.FromDateTime(DateTime.Today);
         if (emissao > hoje)
-            throw new ValidacaoException("A data de emissão não pode ser futura.");
+            throw new ValidacaoException("A data de emissão não pode ser uma data futura.");
         if (emissao != null && vencimento != null && vencimento < emissao)
-            throw new ValidacaoException("O vencimento não pode ser anterior à emissão.");
+            throw new ValidacaoException("A data de vencimento não pode ser anterior à data de emissão.");
         if (baixa > hoje)
-            throw new ValidacaoException($"A data de {nomeBaixa} não pode ser futura.");
+            throw new ValidacaoException($"A data de {nomeBaixa} não pode ser uma data futura.");
         if (emissao != null && baixa != null && baixa < emissao)
-            throw new ValidacaoException($"A data de {nomeBaixa} não pode ser anterior à emissão.");
+            throw new ValidacaoException($"A data de {nomeBaixa} não pode ser anterior à data de emissão.");
     }
 
     // Valor com mais casas decimais do que a coluna grava (o banco arredondaria sem avisar).

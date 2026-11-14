@@ -413,10 +413,12 @@ function adicionarPagamento() {
     if (passaDasCasas(valor, 2)) { exibirErro(secaoDoCampo('pgValor'), 'O valor da parcela aceita no máximo 2 casas decimais.'); return; }
 
     const venc = texto('pgVencimento');
+    if (dataIncompleta('pgVencimento')) { exibirErro(secaoDoCampo('pgValor'), 'Data de vencimento inválida.'); return; }
     if (!venc) { exibirErro(secaoDoCampo('pgValor'), 'Informe a data de vencimento.'); return; }
+    if (venc < DATA_MINIMA_COMPRA || venc > '2100-12-31') { exibirErro(secaoDoCampo('pgValor'), 'Data de vencimento inválida. Informe uma data entre 01/01/2000 e 31/12/2100.'); return; }
     // Mesma regra do servidor: a parcela nao vence antes da emissao da nota.
     const emissao = texto('DtEmissao');
-    if (emissao && venc < emissao) { exibirErro(secaoDoCampo('pgValor'), 'O vencimento não pode ser anterior à emissão da nota (' + dataBr(emissao) + ').'); return; }
+    if (emissao && venc < emissao) { exibirErro(secaoDoCampo('pgValor'), 'A data de vencimento não pode ser anterior à data de emissão (' + dataBr(emissao) + ').'); return; }
 
     const idCondicao = parseInt(document.getElementById('IdCondicaoPagamento').value) || null;
 
@@ -616,28 +618,40 @@ function marcarErroData(id, msg) {
     document.getElementById(id + 'Erro').textContent = msg;
 }
 
+// Data digitada que o navegador nao reconhece (ex.: 31/02) chega vazia no
+// value, mas com validity.badInput: e data invalida, nao campo vazio.
+function dataIncompleta(id) {
+    return document.getElementById(id)?.validity?.badInput === true;
+}
+
+// Data mais antiga aceita (mesma do servidor, Module.DataTituloMinima).
+const DATA_MINIMA_COMPRA = '2000-01-01';
+
 // Etapa 2: emissao obrigatoria e ate hoje; chegada opcional, nunca
 // antes da emissao (pode ser no mesmo dia) e nunca futura, pois so se
-// informa depois que a mercadoria chegou. Retorna o primeiro erro.
+// informa depois que a mercadoria chegou. A mensagem embaixo do campo diz
+// o motivo (mesmas mensagens do servidor). Retorna o primeiro erro.
 function validarDatas() {
     const emissao = texto('DtEmissao');
     const chegada = texto('DtChegada');
     let erroEmissao = '', erroChegada = '';
 
-    // Embaixo do campo a mensagem e so "Data inválida." (pedido do
-    // usuario); o motivo fica nos comentarios das regras abaixo.
-    const INVALIDA = 'Data inválida.';
-
-    // Emissao: obrigatoria e nunca futura.
-    if (!emissao) erroEmissao = 'Informe a data de emissão.';
-    else if (emissao > hojeIso()) erroEmissao = INVALIDA;
+    // Emissao: obrigatoria, a partir de 2000 e nunca futura.
+    if (dataIncompleta('DtEmissao')) erroEmissao = 'Data de emissão inválida.';
+    else if (!emissao) erroEmissao = 'Informe a data de emissão.';
+    else if (emissao < DATA_MINIMA_COMPRA) erroEmissao = 'Data de emissão inválida. Informe uma data a partir de 01/01/2000.';
+    else if (emissao > hojeIso()) erroEmissao = 'A data de emissão não pode ser uma data futura.';
 
     // Chegada: nunca futura e nunca antes da emissao. So compara com a
     // emissao quando ela e valida, para nao acusar a chegada a toa.
-    if (chegada && chegada > hojeIso())
-        erroChegada = INVALIDA;
+    if (dataIncompleta('DtChegada'))
+        erroChegada = 'Data de chegada inválida.';
+    else if (chegada && chegada < DATA_MINIMA_COMPRA)
+        erroChegada = 'Data de chegada inválida. Informe uma data a partir de 01/01/2000.';
+    else if (chegada && chegada > hojeIso())
+        erroChegada = 'A data de chegada não pode ser uma data futura.';
     else if (chegada && emissao && !erroEmissao && chegada < emissao)
-        erroChegada = INVALIDA;
+        erroChegada = 'A data de chegada não pode ser anterior à data de emissão.';
 
     marcarErroData('DtEmissao', erroEmissao);
     marcarErroData('DtChegada', erroChegada);

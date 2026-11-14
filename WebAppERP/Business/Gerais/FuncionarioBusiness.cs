@@ -154,13 +154,13 @@ public class FuncionarioBusiness
         if (f.DtAdmissao == default)
             throw new ValidacaoException("Informe a data de admissão.");
         if (f.DtAdmissao > hoje)
-            throw new ValidacaoException("A data de admissão não pode ser futura.");
+            throw new ValidacaoException("A data de admissão não pode ser uma data futura.");
         if (f.DtAdmissao < new DateOnly(1900, 1, 1))
             throw new ValidacaoException("Data de admissão inválida.", "Informe uma data a partir de 01/01/1900.");
         if (f.DtDemissao != null && f.DtDemissao < f.DtAdmissao)
-            throw new ValidacaoException("A data de demissão não pode ser anterior à admissão.");
+            throw new ValidacaoException("A data de demissão não pode ser anterior à data de admissão.");
         if (f.DtDemissao > hoje)
-            throw new ValidacaoException("A data de demissão não pode ser futura.");
+            throw new ValidacaoException("A data de demissão não pode ser uma data futura.");
         Module.ValidarNascimento(f.DtNascimento);
 
         if (f.VlSalario < 0)

@@ -893,6 +893,13 @@ input[id$="CodigoDisplay"] {
 .autocomplete-lista .autocomplete-detalhe { font-size: 0.78rem; color: #6c757d; line-height: 1.2; }
 .autocomplete-lista .autocomplete-item.active .autocomplete-detalhe { color: rgba(255, 255, 255, 0.85); }
 
+/* droplist comentado: o campo nao aceita digitacao, so abre a pesquisa ao
+   clicar (sem cursor de texto piscando). Campo desabilitado fica como esta. */
+.campo-selecao:not(:disabled) {
+    cursor: pointer;
+    caret-color: transparent;
+}
+
 /* ============================================
    Cadastros em MAIUSCULO
    ============================================
