@@ -2,7 +2,7 @@
 
 // Filtro da lista (funcao em wwwroot/js/module.js): filtra no botao Buscar ou no Enter.
 const aplicarBusca = filtrarTabela('#tblCidades tbody tr', {
-    texto: 'buscaTexto', codigo: 'buscaId', atributos: { uf: 'buscaEstado' }, contador: 'contadorRegistros'
+    texto: 'buscaTexto', codigo: 'buscaId', atributos: { estado: 'buscaEstado' }, contador: 'contadorRegistros'
 });
 
 function limparForm() {

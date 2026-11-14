@@ -5,9 +5,10 @@ using WebAppERP.DTOs.Estoque;
 
 namespace WebAppERP.Business.Estoque;
 
-// Regras da movimentacao de estoque. Todo ajuste de saldo do produto passa por
-// Registrar: o saldo muda e o movimento fica gravado, para o Balancete e a tela
-// de Movimentacao mostrarem de onde veio cada entrada e saida.
+// Regras da movimentacao de estoque. O estoque so entra pela compra e so sai
+// pela venda (nao ha lancamento manual): as duas passam por Registrar, o saldo
+// muda e o movimento fica gravado, para o Balancete e a tela de Movimentacao
+// (so consulta) mostrarem de onde veio cada entrada e saida.
 public class MovimentacaoEstoqueBusiness
 {
     private readonly AppDbContext _db;
@@ -15,8 +16,8 @@ public class MovimentacaoEstoqueBusiness
     public MovimentacaoEstoqueBusiness(AppDbContext db) => _db = db;
 
     // ============================================================
-    // Registro (chamado pela compra, pela venda e pelo lancamento manual,
-    // dentro da transacao de quem chama; quem chama grava)
+    // Registro (chamado pela compra e pela venda, dentro da transacao de quem
+    // chama; quem chama grava)
     // ============================================================
 
     // quantidade: positiva entra, negativa sai. estorno: desfaz uma compra ou
@@ -26,8 +27,7 @@ public class MovimentacaoEstoqueBusiness
     // e ajustado, para o saldo de cada movimento seguir a ordem das datas.
     // O custo medio do produto ja deve estar recalculado por quem chama.
     public async Task Registrar(Produto produto, decimal quantidade, string origem, bool estorno, decimal? custoUnitario,
-                                Venda? venda = null, CompraChaveDTO? compra = null, string? observacao = null,
-                                int? idMovimentacaoOrigem = null, DateTime? data = null)
+                                Venda? venda = null, CompraChaveDTO? compra = null, DateTime? data = null)
     {
         if (quantidade == 0) return;
 
@@ -68,94 +68,9 @@ public class MovimentacaoEstoqueBusiness
             NrNota = compra?.NrNota,
             NrSerie = compra?.NrSerie,
             NrModelo = compra?.NrModelo,
-            IdFornecedor = compra?.IdFornecedor,
-            DsObservacao = Module.Truncar(observacao, 500),
-            IdMovimentacaoOrigem = idMovimentacaoOrigem
+            IdFornecedor = compra?.IdFornecedor
         });
     }
-
-    // ============================================================
-    // Lancamento manual (tela de Movimentacao)
-    // ============================================================
-
-    // Entrada, saida ou perda sem compra ou venda. O motivo e obrigatorio. A
-    // entrada informa o custo unitario e recalcula o custo medio (e assim que o
-    // produto novo ganha estoque e custo sem compra); saida e perda usam o custo
-    // medio atual e podem deixar o saldo negativo (a tela confirma antes).
-    public async Task LancarManual(LancamentoEstoqueDTO lancamento)
-    {
-        var tipo = (lancamento.TpLancamento ?? "").Trim().ToUpper();
-        if (tipo is not (LancamentoEstoqueDTO.ENTRADA or LancamentoEstoqueDTO.SAIDA or LancamentoEstoqueDTO.PERDA))
-            throw new ValidacaoException("Selecione o tipo do lançamento.");
-        if (lancamento.IdProduto <= 0)
-            throw new ValidacaoException("Selecione o produto.");
-
-        await using var tx = await _db.Database.BeginTransactionAsync();
-        var produto = await ProdutoTravado(lancamento.IdProduto)
-            ?? throw new ValidacaoException("Produto não encontrado.");
-        if (!produto.FlAtivo)
-            throw new ValidacaoException("Produto inativo não pode ser movimentado.");
-
-        var quantidade = Math.Round(lancamento.QtMovimento, 4);
-        if (quantidade <= 0)
-            throw new ValidacaoException("Informe a quantidade do lançamento.");
-
-        var motivo = lancamento.DsObservacao?.Trim();
-        if (string.IsNullOrEmpty(motivo))
-            throw new ValidacaoException("Informe o motivo do lançamento.", "Ex.: contagem do estoque, produto vencido, quebra.");
-        if (motivo.Length > 500)
-            throw new ValidacaoException("O motivo deve ter no máximo 500 caracteres.");
-
-        var custo = produto.VlCusto;
-        if (tipo == LancamentoEstoqueDTO.ENTRADA)
-        {
-            if (lancamento.VlCustoUnitario is not > 0)
-                throw new ValidacaoException("Informe o custo unitário da entrada.", "Ele é usado no custo médio do produto.");
-            custo = Math.Round(lancamento.VlCustoUnitario.Value, 6);
-            AplicarCustoMedio(produto, quantidade, custo.Value);
-        }
-
-        await Registrar(produto, tipo == LancamentoEstoqueDTO.ENTRADA ? quantidade : -quantidade,
-                  tipo == LancamentoEstoqueDTO.PERDA ? MovimentacaoEstoque.PERDA : MovimentacaoEstoque.AJUSTE,
-                  estorno: false, custo, observacao: motivo);
-        await _db.SaveChangesAsync();
-        await tx.CommitAsync();
-    }
-
-    // Movimento nao e excluido nem alterado: lancamento manual errado e desfeito
-    // com o movimento contrario. Compra e venda se desfazem pelo cancelamento delas.
-    public async Task Estornar(int id)
-    {
-        var movimento = await _db.Movimentacoes.FindAsync(id)
-            ?? throw new ValidacaoException("Lançamento não encontrado.");
-        if (movimento.DsOrigem is not (MovimentacaoEstoque.AJUSTE or MovimentacaoEstoque.PERDA))
-            throw new ValidacaoException("Só lançamentos manuais podem ser estornados.",
-                                         "Movimento de compra ou venda é desfeito cancelando a compra ou a venda.");
-        if (movimento.FlEstorno)
-            throw new ValidacaoException("Este lançamento já é um estorno.");
-
-        await using var tx = await _db.Database.BeginTransactionAsync();
-        var produto = await ProdutoTravado(movimento.IdProduto)
-            ?? throw new ValidacaoException("Produto não encontrado.");
-        if (await _db.Movimentacoes.AnyAsync(m => m.IdMovimentacaoOrigem == id))
-            throw new ValidacaoException("Este lançamento já foi estornado.");
-
-        // Estorno de entrada desfaz a media daquela entrada (como na compra).
-        // Estorno de saida devolve as unidades com o custo que tinham ao sair:
-        // se entrou mercadoria com outro custo nesse meio tempo, a media muda.
-        if (movimento.VlCustoUnitario is decimal custoMovimento)
-            AplicarCustoMedio(produto, -movimento.QtComSinal, custoMovimento);
-
-        await Registrar(produto, -movimento.QtComSinal, movimento.DsOrigem, estorno: true, movimento.VlCustoUnitario,
-                  observacao: $"Estorno do lançamento Nº {id}", idMovimentacaoOrigem: id);
-        await _db.SaveChangesAsync();
-        await tx.CommitAsync();
-    }
-
-    // Lancamento manual que ainda pode ser estornado (botao da grade).
-    public static bool PodeEstornar(MovimentacaoEstoque m, HashSet<int> estornados) =>
-        m.DsOrigem is MovimentacaoEstoque.AJUSTE or MovimentacaoEstoque.PERDA
-        && !m.FlEstorno && !estornados.Contains(m.IdMovimentacao);
 
     // ============================================================
     // Consultas
@@ -196,19 +111,7 @@ public class MovimentacaoEstoqueBusiness
             throw new ValidacaoException("A data final não pode ser anterior à data inicial.");
     }
 
-    // Lancamentos da lista que ja foram estornados.
-    public async Task<HashSet<int>> Estornados(IEnumerable<MovimentacaoEstoque> movimentos)
-    {
-        var ids = movimentos.Select(m => m.IdMovimentacao).ToList();
-        if (ids.Count == 0) return [];
-        var estornados = await _db.Movimentacoes
-            .Where(m => m.IdMovimentacaoOrigem != null && ids.Contains(m.IdMovimentacaoOrigem.Value))
-            .Select(m => m.IdMovimentacaoOrigem!.Value)
-            .ToListAsync();
-        return estornados.ToHashSet();
-    }
-
-    // Custo medio ponderado, conforme definido em aula (compra e entrada manual):
+    // Custo medio ponderado, conforme definido em aula (entrada da compra):
     //   custoMedio = (saldo * custo + qtde * custoUnit) / (saldo + qtde)
     // Na compra, custoUnit e o VlCustoUnitario do item, que ja sai com o
     // desconto e com o rateio de frete/seguro/outros. No estorno qtde vem
@@ -229,12 +132,6 @@ public class MovimentacaoEstoqueBusiness
         // 6 casas, igual ao custo unitario do item da compra.
         return Math.Round(custoMedio, 6, MidpointRounding.AwayFromZero);
     }
-
-    // Entrada (ou estorno dela) recalcula o custo medio com o saldo ANTERIOR
-    // ao movimento, por isso antes do Registrar.
-    private static void AplicarCustoMedio(Produto produto, decimal quantidade, decimal custoUnit) =>
-        produto.VlCusto = CalcularCustoMedio(produto.QtSaldo ?? 0, produto.VlCusto ?? 0, quantidade, custoUnit)
-                          ?? produto.VlCusto;
 
     // Produto para movimentar, com a linha travada ate o fim da transacao de quem
     // chama: duas gravacoes do mesmo produto ao mesmo tempo (venda e compra, por
@@ -262,8 +159,8 @@ public class MovimentacaoEstoqueBusiness
     // Balancete
     // ============================================================
 
-    // Por produto: saldo antes do periodo, compras, vendas, ajustes e perdas no
-    // periodo e saldo final. Lista os produtos ativos e os inativos que tiveram
+    // Por produto: saldo antes do periodo, compras e vendas no periodo e saldo
+    // final. Lista os produtos ativos e os inativos que tiveram
     // movimento ate o fim do periodo.
     //   saldo: NEGATIVO, ZERADO, POSITIVO ou vazio (todos), sobre o saldo final.
     //   somenteComMovimento: so quem movimentou dentro do periodo.
@@ -279,8 +176,8 @@ public class MovimentacaoEstoqueBusiness
         if (idProduto.HasValue)
             movimentos = movimentos.Where(m => m.IdProduto == idProduto.Value);
 
-        // Cada coluna soma as quantidades com sinal; vendas e perdas viram
-        // positivas (saida), e o estorno entra com o sinal contrario.
+        // Cada coluna soma as quantidades com sinal; vendas viram positivas
+        // (saida), e o estorno entra com o sinal contrario.
         var somas = await movimentos
             .GroupBy(m => m.IdProduto)
             .Select(g => new
@@ -291,10 +188,6 @@ public class MovimentacaoEstoqueBusiness
                 Compras = g.Sum(m => m.DtMovimento >= de && m.DsOrigem == MovimentacaoEstoque.COMPRA
                     ? (m.TpMovimento == MovimentacaoEstoque.ENTRADA ? m.QtMovimento : -m.QtMovimento) : 0m),
                 Vendas = g.Sum(m => m.DtMovimento >= de && m.DsOrigem == MovimentacaoEstoque.VENDA
-                    ? (m.TpMovimento == MovimentacaoEstoque.SAIDA ? m.QtMovimento : -m.QtMovimento) : 0m),
-                Ajustes = g.Sum(m => m.DtMovimento >= de && m.DsOrigem == MovimentacaoEstoque.AJUSTE
-                    ? (m.TpMovimento == MovimentacaoEstoque.ENTRADA ? m.QtMovimento : -m.QtMovimento) : 0m),
-                Perdas = g.Sum(m => m.DtMovimento >= de && m.DsOrigem == MovimentacaoEstoque.PERDA
                     ? (m.TpMovimento == MovimentacaoEstoque.SAIDA ? m.QtMovimento : -m.QtMovimento) : 0m),
                 Movimentos = g.Count(m => m.DtMovimento >= de),
                 // Custo medio no fim do periodo: o do ultimo movimento ate la.
@@ -324,8 +217,6 @@ public class MovimentacaoEstoqueBusiness
                 QtSaldoInicial = s?.Inicial ?? 0,
                 QtCompras = s?.Compras ?? 0,
                 QtVendas = s?.Vendas ?? 0,
-                QtAjustes = s?.Ajustes ?? 0,
-                QtPerdas = s?.Perdas ?? 0,
                 QtMovimentos = s?.Movimentos ?? 0,
                 VlCustoMedio = s?.CustoMedio ?? p.VlCusto ?? 0
             });

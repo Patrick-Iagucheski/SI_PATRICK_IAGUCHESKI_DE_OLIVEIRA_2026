@@ -9,7 +9,7 @@
 <div class="d-flex justify-content-between align-items-start mb-4">
     <div>
         <h1 class="page-title">Balancete de Estoque</h1>
-        <p class="page-subtitle">Saldo inicial, compras, vendas, ajustes, perdas e saldo final de cada produto no período</p>
+        <p class="page-subtitle">Saldo inicial, compras, vendas e saldo final de cada produto no período</p>
     </div>
 </div>
 
@@ -19,7 +19,7 @@
 }
 
 <!-- Indicadores (sobre os produtos listados) -->
-<div class="row row-cols-1 row-cols-sm-2 row-cols-lg-3 row-cols-xl-5 g-3 mb-4">
+<div class="row row-cols-1 row-cols-sm-2 row-cols-lg-4 g-3 mb-4">
     <div class="col">
         <div class="card kpi-card kpi-blue">
             <div class="card-body d-flex align-items-center justify-content-between">
@@ -42,19 +42,6 @@
                 </div>
                 <div class="kpi-icon" style="background: #dcfce7; color: #10b981;">
                     <i class="bi bi-box-arrow-up"></i>
-                </div>
-            </div>
-        </div>
-    </div>
-    <div class="col">
-        <div class="card kpi-card kpi-orange">
-            <div class="card-body d-flex align-items-center justify-content-between">
-                <div>
-                    <div class="kpi-label">Perdas</div>
-                    <div class="kpi-value mt-1">@Qt(Model.TotPerdas)</div>
-                </div>
-                <div class="kpi-icon" style="background: #ffedd5; color: #f97316;">
-                    <i class="bi bi-trash3"></i>
                 </div>
             </div>
         </div>
@@ -101,7 +88,8 @@
             </div>
             <div class="col-md-4">
                 <label class="form-label small mb-1">Produto</label>
-                <select class="form-select" name="produto">
+                <select class="form-select" name="produto" id="balProduto"
+                        data-pesquisa="abrirPesquisaProduto(opcoesDoSelect('balProduto'))" data-titulo-pesquisa="Pesquisar produto">
                     <option value="">Todos</option>
                     @foreach (var p in Model.Produtos)
                     {
@@ -149,8 +137,6 @@
                     <th class="text-end">Saldo Inicial</th>
                     <th class="text-end">Compras</th>
                     <th class="text-end">Vendas</th>
-                    <th class="text-end">Ajustes</th>
-                    <th class="text-end">Perdas</th>
                     <th class="text-end">Saldo Final</th>
                     <th class="text-end">Custo Médio</th>
                     <th class="text-end">Valor em Estoque</th>
@@ -159,7 +145,7 @@
             <tbody>
                 @if (Model.Linhas.Count == 0)
                 {
-                    <tr><td colspan="11" class="text-center text-muted py-3">Nenhum produto encontrado para os filtros informados</td></tr>
+                    <tr><td colspan="9" class="text-center text-muted py-3">Nenhum produto encontrado para os filtros informados</td></tr>
                 }
                 @foreach (var l in Model.Linhas)
                 {
@@ -178,8 +164,6 @@
                         <td class="text-end @(l.QtSaldoInicial < 0 ? "text-danger" : "")">@Qt(l.QtSaldoInicial)</td>
                         <td class="text-end">@Qt(l.QtCompras)</td>
                         <td class="text-end">@Qt(l.QtVendas)</td>
-                        <td class="text-end">@(l.QtAjustes > 0 ? "+" : "")@Qt(l.QtAjustes)</td>
-                        <td class="text-end @(l.QtPerdas > 0 ? "text-danger fw-semibold" : "")">@Qt(l.QtPerdas)</td>
                         <td class="text-end fw-bold @(negativo ? "text-danger" : "")">
                             @Qt(l.QtSaldoFinal)
                             @if (negativo)
@@ -196,7 +180,7 @@
             {
                 <tfoot>
                     <tr class="fw-bold">
-                        <td colspan="10" class="text-end">Valor total em estoque</td>
+                        <td colspan="8" class="text-end">Valor total em estoque</td>
                         <td class="text-end">R$ @Model.VlEstoque.ToString("N2")</td>
                     </tr>
                 </tfoot>
@@ -204,3 +188,6 @@
         </table>
     </div>
 </div>
+
+<!-- Cadastro de produto: Novo / Editar da pesquisa do filtro Produto -->
+@await Component.InvokeAsync("CadastroProduto", new { modo = "ajax" })

@@ -76,12 +76,13 @@
             </div>
             <div class="col-md-3">
                 <label class="form-label small mb-1">Cliente</label>
-                <select class="form-select" id="buscaCliente">
+                <select class="form-select" id="buscaCliente"
+                        data-pesquisa="abrirPesquisaCliente(opcoesDoSelect('buscaCliente'))" data-titulo-pesquisa="Pesquisar cliente">
                     <option value="">Todos</option>
                     @foreach (var cli in Model.ClientesFiltro)
                     {
-                        @* Filtro (lista do navegador, uma linha so): documento depois do nome *@
-                        <option value="@cli.IdCliente">@cli.NmCliente@(Module.DocumentoPessoa(cli) is { } docCli ? " - " + docCli : "")@(cli.FlAtivo ? "" : " (inativo)")</option>
+                        @* Filtro com todos, inclusive inativos; o documento e a segunda linha da lista *@
+                        <option value="@cli.IdCliente" data-detalhe="@Module.DocumentoPessoa(cli)">@cli.NmCliente@(cli.FlAtivo ? "" : " (inativo)")</option>
                     }
                 </select>
             </div>

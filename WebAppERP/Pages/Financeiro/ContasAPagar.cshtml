@@ -76,12 +76,13 @@
             </div>
             <div class="col-md-3">
                 <label class="form-label small mb-1">Fornecedor</label>
-                <select class="form-select" id="buscaFornecedor">
+                <select class="form-select" id="buscaFornecedor"
+                        data-pesquisa="abrirPesquisaFornecedor(opcoesDoSelect('buscaFornecedor', f => f.razaoSocial))" data-titulo-pesquisa="Pesquisar fornecedor">
                     <option value="">Todos</option>
                     @foreach (var f in Model.Fornecedores)
                     {
-                        @* Filtro (lista do navegador, uma linha so): documento depois do nome *@
-                        <option value="@f.IdFornecedor">@f.DsRazaoSocial@(Module.DocumentoPessoa(f) is { } docForn ? " - " + docForn : "")@(f.FlAtivo ? "" : " (inativo)")</option>
+                        @* Filtro com todos, inclusive inativos; o documento e a segunda linha da lista *@
+                        <option value="@f.IdFornecedor" data-detalhe="@Module.DocumentoPessoa(f)">@f.DsRazaoSocial@(f.FlAtivo ? "" : " (inativo)")</option>
                     }
                 </select>
             </div>

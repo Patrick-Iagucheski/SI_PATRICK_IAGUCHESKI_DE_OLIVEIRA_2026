@@ -4,8 +4,8 @@ using System.ComponentModel.DataAnnotations.Schema;
 namespace WebAppERP.Models.Estoque;
 
 // Movimentacao de estoque: cada entrada ou saida de produto, com o saldo que
-// ficou depois dela. Gravada pela compra, pela venda e pelo lancamento manual
-// (MovimentacaoEstoqueBusiness.Registrar). Texto gravado em MAIUSCULO.
+// ficou depois dela. Gravada so pela compra (entrada) e pela venda (saida),
+// em MovimentacaoEstoqueBusiness.Registrar. Texto gravado em MAIUSCULO.
 [CaixaAlta]
 [Table("tbEstMovimentacoes")]
 public class MovimentacaoEstoque : EntidadeComRegistro
@@ -17,8 +17,6 @@ public class MovimentacaoEstoque : EntidadeComRegistro
     // Origens (DsOrigem)
     public const string COMPRA = "COMPRA";
     public const string VENDA  = "VENDA";
-    public const string AJUSTE = "AJUSTE";   // lancamento manual
-    public const string PERDA  = "PERDA";    // saida manual por perda, quebra ou vencimento
 
     [Key]
     [Column("idMovimentacao")]
@@ -38,10 +36,10 @@ public class MovimentacaoEstoque : EntidadeComRegistro
     [Required, MaxLength(10)]
     public string TpMovimento { get; set; } = ENTRADA;
 
-    // COMPRA | VENDA | AJUSTE | PERDA
+    // COMPRA | VENDA
     [Column("dsOrigem")]
     [Required, MaxLength(20)]
-    public string DsOrigem { get; set; } = AJUSTE;
+    public string DsOrigem { get; set; } = COMPRA;
 
     // Sempre positiva; o sentido vem do TpMovimento.
     [Column("qtMovimento", TypeName = "decimal(12,4)")]
@@ -87,10 +85,6 @@ public class MovimentacaoEstoque : EntidadeComRegistro
 
     // Ligacao configurada no AppDbContext (chave composta da compra).
     public Compra? Compra { get; set; }
-
-    // Estorno de lancamento manual: o lancamento que este movimento desfaz.
-    [Column("idMovimentacaoOrigem")]
-    public int? IdMovimentacaoOrigem { get; set; }
 
     [MultiLinha]
     [Column("dsObservacao")]

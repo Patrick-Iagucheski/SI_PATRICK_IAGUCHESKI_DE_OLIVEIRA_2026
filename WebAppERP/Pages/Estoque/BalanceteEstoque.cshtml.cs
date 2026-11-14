@@ -31,7 +31,6 @@ public class BalanceteEstoqueModel : PaginaBase
     // Indicadores sobre as linhas listadas
     public decimal TotCompras => Linhas.Sum(l => l.QtCompras);
     public decimal TotVendas => Linhas.Sum(l => l.QtVendas);
-    public decimal TotPerdas => Linhas.Sum(l => l.QtPerdas);
     public int QtNegativos => Linhas.Count(l => l.QtSaldoFinal < 0);
     public decimal VlEstoque => Linhas.Sum(l => l.VlEstoque);
 

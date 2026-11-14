@@ -28,11 +28,12 @@
             </div>
             <div class="col-md-3">
                 <label class="form-label small mb-1">Estado</label>
-                <select class="form-select" id="buscaEstado">
+                <select class="form-select" id="buscaEstado"
+                        data-pesquisa="abrirPesquisaEstado('buscaEstado')" data-titulo-pesquisa="Pesquisar estado">
                     <option value="">Todos os Estados</option>
                     @foreach (var estado in Model.Estados)
                     {
-                        <option value="@estado.SgUF">@estado.NmEstado</option>
+                        <option value="@estado.IdEstado">@estado.NmEstado</option>
                     }
                 </select>
             </div>
@@ -69,7 +70,7 @@
                 {
                     @foreach (var c in Model.Cidades)
                     {
-                        <tr data-uf="@c.Estado?.SgUF">
+                        <tr data-estado="@c.IdEstado">
                             <td>@c.IdCidade</td>
                             <td><strong>@c.NmCidade</strong></td>
                             <td>@(c.Estado?.NmEstado ?? "-")</td>
